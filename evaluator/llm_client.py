@@ -56,9 +56,12 @@ class LLMClient:
             payload["tools"] = tools
         
         headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
+            "Content-Type": "application/json"
         }
+        
+        # Only add Authorization header if API key is set
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
         
         try:
             start_time = time.time()

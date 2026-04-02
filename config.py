@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 # LLM Configuration (OpenAI-compatible endpoint)
 # For OpenRouter: https://openrouter.ai/api/v1
