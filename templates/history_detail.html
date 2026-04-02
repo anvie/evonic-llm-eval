@@ -407,6 +407,15 @@ function showModalWithData(domain, level, data) {
                 ${data.response ? escapeHtml(data.response) : '<em style="color: #999;">No response recorded</em>'}
             </div>
         </div>
+        
+        ${data.details && data.details.thinking ? `
+        <div class="detail-section">
+            <div class="detail-header" style="color: #7c3aed; border-color: #7c3aed;">🧠 Thinking Process</div>
+            <div class="detail-content" style="background: #f5f3ff; border-left: 4px solid #7c3aed; max-height: 300px; overflow-y: auto;">
+                <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85rem; margin: 0; color: #4c1d95;">${escapeHtml(data.details.thinking)}</pre>
+            </div>
+        </div>
+        ` : ''}
     `;
     
     if (data.details) {
@@ -573,11 +582,16 @@ function formatDetails(details) {
                 html += `<p><strong>Expected Result:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto; max-height: 200px;">${escapeHtml(JSON.stringify(parsed.expected_result, null, 2))}</pre>`;
             }
             
-            // Show any other fields (exclude pass2 as it's handled separately)
-            const shownKeys = ['details', 'error', 'sql_query', 'row_count', 'actual_result', 'expected_result', 'pass2'];
+            // Show any other fields (exclude pass2, thinking, llm_error as they're handled separately)
+            const shownKeys = ['details', 'error', 'sql_query', 'row_count', 'actual_result', 'expected_result', 'pass2', 'thinking', 'llm_error'];
             const otherKeys = Object.keys(parsed).filter(k => !shownKeys.includes(k));
             if (otherKeys.length > 0) {
-                html += `<p><strong>Additional Info:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+                // Show only non-excluded fields
+                const filteredParsed = {};
+                for (const key of otherKeys) {
+                    filteredParsed[key] = parsed[key];
+                }
+                html += `<p><strong>Additional Info:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(JSON.stringify(filteredParsed, null, 2))}</pre>`;
             }
             
             return html || `<pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;

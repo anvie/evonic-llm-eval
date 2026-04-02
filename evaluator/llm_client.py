@@ -1,8 +1,38 @@
 import requests
 import json
 import time
-from typing import Dict, Any, Optional
+import re
+from typing import Dict, Any, Optional, Tuple
 import config
+
+def strip_thinking_tags(content: str) -> Tuple[str, Optional[str]]:
+    """
+    Strip thinking tags (<tool_call>...`) from content.
+    
+    Returns:
+        Tuple of (cleaned_content, thinking_content)
+        - cleaned_content: content without thinking tags
+        - thinking_content: the extracted thinking content (or None if no thinking tags)
+    """
+    if not content:
+        return content, None
+    
+    # Pattern to match thinking tags (non-greedy)
+    thinking_pattern = r'<think>(.*?)</think>'
+    
+    # Find all thinking blocks
+    thinking_matches = re.findall(thinking_pattern, content, re.DOTALL)
+    
+    # Remove thinking tags from content
+    cleaned = re.sub(thinking_pattern, '', content, flags=re.DOTALL)
+    
+    # Clean up extra whitespace
+    cleaned = cleaned.strip()
+    
+    thinking_content = '\n'.join(thinking_matches) if thinking_matches else None
+    
+    return cleaned, thinking_content
+
 
 class LLMClient:
     def __init__(self):
@@ -118,8 +148,17 @@ class LLMClient:
                 "error_detail": str(e)
             }
     
-    def extract_content(self, response: Dict[str, Any]) -> str:
-        """Extract text content from LLM response"""
+    def extract_content(self, response: Dict[str, Any], strip_thinking: bool = True) -> str:
+        """
+        Extract text content from LLM response.
+        
+        Args:
+            response: The LLM response dict
+            strip_thinking: If True, strip content inside <tool_call>...` tags (for thinking models)
+        
+        Returns:
+            The extracted content (with or without thinking tags)
+        """
         if not response.get("success"):
             error_msg = response['response'].get('error', 'Unknown error')
             error_detail = response.get('error_detail', '')
@@ -144,7 +183,50 @@ class LLMClient:
             # Mars endpoint may return answer in reasoning_content
             content = message.get("reasoning_content", "")
         
-        return content if content else "No content generated"
+        if not content:
+            return "No content generated"
+        
+        # Strip thinking tags if requested
+        if strip_thinking:
+            cleaned, _ = strip_thinking_tags(content)
+            return cleaned
+        
+        return content
+    
+    def extract_content_with_thinking(self, response: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract both thinking and final content from LLM response.
+        
+        Returns:
+            Dict with:
+            - content: final content (without thinking tags)
+            - thinking: thinking content (or None)
+            - raw: original content with thinking tags
+        """
+        if not response.get("success"):
+            return {
+                "content": self.extract_content(response),
+                "thinking": None,
+                "raw": None
+            }
+        
+        choices = response["response"].get("choices", [])
+        if not choices:
+            return {"content": "No response generated", "thinking": None, "raw": None}
+        
+        message = choices[0].get("message", {})
+        raw_content = message.get("content", "") or message.get("reasoning_content", "")
+        
+        if not raw_content:
+            return {"content": "No content generated", "thinking": None, "raw": None}
+        
+        cleaned, thinking = strip_thinking_tags(raw_content)
+        
+        return {
+            "content": cleaned,
+            "thinking": thinking,
+            "raw": raw_content
+        }
     
     def get_error_info(self, response: Dict[str, Any]) -> Optional[Dict[str, str]]:
         """Get error information from failed response"""

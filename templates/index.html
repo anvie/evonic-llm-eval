@@ -600,6 +600,18 @@ function showModalWithData(domain, level, data) {
         </div>
     `;
     
+    // Thinking Section - if thinking content is present
+    if (data.details && data.details.thinking) {
+        detailsHtml += `
+            <div class="detail-section">
+                <div class="detail-header" style="color: #7c3aed; border-color: #7c3aed;">🧠 Thinking Process</div>
+                <div class="detail-content" style="background: #f5f3ff; border-left: 4px solid #7c3aed; max-height: 300px; overflow-y: auto;">
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85rem; margin: 0; color: #4c1d95;">${escapeHtml(data.details.thinking)}</pre>
+                </div>
+            </div>
+        `;
+    }
+    
     // Additional details if available
     if (data.details) {
         detailsHtml += `
@@ -869,9 +881,18 @@ function formatDetails(details) {
                 html += `<pre class="code-block" style="max-height: 150px; font-size: 0.75rem;">${escapeHtml(JSON.stringify(parsed.actual_result_preview, null, 2))}</pre>`;
             }
             
-            // Show raw details if nothing specific was shown
+            // Show raw details if nothing specific was shown (exclude thinking, llm_error, pass2 which are shown separately)
             if (!html) {
-                html = `<pre class="code-block">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+                const excludeKeys = ['thinking', 'llm_error', 'pass2'];
+                const filteredParsed = {};
+                for (const [key, value] of Object.entries(parsed)) {
+                    if (!excludeKeys.includes(key)) {
+                        filteredParsed[key] = value;
+                    }
+                }
+                if (Object.keys(filteredParsed).length > 0) {
+                    html = `<pre class="code-block">${escapeHtml(JSON.stringify(filteredParsed, null, 2))}</pre>`;
+                }
             }
             
             return html;

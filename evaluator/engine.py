@@ -298,7 +298,15 @@ class EvaluationEngine:
             self.total_tokens += total_tokens
             self.total_duration_ms += duration_ms
             
-            response_content = llm_client.extract_content(llm_response)
+            # Extract content with thinking separation
+            content_info = llm_client.extract_content_with_thinking(llm_response)
+            response_content = content_info["content"]  # Final content (without thinking)
+            thinking_content = content_info["thinking"]  # Thinking content (if present)
+            raw_content = content_info["raw"]  # Original content
+            
+            # Log if thinking content was detected
+            if thinking_content:
+                self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
             
             # Log response (truncated)
             response_display = response_content[:200] + '...' if len(response_content) > 200 else response_content
@@ -309,7 +317,7 @@ class EvaluationEngine:
             evaluator = get_evaluator(domain)
             self._log(f'[EVAL] Using {evaluator.name} (PASS2: {evaluator.uses_pass2})')
             
-            # Evaluate using domain-specific strategy
+            # Evaluate using domain-specific strategy (only final content, not thinking)
             self._log(f'[SCORING] Evaluating response...')
             result = evaluator.evaluate(response_content, expected, level)
             
@@ -317,6 +325,10 @@ class EvaluationEngine:
             details = result.details
             if not isinstance(details, dict):
                 details = {"details": str(details)}
+            
+            # Add thinking content to details if present
+            if thinking_content:
+                details["thinking"] = thinking_content
             
             # Add LLM error info to details if present
             if error_info:
