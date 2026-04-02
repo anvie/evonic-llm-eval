@@ -640,7 +640,7 @@ class EvaluationEngine:
 
 
 # Global evaluation engine instance (uses legacy tests by default)
-evaluation_engine = EvaluationEngine(use_configurable_tests=False)
+evaluation_engine = EvaluationEngine(use_configurable_tests=True)
 
 # Configurable test engine (for when user wants to use JSON test definitions)
 configurable_engine = EvaluationEngine(use_configurable_tests=True)
