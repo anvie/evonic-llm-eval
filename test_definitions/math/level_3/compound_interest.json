@@ -1,0 +1,14 @@
+{
+  "id": "math_deposito_3",
+  "name": "Compound Interest",
+  "description": "Test compound interest calculation",
+  "prompt": "Jika deposito Rp 10.000.000 dengan bunga 6% per tahun, berapa total setelah 2 tahun?",
+  "expected": {
+    "answer": 11236000.0,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true
+}

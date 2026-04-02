@@ -1,0 +1,16 @@
+{
+  "id": "reason_analogy_3",
+  "name": "Analogical Reasoning",
+  "description": "Test analogical reasoning",
+  "prompt": "Panas : Dingin seperti Terang : ...",
+  "expected": {
+    "answer": "Gelap",
+    "reasoning": "analogy"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.060904",
+  "updated_at": "2026-04-02T06:43:42.060914"
+}

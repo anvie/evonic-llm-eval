@@ -1,0 +1,16 @@
+{
+  "id": "math_double_discount_5",
+  "name": "Double Discount",
+  "description": "Test complex discount calculation",
+  "prompt": "Sebuah toko memberikan diskon 20% kemudian tambahan diskon 10%. Jika harga awal Rp 500.000, berapa harga akhir?",
+  "expected": {
+    "answer": 360000.0,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.053707",
+  "updated_at": "2026-04-02T06:43:42.053720"
+}

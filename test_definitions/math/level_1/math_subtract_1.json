@@ -1,0 +1,16 @@
+{
+  "id": "math_subtract_1",
+  "name": "Simple Subtraction",
+  "description": "Test basic subtraction calculation",
+  "prompt": "Berapa hasil dari 15 - 8?",
+  "expected": {
+    "answer": 7.0,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.051584",
+  "updated_at": "2026-04-02T06:43:42.051605"
+}

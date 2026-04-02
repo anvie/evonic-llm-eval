@@ -1,0 +1,16 @@
+{
+  "id": "sql_subquery_5",
+  "name": "Subquery",
+  "description": "Test subquery usage",
+  "prompt": "Buat query SQL untuk menampilkan customers yang memiliki total pesanan di atas rata-rata",
+  "expected": {
+    "query_type": "SELECT",
+    "clause": "SUBQUERY"
+  },
+  "evaluator_id": "sql_executor",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.056843",
+  "updated_at": "2026-04-02T06:43:42.056855"
+}

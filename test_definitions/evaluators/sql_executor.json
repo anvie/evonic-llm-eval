@@ -1,0 +1,13 @@
+{
+  "id": "sql_executor",
+  "name": "SQL Executor Evaluator",
+  "type": "predefined",
+  "description": "Executes SQL queries and compares results",
+  "uses_pass2": false,
+  "config": {
+    "db_type": "sqlite",
+    "compare_results": true
+  },
+  "created_at": "2026-04-02T06:43:42.041985",
+  "updated_at": "2026-04-02T06:43:42.042002"
+}

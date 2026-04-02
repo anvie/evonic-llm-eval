@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Evaluation History</h2>
+    
+    {% if runs %}
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>Run ID</th>
+                <th>Model</th>
+                <th>Started</th>
+                <th>Completed</th>
+                <th>Score</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for run in runs %}
+            <tr class="history-row" onclick="window.location.href='/history/{{ run.run_id }}'" style="cursor: pointer;">
+                <td>
+                    <span style="color: #667eea; font-family: monospace;">
+                        {{ run.run_id[:8] }}...
+                    </span>
+                </td>
+                <td>{{ run.model_name or 'default' }}</td>
+                <td style="font-size: 0.85rem;">{{ run.started_at[:19] if run.started_at else '-' }}</td>
+                <td style="font-size: 0.85rem;">{{ run.completed_at[:19] if run.completed_at else 'Incomplete' }}</td>
+                <td>
+                    {% if run.overall_score is not none %}
+                    <span class="score-badge 
+                        {% if run.overall_score >= 0.8 %}score-high
+                        {% elif run.overall_score >= 0.6 %}score-medium
+                        {% else %}score-low
+                        {% endif %}">
+                        {{ "%.1f"|format(run.overall_score * 100) }}%
+                    </span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td style="max-width: 300px;">
+                    {% if run.summary %}
+                    <span title="{{ run.summary }}" style="cursor: help;">
+                        {{ run.summary[:50] }}{% if run.summary|length > 50 %}...{% endif %}
+                    </span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: #666;">
+        <h3>No evaluation runs yet</h3>
+        <p>Start your first evaluation from the dashboard to see results here.</p>
+        <a href="/" class="btn btn-primary" style="margin-top: 1rem; display: inline-block;">Go to Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.history-table th {
+    background: #f8f9fa;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.history-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #4b5563;
+}
+
+.history-row:hover {
+    background: #f3f4f6;
+}
+
+.score-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.score-high {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.score-medium {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.score-low {
+    background: #fee2e2;
+    color: #dc2626;
+}
+</style>
+{% endblock %}

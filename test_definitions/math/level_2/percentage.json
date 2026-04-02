@@ -1,0 +1,14 @@
+{
+  "id": "math_percentage_2",
+  "name": "Percentage Calculation",
+  "description": "Test percentage calculation",
+  "prompt": "Hitung 15% dari 240",
+  "expected": {
+    "answer": 36.0,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true
+}

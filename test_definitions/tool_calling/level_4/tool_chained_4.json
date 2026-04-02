@@ -1,0 +1,18 @@
+{
+  "id": "tool_chained_4",
+  "name": "Chained Tool Calls",
+  "description": "Test chained tool calls",
+  "prompt": "Cari pesanan terbaru customer ID 123 dan kirim notifikasi ke email mereka",
+  "expected": {
+    "chain": [
+      "get_order",
+      "send_notification"
+    ]
+  },
+  "evaluator_id": "tool_call",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.059389",
+  "updated_at": "2026-04-02T06:43:42.059397"
+}

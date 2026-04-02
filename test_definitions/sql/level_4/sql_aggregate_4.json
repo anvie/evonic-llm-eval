@@ -1,0 +1,19 @@
+{
+  "id": "sql_aggregate_4",
+  "name": "Aggregation",
+  "description": "Test aggregate functions",
+  "prompt": "Buat query SQL untuk menghitung total penjualan per bulan",
+  "expected": {
+    "query_type": "SELECT",
+    "functions": [
+      "SUM",
+      "GROUP BY"
+    ]
+  },
+  "evaluator_id": "sql_executor",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.056469",
+  "updated_at": "2026-04-02T06:43:42.056482"
+}

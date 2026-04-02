@@ -1,0 +1,14 @@
+{
+  "id": "math_multiply_2",
+  "name": "Multiplication",
+  "description": "Test multiplication calculation",
+  "prompt": "Berapa hasil dari 25 dikali 4?",
+  "expected": {
+    "answer": 100.0,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true
+}

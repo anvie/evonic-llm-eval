@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evonic LLM Evaluator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Evonic LLM Evaluator</h1>
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/history">History</a>
+            <a href="/settings">Settings</a>
+        </nav>
+    </header>
+    
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer>
+        <p>Powered by Flask + Jinja | Evonic LLM Evaluation System</p>
+    </footer>
+</body>
+</html>

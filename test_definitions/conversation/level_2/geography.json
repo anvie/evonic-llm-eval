@@ -1,0 +1,14 @@
+{
+  "id": "conv_geography_2",
+  "name": "Geography Knowledge",
+  "description": "Test knowledge about Indonesian geography",
+  "prompt": "Sebutkan 3 pulau besar di Indonesia dan karakteristik utamanya.",
+  "expected": {
+    "keywords": ["jawa", "sumatra", "kalimantan", "sulawesi", "papua", "pulau", "indonesia"],
+    "type": "factual"
+  },
+  "evaluator_id": "keyword",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true
+}

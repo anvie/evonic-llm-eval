@@ -1,0 +1,18 @@
+{
+  "id": "tool_simple_1",
+  "name": "Simple Tool Call",
+  "description": "Test basic tool calling",
+  "prompt": "Berapa cuaca di Jakarta hari ini?",
+  "expected": {
+    "tool": "get_weather",
+    "args": [
+      "Jakarta"
+    ]
+  },
+  "evaluator_id": "tool_call",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.057695",
+  "updated_at": "2026-04-02T06:43:42.057717"
+}

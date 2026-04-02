@@ -1,0 +1,801 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="controls">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <a href="/history" class="btn btn-secondary" style="text-decoration: none;">← Back to History</a>
+            </div>
+            <h2 style="margin: 0;">Evaluation Details</h2>
+            <div style="width: 120px;"></div>
+        </div>
+    </div>
+    
+    <!-- Run Info Panel -->
+    <div style="margin-top: 1.5rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div class="run-info-grid">
+            <div class="info-item">
+                <span class="info-label">Run ID</span>
+                <span class="info-value" style="font-family: monospace; font-size: 0.85rem;">{{ run_info.run_id }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Model</span>
+                <span class="info-value">{{ run_info.model_name or 'default' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Started</span>
+                <span class="info-value" style="font-size: 0.85rem;">{{ run_info.started_at[:19] if run_info.started_at else '-' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Completed</span>
+                <span class="info-value" style="font-size: 0.85rem;">{{ run_info.completed_at[:19] if run_info.completed_at else 'Incomplete' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Overall Score</span>
+                <span class="info-value">
+                    {% if run_info.overall_score is not none %}
+                    <span class="score-badge 
+                        {% if run_info.overall_score >= 0.8 %}score-high
+                        {% elif run_info.overall_score >= 0.6 %}score-medium
+                        {% else %}score-low
+                        {% endif %}">
+                        {{ "%.1f"|format(run_info.overall_score * 100) }}%
+                    </span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Status</span>
+                <span class="info-value">
+                    <span class="status-indicator status-completed">COMPLETED</span>
+                </span>
+            </div>
+        </div>
+        
+        {% if run_info.summary %}
+        <div class="summary-box" style="margin-top: 1rem;">
+            <strong>Executive Summary:</strong> "{{ run_info.summary }}"
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Test Matrix (Same UI as index.html) -->
+    <div class="test-matrix">
+        <h3>Test Matrix <span style="font-size: 0.75rem; color: #666; font-weight: normal;">(Click any cell to see details)</span></h3>
+        
+        <div class="matrix-header">
+            <div>Domain</div>
+            <div>Level 1</div>
+            <div>Level 2</div>
+            <div>Level 3</div>
+            <div>Level 4</div>
+            <div>Level 5</div>
+            <div style="background: #667eea; color: white; border-radius: 4px;">Total</div>
+        </div>
+        
+        {% for domain in ['conversation', 'math', 'sql', 'tool_calling', 'reasoning'] %}
+        <div class="matrix-row">
+            <div style="font-weight: 600; text-transform: capitalize;">{{ domain }}</div>
+            {% for level in range(1, 6) %}
+            <div class="matrix-cell clickable-cell" id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
+                <div class="cell-status status-pending"></div>
+                <span class="cell-score">-</span>
+                <div class="cell-duration" id="duration-{{ domain }}-{{ level }}"></div>
+            </div>
+            {% endfor %}
+            <div class="domain-total" id="total-{{ domain }}">
+                <div class="domain-total-score" id="total-score-{{ domain }}">-</div>
+                <span class="domain-total-passed" id="total-passed-{{ domain }}">0/5</span>
+                <div class="domain-total-duration" id="total-duration-{{ domain }}"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Statistics Panel -->
+    <div style="margin-top: 1.5rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0;">Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-label">Total Tests</span>
+                <span class="stat-value">{{ stats.total_tests or 0 }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Average Score</span>
+                <span class="stat-value">{{ "%.1f"|format((stats.avg_score or 0) * 100) }}%</span>
+            </div>
+            {% if stats.status_counts %}
+            <div class="stat-item">
+                <span class="stat-label">Passed</span>
+                <span class="stat-value" style="color: #10b981;">{{ stats.status_counts.get('passed', 0) }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Failed</span>
+                <span class="stat-value" style="color: #ef4444;">{{ stats.status_counts.get('failed', 0) }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Evaluation Logs Section -->
+    <div class="log-container">
+        <h3>Evaluation Logs</h3>
+        <div id="log-box" class="log-content"></div>
+    </div>
+</div>
+
+<!-- Modal for test details (same as index.html) -->
+<div id="test-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header" id="modal-header">
+            <h3 id="modal-title">Test Details</h3>
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+    </div>
+</div>
+
+<script>
+let testResultsData = {};  // Store all test results for modal access
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch matrix data
+    fetch('/api/run/{{ run_info.run_id }}/matrix')
+    .then(response => response.json())
+    .then(data => {
+        updateMatrix(data.domains);
+        // Generate logs from test results
+        generateLogs(data.domains);
+    })
+    .catch(error => {
+        console.error('Error fetching matrix:', error);
+    });
+});
+
+function updateMatrix(matrix) {
+    for (const [domain, levels] of Object.entries(matrix)) {
+        let domainTotal = 0;
+        let domainCount = 0;
+        let domainPassed = 0;
+        let domainDuration = 0;
+        
+        for (const [level, data] of Object.entries(levels)) {
+            const cell = document.getElementById(`cell-${domain}-${level}`);
+            if (cell) {
+                // Store data for modal access
+                if (!testResultsData[domain]) testResultsData[domain] = {};
+                testResultsData[domain][level] = data;
+                
+                // Update status indicator
+                const statusEl = cell.querySelector('.cell-status');
+                statusEl.className = 'cell-status status-' + data.status;
+                
+                // Update score
+                const scoreEl = cell.querySelector('.cell-score');
+                if (data.score !== null && data.score !== undefined) {
+                    scoreEl.textContent = (data.score * 100).toFixed(0) + '%';
+                    domainTotal += data.score;
+                    domainCount++;
+                    if (data.status === 'passed') domainPassed++;
+                } else {
+                    scoreEl.textContent = '-';
+                }
+                
+                // Update duration
+                const durationEl = document.getElementById(`duration-${domain}-${level}`);
+                if (durationEl) {
+                    if (data.duration_ms) {
+                        const seconds = (data.duration_ms / 1000).toFixed(1);
+                        durationEl.textContent = seconds + 's';
+                        domainDuration += data.duration_ms;
+                    } else {
+                        durationEl.textContent = '';
+                    }
+                }
+            }
+        }
+        
+        // Update domain total
+        const scoreEl = document.getElementById(`total-score-${domain}`);
+        const passedEl = document.getElementById(`total-passed-${domain}`);
+        const durationEl = document.getElementById(`total-duration-${domain}`);
+        
+        if (domainCount > 0) {
+            const avgScore = domainTotal / domainCount;
+            
+            if (scoreEl) {
+                scoreEl.textContent = (avgScore * 100).toFixed(0) + '%';
+                scoreEl.style.color = avgScore >= 0.8 ? '#059669' : avgScore >= 0.6 ? '#d97706' : '#dc2626';
+            }
+            
+            if (passedEl) {
+                passedEl.textContent = `${domainPassed}/5`;
+            }
+        }
+        
+        // Show domain duration
+        if (durationEl && domainDuration > 0) {
+            const seconds = (domainDuration / 1000).toFixed(1);
+            durationEl.textContent = seconds + 's';
+        }
+    }
+}
+
+function generateLogs(matrix) {
+    const logBox = document.getElementById('log-box');
+    let logsHtml = '';
+    
+    const domains = ['conversation', 'math', 'sql', 'tool_calling', 'reasoning'];
+    
+    domains.forEach(domain => {
+        for (let level = 1; level <= 5; level++) {
+            const data = matrix[domain]?.[level];
+            if (!data || data.status === 'pending') continue;
+            
+            const statusIcon = data.status === 'passed' ? '✓' : '✗';
+            
+            // Truncate for display
+            const promptDisplay = data.prompt ? (data.prompt.substring(0, 100) + (data.prompt.length > 100 ? '...' : '')).replace(/\n/g, ' ') : 'No prompt';
+            const responseDisplay = data.response ? (data.response.substring(0, 100) + (data.response.length > 100 ? '...' : '')).replace(/\n/g, ' ') : 'No response';
+            
+            logsHtml += `<div class="log-entry" style="color: #374151;">═══════════════════════════════════════════════════════════════</div>`;
+            logsHtml += `<div class="log-entry"><strong>[TEST] ${domain.toUpperCase()} Level ${level}</strong></div>`;
+            logsHtml += `<div class="log-entry" style="color: #374151;">───────────────────────────────────────────────────────────────</div>`;
+            logsHtml += `<div class="log-entry" style="color: #3b82f6;">[INPUT] ${escapeHtml(promptDisplay)}</div>`;
+            
+            if (data.expected) {
+                const expectedStr = typeof data.expected === 'object' ? JSON.stringify(data.expected) : String(data.expected);
+                const expectedDisplay = expectedStr.substring(0, 80) + (expectedStr.length > 80 ? '...' : '');
+                logsHtml += `<div class="log-entry" style="color: #059669;">[EXPECTED] ${escapeHtml(expectedDisplay)}</div>`;
+            }
+            
+            logsHtml += `<div class="log-entry" style="color: #666;">[LLM] Response received in ${data.duration_ms || 0}ms</div>`;
+            logsHtml += `<div class="log-entry" style="color: #eab308;">[OUTPUT] ${escapeHtml(responseDisplay)}</div>`;
+            logsHtml += `<div class="log-entry" style="color: #666;">[EVAL] Using domain-specific evaluator</div>`;
+            logsHtml += `<div class="log-entry" style="color: #666;">[SCORING] Evaluating response...</div>`;
+            
+            const resultColor = data.status === 'passed' ? '#10b981' : '#ef4444';
+            logsHtml += `<div class="log-entry" style="color: ${resultColor}; font-weight: bold;">[RESULT] ${statusIcon} Status: ${data.status.toUpperCase()}, Score: ${data.score !== null ? (data.score * 100).toFixed(0) + '%' : 'N/A'}</div>`;
+            
+            if (data.details) {
+                const detailsStr = typeof data.details === 'object' ? data.details.details || JSON.stringify(data.details) : String(data.details);
+                const detailsDisplay = detailsStr.substring(0, 80);
+                logsHtml += `<div class="log-entry" style="color: #666;">[DETAILS] ${escapeHtml(detailsDisplay)}</div>`;
+            }
+        }
+    });
+    
+    if (logsHtml === '') {
+        logsHtml = '<div class="log-entry" style="color: #666;">No evaluation logs available.</div>';
+    }
+    
+    logBox.innerHTML = logsHtml;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Modal functions (same as index.html)
+function showCellDetail(domain, level) {
+    const data = testResultsData[domain]?.[level];
+    
+    if (!data || data.status === 'pending') {
+        showModalNoData(domain, level);
+        return;
+    }
+    
+    showModalWithData(domain, level, data);
+}
+
+function showModalNoData(domain, level) {
+    const modal = document.getElementById('test-modal');
+    const header = document.getElementById('modal-header');
+    const title = document.getElementById('modal-title');
+    const body = document.getElementById('modal-body');
+    
+    header.className = 'modal-header';
+    title.innerHTML = `${domain.toUpperCase()} Level ${level}`;
+    
+    body.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: #666;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
+            <p>No test data available.</p>
+            <p style="font-size: 0.9rem;">This test was not executed or is still pending.</p>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function showModalWithData(domain, level, data) {
+    const modal = document.getElementById('test-modal');
+    const header = document.getElementById('modal-header');
+    const title = document.getElementById('modal-title');
+    const body = document.getElementById('modal-body');
+    
+    const statusIcon = data.status === 'passed' ? '✓' : data.status === 'failed' ? '✗' : '⏳';
+    const headerClass = data.status === 'passed' ? 'modal-header-success' : data.status === 'failed' ? 'modal-header-error' : 'modal-header';
+    
+    header.className = 'modal-header ' + headerClass;
+    title.innerHTML = `<span style="font-size: 1.2rem;">${statusIcon}</span> ${domain.toUpperCase()} Level ${level} - ${data.status.toUpperCase()}`;
+    
+    const scoreDisplay = data.score !== null && data.score !== undefined 
+        ? (data.score * 100).toFixed(1) + '%' 
+        : 'N/A';
+    
+    const scoreClass = data.status === 'passed' ? 'score-passed' : data.status === 'failed' ? 'score-failed' : '';
+    
+    let detailsHtml = `
+        <div class="detail-section">
+            <div class="detail-header">Score</div>
+            <div class="detail-content ${scoreClass}" style="font-size: 2rem; font-weight: bold;">
+                ${scoreDisplay}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-header">Status</div>
+            <div class="detail-content">
+                <span class="status-badge status-badge-${data.status}">${data.status.toUpperCase()}</span>
+                ${data.duration_ms ? `<span style="margin-left: 1rem; color: #666;">Duration: ${data.duration_ms}ms</span>` : ''}
+            </div>
+        </div>
+        
+        ${data.model_name ? `
+        <div class="detail-section">
+            <div class="detail-header">Model</div>
+            <div class="detail-content">
+                <span style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600;">${escapeHtml(data.model_name)}</span>
+            </div>
+        </div>
+        ` : ''}
+        
+        <div class="detail-section">
+            <div class="detail-header input-header">📥 INPUT (Prompt)</div>
+            <div class="detail-content input-box">
+                ${data.prompt ? escapeHtml(data.prompt) : '<em style="color: #999;">No prompt recorded</em>'}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-header expected-header">🎯 EXPECTED Output</div>
+            <div class="detail-content expected-box">
+                ${formatExpected(data.expected)}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-header output-header">📤 OUTPUT (Model Response)</div>
+            <div class="detail-content output-box">
+                ${data.response ? escapeHtml(data.response) : '<em style="color: #999;">No response recorded</em>'}
+            </div>
+        </div>
+    `;
+    
+    if (data.details) {
+        detailsHtml += `
+            <div class="detail-section">
+                <div class="detail-header details-header">🔍 Evaluation Details</div>
+                <div class="detail-content details-box">
+                    ${formatDetails(data.details)}
+                </div>
+            </div>
+        `;
+    }
+    
+    body.innerHTML = detailsHtml;
+    modal.style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('test-modal').style.display = 'none';
+}
+
+function formatExpected(expected) {
+    if (!expected) {
+        return '<em style="color: #999;">No expected output defined</em>';
+    }
+    
+    try {
+        const parsed = typeof expected === 'string' ? JSON.parse(expected) : expected;
+        
+        if (typeof parsed === 'object') {
+            // SQL expected format
+            if (parsed.description && parsed.required_columns) {
+                let html = `<strong>Description:</strong> ${escapeHtml(parsed.description)}<br><br>`;
+                
+                if (parsed.required_columns) {
+                    html += '<strong>Required Columns:</strong><br>';
+                    html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                    parsed.required_columns.forEach(col => {
+                        html += `<span style="background: #d1fae5; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">${escapeHtml(col)}</span>`;
+                    });
+                    html += '</div>';
+                }
+                
+                if (parsed.min_rows) {
+                    html += `<br><strong>Minimum Rows:</strong> ${parsed.min_rows}`;
+                }
+                if (parsed.max_rows) {
+                    html += `<br><strong>Maximum Rows:</strong> ${parsed.max_rows}`;
+                }
+                if (parsed.forbidden_columns) {
+                    html += `<br><strong>Forbidden Columns:</strong> <span style="color: #ef4444;">${parsed.forbidden_columns.join(', ')}</span>`;
+                }
+                
+                return html;
+            }
+            
+            // Keywords format
+            if (parsed.keywords) {
+                let html = '<strong>Expected Keywords:</strong><br>';
+                html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                parsed.keywords.forEach(kw => {
+                    html += `<span style="background: #d1fae5; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">${escapeHtml(kw)}</span>`;
+                });
+                html += '</div>';
+                
+                if (parsed.relevance_weight || parsed.correctness_weight || parsed.fluency_weight) {
+                    html += '<br><strong>Scoring Weights:</strong><br>';
+                    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;">';
+                    if (parsed.relevance_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Relevance</strong><br>${(parsed.relevance_weight * 100)}%</div>`;
+                    if (parsed.correctness_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Correctness</strong><br>${(parsed.correctness_weight * 100)}%</div>`;
+                    if (parsed.fluency_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Fluency</strong><br>${(parsed.fluency_weight * 100)}%</div>`;
+                    html += '</div>';
+                }
+                return html;
+            }
+            
+            // Tool calling format
+            if (parsed.tool) {
+                let html = `<strong>Expected Tool:</strong> <code style="background: #e0e7ff; padding: 0.25rem 0.5rem; border-radius: 4px;">${escapeHtml(parsed.tool)}</code>`;
+                if (parsed.result !== undefined) {
+                    html += `<br><strong>Expected Result:</strong> ${escapeHtml(String(parsed.result))}`;
+                }
+                return html;
+            }
+            
+            // Default: show as JSON
+            return `<pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+        }
+        
+        return escapeHtml(String(parsed));
+    } catch (e) {
+        return escapeHtml(String(expected));
+    }
+}
+
+function formatDetails(details) {
+    if (!details) return 'No details available';
+    
+    try {
+        const parsed = typeof details === 'string' ? JSON.parse(details) : details;
+        
+        if (typeof parsed === 'object') {
+            let html = '';
+            
+            if (parsed.details) {
+                html += `<p><strong>Reason:</strong> ${escapeHtml(parsed.details)}</p>`;
+            }
+            if (parsed.error) {
+                html += `<p><strong>Error:</strong> <span style="color: #ef4444;">${escapeHtml(parsed.error)}</span></p>`;
+            }
+            if (parsed.sql_query) {
+                html += `<p><strong>SQL Query:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(parsed.sql_query)}</pre>`;
+            }
+            if (parsed.row_count !== undefined) {
+                html += `<p><strong>Row Count:</strong> ${parsed.row_count}</p>`;
+            }
+            if (parsed.actual_result) {
+                html += `<p><strong>Actual Result:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto; max-height: 200px;">${escapeHtml(JSON.stringify(parsed.actual_result, null, 2))}</pre>`;
+            }
+            if (parsed.expected_result) {
+                html += `<p><strong>Expected Result:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto; max-height: 200px;">${escapeHtml(JSON.stringify(parsed.expected_result, null, 2))}</pre>`;
+            }
+            
+            // Show any other fields
+            const shownKeys = ['details', 'error', 'sql_query', 'row_count', 'actual_result', 'expected_result'];
+            const otherKeys = Object.keys(parsed).filter(k => !shownKeys.includes(k));
+            if (otherKeys.length > 0) {
+                html += `<p><strong>Additional Info:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+            }
+            
+            return html || `<pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+        }
+        
+        return escapeHtml(String(details));
+    } catch (e) {
+        return escapeHtml(String(details));
+    }
+}
+
+// Close modal on outside click
+window.onclick = function(event) {
+    const modal = document.getElementById('test-modal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+
+<style>
+.run-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    background: #f9fafb;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+}
+
+.info-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    display: block;
+    font-weight: 500;
+}
+
+.summary-box {
+    background: #f0f9ff;
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #0369a1;
+    color: #1e40af;
+    font-style: italic;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.stat-item {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-completed {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge-passed {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.status-badge-failed {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-badge-running {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-badge-pending {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.modal-header-success {
+    background: #d1fae5 !important;
+    border-bottom-color: #86efac !important;
+}
+
+.modal-header-error {
+    background: #fee2e2 !important;
+    border-bottom-color: #fecaca !important;
+}
+
+.input-header {
+    border-left: 4px solid #3b82f6;
+}
+
+.expected-header {
+    border-left: 4px solid #22c55e;
+}
+
+.output-header {
+    border-left: 4px solid #eab308;
+}
+
+.details-header {
+    border-left: 4px solid #8b5cf6;
+}
+
+.input-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.expected-box {
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.output-box {
+    background: #fefce8;
+    border-left: 4px solid #eab308;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.details-box {
+    background: #faf5ff;
+    border-left: 4px solid #8b5cf6;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.score-passed {
+    color: #10b981;
+}
+
+.score-failed {
+    color: #ef4444;
+}
+
+.clickable-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 1.25rem 1.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header-success {
+    background: #d1fae5 !important;
+    border-bottom: 1px solid #6ee7b7 !important;
+}
+
+.modal-header-error {
+    background: #fef2f2 !important;
+    border-bottom: 1px solid #fecaca !important;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.modal-close {
+    font-size: 1.75rem;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+
+.detail-header {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detail-content {
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.cell-duration {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin-top: 0.15rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,24 @@
+{
+  "id": "conv_capital_2",
+  "name": "Capital City Knowledge",
+  "description": "Test knowledge about Indonesian capital city",
+  "prompt": "Apa ibu kota Indonesia dan mengapa kota tersebut penting?",
+  "expected": {
+    "keywords": [
+      "jakarta",
+      "ibu kota",
+      "indonesia",
+      "pusat",
+      "pemerintahan",
+      "nusantara",
+      "ikn"
+    ],
+    "type": "factual"
+  },
+  "evaluator_id": "keyword",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.047578",
+  "updated_at": "2026-04-02T06:43:42.047596"
+}

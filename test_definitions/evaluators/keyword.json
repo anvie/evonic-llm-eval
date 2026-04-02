@@ -1,0 +1,14 @@
+{
+  "id": "keyword",
+  "name": "Keyword Evaluator",
+  "type": "predefined",
+  "description": "Evaluates based on keyword presence and relevance",
+  "uses_pass2": false,
+  "config": {
+    "relevance_weight": 0.3,
+    "correctness_weight": 0.4,
+    "fluency_weight": 0.3
+  },
+  "created_at": "2026-04-02T06:43:42.041334",
+  "updated_at": "2026-04-02T06:43:42.041352"
+}

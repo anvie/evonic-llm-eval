@@ -1,0 +1,16 @@
+{
+  "id": "reason_causal_4",
+  "name": "Causal Reasoning",
+  "description": "Test causal reasoning",
+  "prompt": "Setelah meminum obat, pasien merasa lebih baik. Apakah obat menyebabkan perbaikan?",
+  "expected": {
+    "reasoning": "causal",
+    "consider_alternatives": true
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.061296",
+  "updated_at": "2026-04-02T06:43:42.061304"
+}

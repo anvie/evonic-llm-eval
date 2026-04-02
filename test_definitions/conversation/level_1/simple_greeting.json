@@ -1,0 +1,14 @@
+{
+  "id": "conv_greeting_1",
+  "name": "Simple Greeting",
+  "description": "Test response to simple greeting",
+  "prompt": "Selamat pagi! Apa kabar?",
+  "expected": {
+    "keywords": ["pagi", "kabar", "baik", "selamat", "terima", "kasih"],
+    "type": "greeting"
+  },
+  "evaluator_id": "keyword",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true
+}

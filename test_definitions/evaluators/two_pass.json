@@ -1,0 +1,12 @@
+{
+  "id": "two_pass",
+  "name": "Two-Pass Evaluator",
+  "type": "predefined",
+  "description": "Uses two-pass evaluation - first extracts clean answer, then scores",
+  "uses_pass2": true,
+  "config": {
+    "tolerance": 0.01
+  },
+  "created_at": "2026-04-02T06:43:42.040468",
+  "updated_at": "2026-04-02T06:43:42.040544"
+}

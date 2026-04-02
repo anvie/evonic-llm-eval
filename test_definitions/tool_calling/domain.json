@@ -1,0 +1,11 @@
+{
+  "id": "tool_calling",
+  "name": "Tool Calling",
+  "description": "Function/tool calling tests - tests ability to use tools and APIs correctly",
+  "icon": "wrench",
+  "color": "#F59E0B",
+  "evaluator_id": "tool_call",
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.045407",
+  "updated_at": "2026-04-02T06:43:42.045420"
+}

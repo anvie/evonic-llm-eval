@@ -1,0 +1,16 @@
+{
+  "id": "reason_complex_5",
+  "name": "Complex Reasoning",
+  "description": "Test complex multi-step reasoning",
+  "prompt": "Dalam sebuah ruangan ada 5 orang. Setiap orang berjabat tangan dengan setiap orang lain tepat sekali. Berapa total jabat tangan?",
+  "expected": {
+    "answer": 10,
+    "reasoning": "combinatorics"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.061824",
+  "updated_at": "2026-04-02T06:43:42.061834"
+}

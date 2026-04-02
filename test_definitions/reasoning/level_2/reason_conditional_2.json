@@ -1,0 +1,16 @@
+{
+  "id": "reason_conditional_2",
+  "name": "Conditional Reasoning",
+  "description": "Test conditional logic",
+  "prompt": "Jika hari ini hujan, maka tanaman akan disiram. Hari ini hujan. Apakah tanaman disiram?",
+  "expected": {
+    "answer": "Ya",
+    "reasoning": "modus_ponens"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.060478",
+  "updated_at": "2026-04-02T06:43:42.060487"
+}

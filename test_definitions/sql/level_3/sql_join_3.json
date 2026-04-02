@@ -1,0 +1,16 @@
+{
+  "id": "sql_join_3",
+  "name": "JOIN Query",
+  "description": "Test JOIN operation",
+  "prompt": "Buat query SQL untuk menampilkan nama customer dan pesanan mereka",
+  "expected": {
+    "query_type": "SELECT",
+    "clause": "JOIN"
+  },
+  "evaluator_id": "sql_executor",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.055654",
+  "updated_at": "2026-04-02T06:43:42.055678"
+}

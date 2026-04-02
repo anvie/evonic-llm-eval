@@ -1,0 +1,20 @@
+{
+  "id": "tool_args_2",
+  "name": "Tool with Arguments",
+  "description": "Test tool calling with arguments",
+  "prompt": "Cari restoran Italia di Jakarta dengan rating minimal 4 bintang",
+  "expected": {
+    "tool": "search_restaurants",
+    "args": {
+      "cuisine": "Italian",
+      "location": "Jakarta",
+      "min_rating": 4
+    }
+  },
+  "evaluator_id": "tool_call",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.058572",
+  "updated_at": "2026-04-02T06:43:42.058586"
+}

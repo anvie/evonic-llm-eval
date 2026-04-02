@@ -1,0 +1,15 @@
+{
+  "id": "tool_complex_5",
+  "name": "Complex Tool Usage",
+  "description": "Test complex tool orchestration",
+  "prompt": "Rencanakan perjalanan ke Yogyakarta untuk 3 orang, termasuk penerbangan, hotel, dan aktivitas",
+  "expected": {
+    "multiple_chains": true
+  },
+  "evaluator_id": "tool_call",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.059745",
+  "updated_at": "2026-04-02T06:43:42.059754"
+}

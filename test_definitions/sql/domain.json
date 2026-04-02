@@ -1,0 +1,11 @@
+{
+  "id": "sql",
+  "name": "SQL",
+  "description": "SQL query generation tests - tests database query generation capabilities",
+  "icon": "database",
+  "color": "#8B5CF6",
+  "evaluator_id": "sql_executor",
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.044942",
+  "updated_at": "2026-04-02T06:43:42.044957"
+}

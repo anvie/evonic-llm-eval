@@ -1,0 +1,11 @@
+{
+  "id": "math",
+  "name": "Math",
+  "description": "Mathematical calculation tests - expects clean numerical answers",
+  "icon": "calculator",
+  "color": "#10B981",
+  "evaluator_id": "two_pass",
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.044359",
+  "updated_at": "2026-04-02T06:43:42.044376"
+}

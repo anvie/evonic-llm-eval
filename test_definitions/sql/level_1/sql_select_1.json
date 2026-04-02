@@ -1,0 +1,16 @@
+{
+  "id": "sql_select_1",
+  "name": "Simple SELECT",
+  "description": "Test basic SELECT query",
+  "prompt": "Buat query SQL untuk menampilkan semua data dari tabel customers",
+  "expected": {
+    "query_type": "SELECT",
+    "table": "customers"
+  },
+  "evaluator_id": "sql_executor",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.054476",
+  "updated_at": "2026-04-02T06:43:42.054491"
+}

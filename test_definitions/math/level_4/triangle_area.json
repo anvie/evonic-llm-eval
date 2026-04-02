@@ -1,0 +1,14 @@
+{
+  "id": "math_triangle_4",
+  "name": "Triangle Area",
+  "description": "Test geometry calculation - triangle area",
+  "prompt": "Hitung luas segitiga dengan alas 8 cm dan tinggi 6 cm",
+  "expected": {
+    "answer": 24.0,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true
+}

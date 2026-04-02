@@ -1,0 +1,18 @@
+{
+  "id": "tool_multi_3",
+  "name": "Multiple Tools",
+  "description": "Test calling multiple tools",
+  "prompt": "Cari hotel di Bali dan tampilkan cuaca di sana",
+  "expected": {
+    "tools": [
+      "search_hotels",
+      "get_weather"
+    ]
+  },
+  "evaluator_id": "tool_call",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-02T06:43:42.059036",
+  "updated_at": "2026-04-02T06:43:42.059046"
+}
