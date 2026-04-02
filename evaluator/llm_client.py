@@ -7,7 +7,7 @@ import config
 class LLMClient:
     def __init__(self):
         self.base_url = config.LLM_BASE_URL
-        self.api_key=config..._KEY
+        self.api_key = config.LLM_API_KEY
         self.model = config.LLM_MODEL
         self.timeout = config.LLM_TIMEOUT
     
