@@ -169,6 +169,9 @@ class TestLoader:
         """Scan all domain directories and return list of domains"""
         domains = []
         
+        # Define preferred domain order
+        domain_order = ["conversation", "math", "sql", "tool_calling", "reasoning"]
+        
         # Scan default tests directory
         if self.tests_dir.exists():
             for domain_path in self.tests_dir.iterdir():
@@ -189,6 +192,13 @@ class TestLoader:
                             domains.append(domain)
                             self._domains_cache[domain.id] = domain
         
+        # Sort domains: known domains first (in order), then custom domains alphabetically
+        def sort_key(d):
+            if d.id in domain_order:
+                return (0, domain_order.index(d.id))
+            return (1, d.name.lower())
+        
+        domains.sort(key=sort_key)
         return domains
     
     def _load_domain(self, domain_path: Path) -> Optional[DomainDefinition]:

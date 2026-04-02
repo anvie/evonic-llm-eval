@@ -212,10 +212,21 @@ class EvaluationEngine:
                     self._log(f'[SKIP] No tests for {domain_id} Level {level}')
                     continue
                 
+                # Set status to "running" for this cell before starting
+                db.update_test_result(
+                    run_id, domain_id, level,
+                    status="running",
+                    model_name=model_name
+                )
+                
                 self._log(f'[TEST] Running {len(tests)} test(s) for {domain_id} Level {level}')
                 
                 # Run all tests for this level
                 test_results = []
+                first_prompt = None
+                first_response = None
+                first_expected = None
+                
                 for test in tests:
                     if not self.is_running:
                         break
@@ -227,6 +238,11 @@ class EvaluationEngine:
                         test, domain_id, level, model_name, run_id
                     )
                     test_results.append(result)
+                    
+                    # Store first test's prompt/response for display
+                    if first_prompt is None:
+                        first_prompt = test.get('prompt', '')
+                        first_expected = test.get('expected', {})
                 
                 # Calculate average score for this level
                 if test_results:
@@ -245,6 +261,9 @@ class EvaluationEngine:
                     status = 'passed' if avg_score >= 0.7 else 'failed'
                     db.update_test_result(
                         run_id, domain_id, level,
+                        prompt=first_prompt,
+                        response=test_results[0].details.get('response') if test_results[0].details else None,
+                        expected=json.dumps(first_expected) if first_expected else None,
                         score=avg_score,
                         status=status,
                         model_name=model_name
@@ -486,6 +505,9 @@ class EvaluationEngine:
         details = result.details if hasattr(result, 'details') else {}
         if not isinstance(details, dict):
             details = {"details": str(details)}
+        
+        # Include response in details for modal display
+        details['response'] = response_content
         
         # Log result
         status_icon = '✓' if result.status == 'passed' else '✗'
