@@ -284,7 +284,15 @@ class EvaluationEngine:
             # Safely extract duration and tokens
             duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
             total_tokens = llm_response.get("total_tokens", 0) if isinstance(llm_response, dict) else 0
-            self._log(f'[LLM] Response received in {duration_ms}ms, {total_tokens} tokens')
+            
+            # Check for LLM errors
+            error_info = llm_client.get_error_info(llm_response)
+            if error_info:
+                self._log(f'[ERROR] LLM {error_info["type"]}: {error_info["message"]}')
+                if error_info["detail"]:
+                    self._log(f'[ERROR] Detail: {error_info["detail"][:100]}')
+            else:
+                self._log(f'[LLM] Response received in {duration_ms}ms, {total_tokens} tokens')
             
             # Accumulate tokens and duration for tok/s calculation
             self.total_tokens += total_tokens
@@ -309,6 +317,14 @@ class EvaluationEngine:
             details = result.details
             if not isinstance(details, dict):
                 details = {"details": str(details)}
+            
+            # Add LLM error info to details if present
+            if error_info:
+                details["llm_error"] = {
+                    "type": error_info["type"],
+                    "message": error_info["message"],
+                    "detail": error_info["detail"]
+                }
             
             # Log result
             status_icon = '✓' if result.status == 'passed' else '✗'

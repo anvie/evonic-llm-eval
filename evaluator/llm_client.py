@@ -7,7 +7,7 @@ import config
 class LLMClient:
     def __init__(self):
         self.base_url = config.LLM_BASE_URL
-        self.api_key = config.LLM_API_KEY
+        self.api_key=config..._KEY
         self.model = config.LLM_MODEL
         self.timeout = config.LLM_TIMEOUT
     
@@ -19,7 +19,7 @@ class LLMClient:
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": 2000
+            "max_tokens": 4096  # Increased for reasoning models that need tokens for thinking
         }
         
         if tools:
@@ -41,12 +41,40 @@ class LLMClient:
             duration_ms = int((time.time() - start_time) * 1000)
             
             if response.status_code != 200:
-                raise Exception(f"LLM API error: {response.status_code} - {response.text}")
+                return {
+                    "response": {"error": f"LLM API error: {response.status_code} - {response.text[:200]}"},
+                    "duration_ms": duration_ms,
+                    "success": False,
+                    "error_type": "api_error"
+                }
             
             result = response.json()
             
             if "error" in result:
-                raise Exception(f"LLM error: {result['error']}")
+                return {
+                    "response": result,
+                    "duration_ms": duration_ms,
+                    "success": False,
+                    "error_type": "llm_error"
+                }
+            
+            # Check for empty content with finish_reason=length (generation timeout)
+            choices = result.get("choices", [])
+            if choices:
+                finish_reason = choices[0].get("finish_reason")
+                message = choices[0].get("message", {})
+                content = message.get("content", "")
+                reasoning = message.get("reasoning_content", "")
+                
+                if finish_reason == "length" and not content:
+                    # Generation hit max_tokens without producing final answer
+                    return {
+                        "response": result,
+                        "duration_ms": duration_ms,
+                        "success": False,
+                        "error_type": "generation_timeout",
+                        "error_detail": f"Generation hit max_tokens limit ({payload['max_tokens']}) without producing final answer. The model was still reasoning when cutoff occurred. Reasoning length: {len(reasoning)} chars."
+                    }
             
             # Extract token usage if available
             usage = result.get("usage", {})
@@ -64,28 +92,40 @@ class LLMClient:
             }
             
         except requests.exceptions.Timeout:
+            elapsed_ms = int((time.time() - start_time) * 1000)
             return {
-                "response": {"error": "Request timeout"},
-                "duration_ms": self.timeout * 1000,
-                "success": False
+                "response": {"error": f"Request timeout after {self.timeout}s (elapsed: {elapsed_ms}ms)"},
+                "duration_ms": elapsed_ms,
+                "success": False,
+                "error_type": "request_timeout",
+                "error_detail": f"HTTP request timed out after {self.timeout} seconds. The LLM server did not respond within the timeout limit."
             }
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e:
             return {
-                "response": {"error": "Connection error"},
+                "response": {"error": f"Connection error: {str(e)[:100]}"},
                 "duration_ms": 0,
-                "success": False
+                "success": False,
+                "error_type": "connection_error",
+                "error_detail": f"Could not connect to LLM server at {self.base_url}. Check if the server is running."
             }
         except Exception as e:
+            elapsed_ms = int((time.time() - start_time) * 1000) if 'start_time' in locals() else 0
             return {
-                "response": {"error": str(e)},
-                "duration_ms": 0,
-                "success": False
+                "response": {"error": str(e)[:200]},
+                "duration_ms": elapsed_ms,
+                "success": False,
+                "error_type": "unknown_error",
+                "error_detail": str(e)
             }
     
     def extract_content(self, response: Dict[str, Any]) -> str:
         """Extract text content from LLM response"""
         if not response.get("success"):
-            return f"Error: {response['response'].get('error', 'Unknown error')}"
+            error_msg = response['response'].get('error', 'Unknown error')
+            error_detail = response.get('error_detail', '')
+            if error_detail:
+                return f"Error: {error_msg}\n\nDetails: {error_detail}"
+            return f"Error: {error_msg}"
         
         choices = response["response"].get("choices", [])
         if not choices:
@@ -98,8 +138,25 @@ class LLMClient:
         if tool_calls:
             return json.dumps({"tool_calls": tool_calls}, indent=2)
         
-        # Return text content
-        return message.get("content", "No content generated")
+        # Return text content (fallback to reasoning_content if content is empty)
+        content = message.get("content", "")
+        if not content:
+            # Mars endpoint may return answer in reasoning_content
+            content = message.get("reasoning_content", "")
+        
+        return content if content else "No content generated"
+    
+    def get_error_info(self, response: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        """Get error information from failed response"""
+        if response.get("success"):
+            return None
+        
+        return {
+            "type": response.get("error_type", "unknown"),
+            "message": response["response"].get("error", "Unknown error") if isinstance(response.get("response"), dict) else str(response.get("response")),
+            "detail": response.get("error_detail", ""),
+            "duration_ms": response.get("duration_ms", 0)
+        }
     
     def extract_tool_calls(self, response: Dict[str, Any]) -> Optional[list]:
         """Extract tool calls from LLM response"""

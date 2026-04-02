@@ -558,6 +558,16 @@ function showModalWithData(domain, level, data) {
             </div>
         </div>
         ` : ''}
+        
+        ${data.details && data.details.llm_error ? `
+        <div class="detail-section">
+            <div class="detail-header" style="color: #dc2626; border-color: #dc2626;">⚠️ LLM Error (${escapeHtml(data.details.llm_error.type || 'unknown')})</div>
+            <div class="detail-content" style="background: #fef2f2; border-left: 4px solid #dc2626;">
+                <div style="color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">${escapeHtml(data.details.llm_error.message || 'Unknown error')}</div>
+                ${data.details.llm_error.detail ? `<div style="color: #666; font-size: 0.9rem;">${escapeHtml(data.details.llm_error.detail)}</div>` : ''}
+            </div>
+        </div>
+        ` : ''}
     `;
     
     // INPUT Section - Always show
