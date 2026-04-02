@@ -391,7 +391,7 @@ class EvaluationEngine:
                 details=details,
                 duration_ms=duration_ms,
                 tokens=total_tokens,
-                model_name=model_name
+                model_name=self.model_name
             )
 
             return {
