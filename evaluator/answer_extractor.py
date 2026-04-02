@@ -230,7 +230,7 @@ class AnswerExtractor:
                 tools=None
             )
             
-            raw_pass2 = self.client.extract_content(llm_response).strip()
+            raw_pass2 = self.client.extract_content(llm_response, strip_thinking=False).strip()
             
             # Strip thinking tags from PASS 2 output (for thinking models)
             cleaned_pass2, thinking_pass2 = strip_thinking_tags(raw_pass2)
@@ -243,9 +243,9 @@ class AnswerExtractor:
                     "success": True,
                     "extracted": validated["cleaned"],
                     "expected_format": expected_format,
-                    "raw_pass2": raw_pass2,  # Keep original for debugging
+                    "raw_pass2": cleaned_pass2,  # Store cleaned version (no thinking tags)
                     "pass2_prompt": prompt,
-                    "pass2_thinking": thinking_pass2,  # Store thinking if present
+                    "pass2_thinking": thinking_pass2,  # Store thinking separately for debugging
                     "parse_error": None
                 }
             else:
@@ -254,7 +254,7 @@ class AnswerExtractor:
                     "success": False,
                     "extracted": cleaned_pass2,
                     "expected_format": expected_format,
-                    "raw_pass2": raw_pass2,
+                    "raw_pass2": cleaned_pass2,  # Store cleaned version (no thinking tags)
                     "pass2_prompt": prompt,
                     "pass2_thinking": thinking_pass2,
                     "parse_error": validated["error"]

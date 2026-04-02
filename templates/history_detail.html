@@ -50,7 +50,11 @@
             <div class="info-item">
                 <span class="info-label">Status</span>
                 <span class="info-value">
+                    {% if run_info.completed_at %}
                     <span class="status-indicator status-completed">COMPLETED</span>
+                    {% else %}
+                    <span class="status-indicator status-interrupted">INTERRUPTED</span>
+                    {% endif %}
                 </span>
             </div>
         </div>
@@ -700,6 +704,11 @@ document.addEventListener('keydown', function(event) {
 .status-completed {
     background: #d1fae5;
     color: #059669;
+}
+
+.status-interrupted {
+    background: #fef3c7;
+    color: #b45309;
 }
 
 .status-badge {
