@@ -54,11 +54,15 @@ KEY RELATIONSHIPS:
         prompts = {
             1: f"""Buat query SQL untuk mengambil semua data dari tabel customers.
 
+PENTING: Jawab HANYA dengan query SQL mentah. JANGAN ada penjelasan, komentar, atau markdown.
+
 {full_schema}""",
             
             2: f"""Buat query SQL untuk mengambil nama dan email customer dari kota Jakarta.
 
 Gunakan kolom: name (bukan nama), email, city (bukan kota)
+
+PENTING: Jawab HANYA dengan query SQL mentah. JANGAN ada penjelasan, komentar, atau markdown.
 
 {full_schema}""",
             
@@ -66,11 +70,15 @@ Gunakan kolom: name (bukan nama), email, city (bukan kota)
 
 Hint: Join tables orders dan customers, group by city
 
+PENTING: Jawab HANYA dengan query SQL mentah. JANGAN ada penjelasan, komentar, atau markdown.
+
 {full_schema}""",
             
             4: f"""Buat query SQL untuk menampilkan 5 produk dengan harga tertinggi beserta kategorinya.
 
 Gunakan tabel: products dengan kolom name, price, category
+
+PENTING: Jawab HANYA dengan query SQL mentah. JANGAN ada penjelasan, komentar, atau markdown.
 
 {full_schema}""",
             
@@ -78,6 +86,8 @@ Gunakan tabel: products dengan kolom name, price, category
 - Tampilkan nama customer dan total belanja mereka
 - Urutkan berdasarkan total belanja descending
 - Gunakan JOIN antara customers dan orders
+
+PENTING: Jawab HANYA dengan query SQL mentah. JANGAN ada penjelasan, komentar, atau markdown.
 
 {full_schema}"""
         }

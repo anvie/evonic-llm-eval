@@ -31,7 +31,8 @@ class MathTest(BaseTest):
         Score response - expects clean number from PASS 2.
         
         Response should be just a number like "36" or "820800".
-        If it's not a clean number, try to extract but mark as lower confidence.
+        Also handles cases where LLM returns multiple possible answers
+        (e.g., "36 or 40 depending on condition") - if ANY matches, it's correct.
         """
         import re
         
@@ -45,23 +46,50 @@ class MathTest(BaseTest):
         except ValueError:
             pass
         
-        # Maybe has some separators - try to remove them
-        clean_no_sep = clean.replace(',', '').replace('.', '').replace(' ', '')
+        # Maybe has some separators - try to remove them (Indonesian format: 10.000.000)
+        # But be careful - for small numbers we don't want to remove decimals
+        clean_no_sep = clean.replace(',', '').replace(' ', '')
+        # Only remove dots if they appear to be thousand separators (multiple dots or followed by 3 digits)
+        if re.match(r'^\d{1,3}(\.\d{3})+$', clean_no_sep):
+            clean_no_sep = clean_no_sep.replace('.', '')
         try:
             actual = float(clean_no_sep)
             return self._compare_values(actual, expected)
         except ValueError:
             pass
         
-        # Maybe has Rp prefix or other text - try to extract number
-        numbers = re.findall(r'[-+]?\d+\.?\d*', clean)
+        # Extract ALL numbers from the response
+        # This handles cases like "36 or 40" or "11236000 (jika bunga majemuk)"
+        numbers = re.findall(r'[-+]?\d+\.?\d*', clean.replace(',', '').replace('.', ''))
+        
         if numbers:
-            try:
-                actual = float(numbers[0])
-                # If we had to extract, still try to match
-                return self._compare_values(actual, expected)
-            except ValueError:
-                pass
+            # Try each number - if ANY matches expected, it's correct
+            all_values = []
+            for num_str in numbers:
+                try:
+                    value = float(num_str)
+                    all_values.append(value)
+                    
+                    # Check if this value matches expected
+                    result = self._compare_values(value, expected)
+                    if result["score"] == 1.0:
+                        # Found a match! Return success with note about multiple values
+                        if len(all_values) > 1:
+                            result["details"] = f"Correct: {value} (found among: {all_values})"
+                            result["alternate_values"] = all_values
+                        return result
+                except ValueError:
+                    continue
+            
+            # None matched - return result for first number (for backward compat)
+            if all_values:
+                return {
+                    "score": 0.0,
+                    "details": f"Wrong: expected {expected}, got {all_values[0]}. Also checked: {all_values[1:] if len(all_values) > 1 else 'none'}",
+                    "actual": all_values[0],
+                    "expected": expected,
+                    "all_values_found": all_values
+                }
         
         return {
             "score": 0.0,

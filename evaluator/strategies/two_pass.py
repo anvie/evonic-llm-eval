@@ -48,11 +48,14 @@ class TwoPassEvaluator(BaseEvaluator):
                 status="failed",
                 details={
                     "error": extraction.get("parse_error", "Extraction failed"),
-                    "raw_output": extraction.get("raw_pass2", "")[:200],
+                    "raw_output": extraction.get("raw_pass2", ""),
+                    "input_response": response[:500] if len(response) > 500 else response,
                     "pass2": {
                         "success": False,
                         "format": extraction.get("expected_format"),
-                        "error": extraction.get("parse_error")
+                        "raw_output": extraction.get("raw_pass2", ""),
+                        "error": extraction.get("parse_error"),
+                        "extracted_attempt": extraction.get("extracted", "")
                     }
                 },
                 extracted_answer=extraction.get("extracted"),
@@ -82,7 +85,9 @@ class TwoPassEvaluator(BaseEvaluator):
         details["pass2"] = {
             "success": True,
             "format": extraction["expected_format"],
-            "raw_output": extraction.get("raw_pass2", "")[:100]
+            "raw_output": extraction.get("raw_pass2", ""),
+            "input_response": response[:500] if len(response) > 500 else response,
+            "extracted_answer": extracted
         }
         
         return EvaluationResult(

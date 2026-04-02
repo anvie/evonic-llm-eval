@@ -59,8 +59,10 @@
             <div style="font-weight: 600; text-transform: capitalize;">{{ domain }}</div>
             {% for level in range(1, 6) %}
             <div class="matrix-cell clickable-cell" id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
-                <div class="cell-status status-pending"></div>
-                <span class="cell-score">-</span>
+                <div class="cell-main">
+                    <div class="cell-status status-pending"></div>
+                    <span class="cell-score">-</span>
+                </div>
                 <div class="cell-duration" id="duration-{{ domain }}-{{ level }}"></div>
             </div>
             {% endfor %}
@@ -672,14 +674,39 @@ function formatDetails(details) {
             
             // Show PASS2 extraction info
             if (parsed.pass2) {
-                html += '<div style="background: #f0fdf4; padding: 0.75rem; border-radius: 6px; margin: 0.75rem 0; border-left: 3px solid #059669;">';
+                const bgColor = parsed.pass2.success ? '#f0fdf4' : '#fef2f2';
+                const borderColor = parsed.pass2.success ? '#059669' : '#dc2626';
+                html += '<div style="background: ' + bgColor + '; padding: 0.75rem; border-radius: 6px; margin: 0.75rem 0; border-left: 3px solid ' + borderColor + ';">';
                 html += '<strong>🔄 PASS 2 Extraction:</strong><br>';
-                html += `<span style="color: ${parsed.pass2.success ? '#059669' : '#dc2626'};">${parsed.pass2.success ? '✓ Success' : '✗ Failed'}</span>`;
+                html += `<span style="color: ${borderColor}; font-weight: 600;">${parsed.pass2.success ? '✓ Success' : '✗ Failed'}</span>`;
                 if (parsed.pass2.format) {
-                    html += ` <span style="color: #666;">(Format: ${parsed.pass2.format})</span>`;
+                    html += ` <span style="background: #e0e7ff; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">Format: ${parsed.pass2.format}</span>`;
                 }
+                
+                // Show extracted answer
+                if (parsed.pass2.extracted_answer) {
+                    html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">`;
+                    html += `<strong>Extracted Answer:</strong> <code style="color: #059669; font-size: 1.1rem; font-weight: bold;">${escapeHtml(parsed.pass2.extracted_answer)}</code>`;
+                    html += `</div>`;
+                }
+                
+                // Show attempted extraction if failed
+                if (parsed.pass2.extracted_attempt) {
+                    html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">`;
+                    html += `<strong>Attempted Extraction:</strong> <code style="color: #dc2626;">${escapeHtml(parsed.pass2.extracted_attempt)}</code>`;
+                    html += `</div>`;
+                }
+                
+                // Show raw PASS2 output
+                if (parsed.pass2.raw_output) {
+                    html += `<details style="margin-top: 0.5rem;">`;
+                    html += `<summary style="cursor: pointer; color: #666; font-size: 0.85rem;">View Raw PASS2 Output</summary>`;
+                    html += `<pre class="code-block" style="margin-top: 0.5rem; font-size: 0.75rem; max-height: 200px; overflow-y: auto;">${escapeHtml(parsed.pass2.raw_output)}</pre>`;
+                    html += `</details>`;
+                }
+                
                 if (parsed.pass2.error) {
-                    html += `<br><span style="color: #dc2626;">Error: ${escapeHtml(parsed.pass2.error)}</span>`;
+                    html += `<div style="margin-top: 0.5rem; color: #dc2626; font-size: 0.85rem;"><strong>Error:</strong> ${escapeHtml(parsed.pass2.error)}</div>`;
                 }
                 html += '</div>';
             }

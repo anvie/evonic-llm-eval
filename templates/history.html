@@ -10,8 +10,7 @@
             <tr>
                 <th>Run ID</th>
                 <th>Model</th>
-                <th>Started</th>
-                <th>Completed</th>
+                <th>Time</th>
                 <th>Score</th>
                 <th>Summary</th>
             </tr>
@@ -25,8 +24,18 @@
                     </span>
                 </td>
                 <td>{{ run.model_name or 'default' }}</td>
-                <td style="font-size: 0.85rem;">{{ run.started_at[:19] if run.started_at else '-' }}</td>
-                <td style="font-size: 0.85rem;">{{ run.completed_at[:19] if run.completed_at else 'Incomplete' }}</td>
+                <td style="font-size: 0.85rem;">
+                    {% if run.started_at %}
+                        {{ run.started_at[:19] }}
+                        {% if run.completed_at %}
+                            <br><span style="color: #9ca3af;">→ {{ run.completed_at[:19] }}</span>
+                        {% else %}
+                            <br><span style="color: #f59e0b;">→ Incomplete</span>
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
                 <td>
                     {% if run.overall_score is not none %}
                     <span class="score-badge 

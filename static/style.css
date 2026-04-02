@@ -167,19 +167,28 @@ footer {
 
 .matrix-cell {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 60px;
     padding: 0.5rem;
     border-radius: 6px;
     font-weight: 500;
+    gap: 0.25rem;
+}
+
+.matrix-cell .cell-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .cell-status {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    margin-right: 0.5rem;
+    flex-shrink: 0;
 }
 
 .status-passed { background: #10b981; }
@@ -199,6 +208,12 @@ footer {
 .cell-score {
     font-size: 0.9rem;
     color: #6b7280;
+}
+
+.cell-duration {
+    font-size: 0.65rem;
+    color: #9ca3af;
+    margin-top: 0.1rem;
 }
 
 /* Domain Total Cell */
