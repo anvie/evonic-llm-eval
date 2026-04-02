@@ -79,7 +79,7 @@
     </div>
     
     {% if status.run_info and status.run_info.summary and status.status == 'completed' %}
-    <div style="margin-top: 2rem; padding: 1.5rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
+    <div id="summary-box" style="margin-top: 2rem; padding: 1.5rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
         <h3>Executive Summary</h3>
         <p style="color: #1e40af; font-style: italic;">"{{ status.run_info.summary }}"</p>
         <div style="margin-top: 0.5rem; color: #666;">
@@ -87,7 +87,7 @@
         </div>
     </div>
     {% elif status.run_info and status.status == 'interrupted' %}
-    <div style="margin-top: 2rem; padding: 1.5rem; background: #fff7ed; border-radius: 8px; border-left: 4px solid #f59e0b;">
+    <div id="interrupted-box" style="margin-top: 2rem; padding: 1.5rem; background: #fff7ed; border-radius: 8px; border-left: 4px solid #f59e0b;">
         <h3 style="color: #92400e;">Evaluation Interrupted</h3>
         <p style="color: #78350f;">The evaluation was stopped before completion. Partial results are shown in the matrix above.</p>
     </div>
@@ -182,6 +182,12 @@ function showClearButton(show) {
 
 function startEvaluation() {
     console.log('[DEBUG] startEvaluation called');
+    
+    // Remove summary/interrupted boxes from previous run
+    const summaryBox = document.getElementById('summary-box');
+    const interruptedBox = document.getElementById('interrupted-box');
+    if (summaryBox) summaryBox.remove();
+    if (interruptedBox) interruptedBox.remove();
     
     // Update UI immediately
     updateStatusIndicator('running');
@@ -483,9 +489,20 @@ function loadSavedLogs() {
 }
 
 function clearState() {
-    localStorage.removeItem('eval_state');
-    localStorage.removeItem('eval_logs');
-    location.reload();
+    // Call server-side reset first, then clear localStorage and reload
+    fetch('/api/reset', {method: 'POST'})
+        .then(() => {
+            localStorage.removeItem('eval_state');
+            localStorage.removeItem('eval_logs');
+            location.reload();
+        })
+        .catch(err => {
+            console.error('Reset error:', err);
+            // Still clear local state even if server reset fails
+            localStorage.removeItem('eval_state');
+            localStorage.removeItem('eval_logs');
+            location.reload();
+        });
 }
 
 // Modal functions

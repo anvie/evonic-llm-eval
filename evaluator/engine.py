@@ -78,6 +78,15 @@ class EvaluationEngine:
             self.is_running = False
             self.was_interrupted = True
     
+    def reset_state(self):
+        """Reset engine state to idle"""
+        with self.lock:
+            self.current_run_id = None
+            self.is_running = False
+            self.was_interrupted = False
+            self.total_tokens = 0
+            self.total_duration_ms = 0
+    
     def get_status(self) -> Dict[str, Any]:
         """Get current evaluation status"""
         with self.lock:

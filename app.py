@@ -61,6 +61,21 @@ def api_stop():
             'error': str(e)
         }), 400
 
+@app.route('/api/reset', methods=['POST'])
+def api_reset():
+    """Reset engine state to idle"""
+    try:
+        evaluation_engine.reset_state()
+        return jsonify({
+            'success': True,
+            'message': 'State reset'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
 @app.route('/api/test_matrix')
 def api_test_matrix():
     """Get test matrix for current run"""
