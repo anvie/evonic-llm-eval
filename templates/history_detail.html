@@ -62,6 +62,27 @@
         {% endif %}
     </div>
     
+    {% if run_info.total_tokens and run_info.total_tokens > 0 %}
+    <!-- Performance Stats Card -->
+    <div style="margin-top: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+        <h3 style="margin: 0 0 1rem 0; color: white;">⚡ Performance Statistics</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold;">{{ "%.1f"|format((run_info.total_tokens or 0) / ((run_info.total_duration_ms or 1) / 1000)) }}</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">tokens/second</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold;">{{ "{:,}".format(run_info.total_tokens or 0) }}</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">total tokens</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold;">{{ "%.1f"|format((run_info.total_duration_ms or 0) / 1000) }}s</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">total duration</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Test Matrix (Same UI as index.html) -->
     <div class="test-matrix">
         <h3>Test Matrix <span style="font-size: 0.75rem; color: #666; font-weight: normal;">(Click any cell to see details)</span></h3>

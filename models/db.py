@@ -23,7 +23,9 @@ class Database:
                     completed_at DATETIME,
                     model_name TEXT,
                     summary TEXT,
-                    overall_score REAL
+                    overall_score REAL,
+                    total_tokens INTEGER DEFAULT 0,
+                    total_duration_ms INTEGER DEFAULT 0
                 )
             """)
             
@@ -243,15 +245,19 @@ class Database:
             
             conn.commit()
     
-    def complete_evaluation_run(self, run_id: str, summary: str, overall_score: float):
+    def complete_evaluation_run(self, run_id: str, summary: str, overall_score: float, 
+                                 total_tokens: int = 0, total_duration_ms: int = 0):
         """Mark evaluation run as completed"""
         completed_at = datetime.now()
         
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "UPDATE evaluation_runs SET completed_at = ?, summary = ?, overall_score = ? WHERE run_id = ?",
-                (completed_at, summary, overall_score, run_id)
+                """UPDATE evaluation_runs 
+                   SET completed_at = ?, summary = ?, overall_score = ?, 
+                       total_tokens = ?, total_duration_ms = ? 
+                   WHERE run_id = ?""",
+                (completed_at, summary, overall_score, total_tokens, total_duration_ms, run_id)
             )
             conn.commit()
     

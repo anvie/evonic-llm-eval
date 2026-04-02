@@ -14,6 +14,9 @@
                     {{ 'disabled' if status.status != 'running' else '' }}>
                 Stop Evaluation
             </button>
+            <button id="clear-btn" class="btn btn-secondary" onclick="clearState()" style="display: none;">
+                Clear
+            </button>
         </div>
         
         <div class="status-indicator status-{{ status.status }}" id="status-indicator">
@@ -106,6 +109,7 @@
 let pollingInterval;
 let testResultsData = {};  // Store all test results for modal access
 let configModel = null;  // Store model name from config
+let eventSource = null;  // Global EventSource reference for reconnection
 
 // Fetch model config on load
 fetch('/api/config/model')
@@ -114,6 +118,63 @@ fetch('/api/config/model')
     configModel = data.model;
 });
 
+// Load saved state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadSavedState();
+});
+
+function saveState(data) {
+    const state = {
+        run_id: data.run_id,
+        model_name: data.model_name,
+        status: data.status,
+        domains: data.domains,
+        tok_per_sec: data.tok_per_sec,
+        total_tokens: data.total_tokens,
+        total_duration_ms: data.total_duration_ms,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('eval_state', JSON.stringify(state));
+}
+
+function loadSavedState() {
+    const saved = localStorage.getItem('eval_state');
+    if (saved) {
+        try {
+            const state = JSON.parse(saved);
+            if (state.domains) {
+                updateMatrix(state.domains);
+            }
+            if (state.status && state.status !== 'running') {
+                updateStatusIndicator(state.status);
+                showClearButton(true);
+            }
+            if (state.model_name) {
+                document.getElementById('model-display').style.display = 'block';
+                document.getElementById('model-name-text').textContent = state.model_name;
+            }
+            if (state.run_id) {
+                // Show run ID
+                const runIdEl = document.querySelector('.controls code');
+                if (runIdEl) {
+                    runIdEl.textContent = state.run_id.substring(0, 8);
+                }
+            }
+        } catch (e) {
+            console.error('Error loading saved state:', e);
+        }
+    }
+}
+
+function clearState() {
+    localStorage.removeItem('eval_state');
+    location.reload();
+}
+
+function showClearButton(show) {
+    document.getElementById('clear-btn').style.display = show ? 'inline-block' : 'none';
+}
+
 function startEvaluation() {
     console.log('[DEBUG] startEvaluation called');
     
@@ -121,6 +182,10 @@ function startEvaluation() {
     updateStatusIndicator('running');
     document.getElementById('start-btn').disabled = true;
     document.getElementById('stop-btn').disabled = false;
+    showClearButton(false);
+    
+    // Clear old logs
+    document.getElementById('log-box').innerHTML = '';
     
     // Use model from config, fallback to 'default' if not loaded yet
     const modelName = configModel || 'default';
@@ -138,6 +203,7 @@ function startEvaluation() {
         console.log('[DEBUG] Data:', data);
         if (data.success) {
             startPolling();
+            setupLogStream();  // Start log stream when evaluation starts
         } else {
             alert('Error: ' + data.error);
             updateStatusIndicator('idle');
@@ -214,10 +280,14 @@ function updateStatus() {
             modelDisplay.style.display = 'block';
         }
         
+        // Save state for persistence
+        saveState(data);
+        
         if (data.status === 'completed' || data.status === 'interrupted') {
             clearInterval(pollingInterval);
             document.getElementById('stop-btn').disabled = true;
             document.getElementById('start-btn').disabled = false;
+            showClearButton(true);
             
             // Log completion/interrupted message
             const logBox = document.getElementById('log-box');
@@ -234,7 +304,7 @@ function updateStatus() {
             }
             
             logBox.innerHTML += '<div class="log-entry">[SYSTEM] Halaman tidak di-reload. Anda dapat mengobservasi hasil.</div>';
-            logBox.innerHTML += '<div class="log-entry">[SYSTEM] Klik cell di Test Matrix untuk melihat detail, atau "Start Evaluation" untuk evaluasi baru.</div>';
+            logBox.innerHTML += '<div class="log-entry">[SYSTEM] Klik cell di Test Matrix untuk melihat detail, atau "Clear" untuk reset.</div>';
         }
     })
     .catch(error => {
@@ -337,31 +407,55 @@ window.addEventListener('load', function() {
     document.getElementById('start-btn').disabled = true;
     document.getElementById('stop-btn').disabled = false;
     startPolling();
+    setupLogStream();  // Also start log stream if running
 });
 {% endif %}
 
 function setupLogStream() {
     const logBox = document.getElementById('log-box');
-    const eventSource = new EventSource('/api/log_stream');
-
+    
+    // Close existing connection if any
+    if (eventSource) {
+        eventSource.close();
+    }
+    
+    eventSource = new EventSource('/api/log_stream');
+    
     eventSource.onmessage = function(event) {
         // Convert newline to <br> for HTML display
         const message = event.data.replace(/\n/g, '<br>');
         logBox.innerHTML += '<div class="log-entry">' + message + '</div>';
         logBox.scrollTop = logBox.scrollHeight;
-        if (event.data.includes('[SYSTEM] EVALUASI SELESAI')) {
+        if (event.data.includes('[SYSTEM] EVALUASI SELESAI') || event.data.includes('Evaluation stopped')) {
             eventSource.close();
+            eventSource = null;
         }
     };
-
-    eventSource.onerror = function() {
-        logBox.innerHTML += '<div class="log-entry error">[SYSTEM] Koneksi log stream terputus.</div>';
+    
+    eventSource.onerror = function(e) {
+        console.log('EventSource error:', e);
         eventSource.close();
+        eventSource = null;
+        
+        // Only reconnect if evaluation is still running
+        fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'running') {
+                // Reconnect after a short delay
+                setTimeout(() => {
+                    logBox.innerHTML += '<div class="log-entry" style="color: #f59e0b;">[SYSTEM] Reconnecting to log stream...</div>';
+                    setupLogStream();
+                }, 1000);
+            }
+        })
+        .catch(err => {
+            console.error('Error checking status:', err);
+        });
     };
 }
 
-// Start log stream on page load
-window.addEventListener('load', setupLogStream);
+// Don't auto-start log stream on page load - only when evaluation is running
 
 // Modal functions
 function showCellDetail(domain, level) {

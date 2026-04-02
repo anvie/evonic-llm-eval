@@ -473,8 +473,12 @@ class EvaluationEngine:
         summary = scoring_engine.generate_summary(results_dict, model_name)
         overall_score = scoring_engine.calculate_overall_score(results_dict)
         
-        # Store summary
-        db.complete_evaluation_run(run_id, summary, overall_score)
+        # Store summary with token stats
+        db.complete_evaluation_run(
+            run_id, summary, overall_score,
+            total_tokens=self.total_tokens,
+            total_duration_ms=self.total_duration_ms
+        )
     
     def get_test_matrix(self, run_id: Optional[str] = None) -> Dict[str, Any]:
         """Get test matrix for UI display"""
