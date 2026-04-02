@@ -177,6 +177,11 @@ class AnswerExtractor:
         """
         Extract final answer using LLM with strict format instructions.
         
+        Uses multi-layer extraction:
+        - Layer 1: LLM Extraction (primary)
+        - Layer 2: Regex Fallback (for common patterns)
+        - Layer 3: Domain heuristics (last resort)
+        
         Args:
             domain: Test domain (math, reasoning, sql, etc.)
             level: Test level (1-5)
@@ -190,7 +195,8 @@ class AnswerExtractor:
                 "expected_format": str,     # What format was expected
                 "raw_pass2": str,           # Raw PASS 2 output
                 "pass2_prompt": str,        # Prompt used for PASS 2
-                "parse_error": Optional[str]
+                "parse_error": Optional[str],
+                "extraction_method": str    # How extraction was done
             }
         """
         # Check if two-pass is enabled
@@ -201,7 +207,8 @@ class AnswerExtractor:
                 "expected_format": "raw",
                 "raw_pass2": "",
                 "pass2_prompt": "",
-                "parse_error": None
+                "parse_error": None,
+                "extraction_method": "disabled"
             }
         
         # Get extraction prompt (include question for context)
@@ -214,13 +221,14 @@ class AnswerExtractor:
                 "expected_format": "raw",
                 "raw_pass2": "",
                 "pass2_prompt": "",
-                "parse_error": None
+                "parse_error": None,
+                "extraction_method": "no_prompt"
             }
 
         prompt = prompt_data["prompt"]
         expected_format = prompt_data["expected_format"]
         
-        # PASS 2: Call LLM to extract clean answer
+        # LAYER 1: PASS 2 - Call LLM to extract clean answer
         messages = [{"role": "user", "content": prompt}]
         
         try:
@@ -243,32 +251,109 @@ class AnswerExtractor:
                     "success": True,
                     "extracted": validated["cleaned"],
                     "expected_format": expected_format,
-                    "raw_pass2": cleaned_pass2,  # Store cleaned version (no thinking tags)
-                    "pass2_prompt": prompt,
-                    "pass2_thinking": thinking_pass2,  # Store thinking separately for debugging
-                    "parse_error": None
-                }
-            else:
-                # LLM didn't follow format - consider as FAIL
-                return {
-                    "success": False,
-                    "extracted": cleaned_pass2,
-                    "expected_format": expected_format,
-                    "raw_pass2": cleaned_pass2,  # Store cleaned version (no thinking tags)
+                    "raw_pass2": cleaned_pass2,
                     "pass2_prompt": prompt,
                     "pass2_thinking": thinking_pass2,
-                    "parse_error": validated["error"]
+                    "parse_error": None,
+                    "extraction_method": "llm"
                 }
+            else:
+                # LLM extraction failed - TRY LAYER 2: Regex fallback
+                fallback_result = self._try_regex_fallback(response, expected_format, domain)
+                
+                if fallback_result["success"]:
+                    return {
+                        "success": True,
+                        "extracted": fallback_result["extracted"],
+                        "expected_format": expected_format,
+                        "raw_pass2": cleaned_pass2,
+                        "pass2_prompt": prompt,
+                        "pass2_thinking": thinking_pass2,
+                        "parse_error": None,
+                        "extraction_method": fallback_result["method"]
+                    }
+                else:
+                    # All extraction methods failed
+                    return {
+                        "success": False,
+                        "extracted": cleaned_pass2,
+                        "expected_format": expected_format,
+                        "raw_pass2": cleaned_pass2,
+                        "pass2_prompt": prompt,
+                        "pass2_thinking": thinking_pass2,
+                        "parse_error": validated["error"],
+                        "extraction_method": "failed"
+                    }
                 
         except Exception as e:
-            return {
-                "success": False,
-                "extracted": response,
-                "expected_format": expected_format,
-                "raw_pass2": "",
-                "pass2_prompt": prompt,
-                "parse_error": f"Extraction error: {str(e)}"
-            }
+            # LLM call failed - try regex fallback
+            fallback_result = self._try_regex_fallback(response, expected_format, domain)
+            
+            if fallback_result["success"]:
+                return {
+                    "success": True,
+                    "extracted": fallback_result["extracted"],
+                    "expected_format": expected_format,
+                    "raw_pass2": "",
+                    "pass2_prompt": prompt,
+                    "parse_error": None,
+                    "extraction_method": fallback_result["method"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "extracted": response,
+                    "expected_format": expected_format,
+                    "raw_pass2": "",
+                    "pass2_prompt": prompt,
+                    "parse_error": f"Extraction error: {str(e)}",
+                    "extraction_method": "error"
+                }
+    
+    def _try_regex_fallback(self, response: str, expected_format: str, domain: str) -> Dict[str, Any]:
+        """
+        Layer 2 & 3: Try regex patterns and domain heuristics.
+        
+        Returns:
+            {"success": bool, "extracted": str, "method": str}
+        """
+        
+        # For number format, try regex patterns
+        if expected_format == "number":
+            # Pattern 1: \boxed{n} (LaTeX)
+            match = re.search(r'\\boxed\{(\d+(?:\.\d+)?)\}', response)
+            if match:
+                return {"success": True, "extracted": match.group(1), "method": "regex_boxed"}
+            
+            # Pattern 2: "answer is X" or "hasil adalah X"
+            match = re.search(r'(?:answer|hasil|jawaban)\s*(?:is|nya|ialah|adalah)[:\s]*(\d+(?:\.\d+)?)', response, re.IGNORECASE)
+            if match:
+                return {"success": True, "extracted": match.group(1), "method": "regex_answer_is"}
+            
+            # Pattern 3: "= X" at end
+            match = re.search(r'=\s*(\d+(?:\.\d+)?)\s*[.\s]*$', response)
+            if match:
+                return {"success": True, "extracted": match.group(1), "method": "regex_equals_end"}
+            
+            # Pattern 4: Last number in response (for math)
+            all_numbers = re.findall(r'\d+(?:\.\d+)?', response)
+            if all_numbers and domain == "math":
+                return {"success": True, "extracted": all_numbers[-1], "method": "heuristic_last_number"}
+        
+        elif expected_format == "boolean":
+            lower = response.lower()
+            if "ya" in lower or "yes" in lower:
+                return {"success": True, "extracted": "ya", "method": "heuristic_boolean"}
+            if "tidak" in lower or "no" in lower:
+                return {"success": True, "extracted": "tidak", "method": "heuristic_boolean"}
+        
+        elif expected_format == "sql":
+            match = re.search(r'(SELECT\s+.*?(?:;|$))', response, re.IGNORECASE | re.DOTALL)
+            if match:
+                return {"success": True, "extracted": match.group(1).strip(), "method": "regex_sql"}
+        
+        # No fallback worked
+        return {"success": False, "extracted": response, "method": "no_fallback"}
     
     def _get_extraction_prompt(self, domain: str, level: int, response: str, question: str = "") -> Optional[Dict]:
         """Get extraction prompt and expected format for domain/level
