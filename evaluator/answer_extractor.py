@@ -8,7 +8,7 @@ This module handles PASS 2 - extracting clean answers from verbose LLM responses
 """
 
 from typing import Dict, Any, Optional
-from evaluator.llm_client import llm_client
+from evaluator.llm_client import llm_client, strip_thinking_tags
 import config
 import re
 
@@ -212,26 +212,31 @@ class AnswerExtractor:
             
             raw_pass2 = self.client.extract_content(llm_response).strip()
             
-            # Validate the format
-            validated = self._validate_format(raw_pass2, expected_format)
+            # Strip thinking tags from PASS 2 output (for thinking models)
+            cleaned_pass2, thinking_pass2 = strip_thinking_tags(raw_pass2)
+            
+            # Validate the format (use cleaned version without thinking)
+            validated = self._validate_format(cleaned_pass2, expected_format)
             
             if validated["valid"]:
                 return {
                     "success": True,
                     "extracted": validated["cleaned"],
                     "expected_format": expected_format,
-                    "raw_pass2": raw_pass2,
+                    "raw_pass2": raw_pass2,  # Keep original for debugging
                     "pass2_prompt": prompt,
+                    "pass2_thinking": thinking_pass2,  # Store thinking if present
                     "parse_error": None
                 }
             else:
                 # LLM didn't follow format - consider as FAIL
                 return {
                     "success": False,
-                    "extracted": raw_pass2,
+                    "extracted": cleaned_pass2,
                     "expected_format": expected_format,
                     "raw_pass2": raw_pass2,
                     "pass2_prompt": prompt,
+                    "pass2_thinking": thinking_pass2,
                     "parse_error": validated["error"]
                 }
                 

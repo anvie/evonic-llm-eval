@@ -43,6 +43,19 @@ class TwoPassEvaluator(BaseEvaluator):
         extraction = self.extractor.extract(self.domain, level, response)
         
         if not extraction["success"]:
+            pass2_details = {
+                "success": False,
+                "format": extraction.get("expected_format"),
+                "raw_output": extraction.get("raw_pass2", ""),
+                "prompt": extraction.get("pass2_prompt", ""),
+                "error": extraction.get("parse_error"),
+                "extracted_attempt": extraction.get("extracted", "")
+            }
+            
+            # Add PASS2 thinking if present
+            if extraction.get("pass2_thinking"):
+                pass2_details["thinking"] = extraction["pass2_thinking"]
+            
             return EvaluationResult(
                 score=0.0,
                 status="failed",
@@ -50,14 +63,7 @@ class TwoPassEvaluator(BaseEvaluator):
                     "error": extraction.get("parse_error", "Extraction failed"),
                     "raw_output": extraction.get("raw_pass2", ""),
                     "input_response": response[:500] if len(response) > 500 else response,
-                    "pass2": {
-                        "success": False,
-                        "format": extraction.get("expected_format"),
-                        "raw_output": extraction.get("raw_pass2", ""),
-                        "prompt": extraction.get("pass2_prompt", ""),
-                        "error": extraction.get("parse_error"),
-                        "extracted_attempt": extraction.get("extracted", "")
-                    }
+                    "pass2": pass2_details
                 },
                 extracted_answer=extraction.get("extracted"),
                 pass2_used=True
@@ -91,6 +97,10 @@ class TwoPassEvaluator(BaseEvaluator):
             "input_response": response[:500] if len(response) > 500 else response,
             "extracted_answer": extracted
         }
+        
+        # Add PASS2 thinking if present
+        if extraction.get("pass2_thinking"):
+            details["pass2"]["thinking"] = extraction["pass2_thinking"]
         
         return EvaluationResult(
             score=score,

@@ -458,6 +458,13 @@ function showModalWithData(domain, level, data) {
                     </div>
                     ` : ''}
                     
+                    ${pass2.thinking ? `
+                    <div style="margin-bottom: 0.75rem;">
+                        <div style="font-size: 0.85rem; color: #7c3aed; margin-bottom: 0.25rem;">🧠 PASS2 THINKING:</div>
+                        <pre style="background: #f5f3ff; padding: 0.75rem; border-radius: 4px; font-size: 0.8rem; white-space: pre-wrap; word-wrap: break-word; max-height: 200px; overflow-y: auto; border-left: 3px solid #7c3aed; color: #4c1d95;">${escapeHtml(pass2.thinking)}</pre>
+                    </div>
+                    ` : ''}
+                    
                     ${pass2.extracted_answer ? `
                     <div style="background: white; padding: 0.5rem 0.75rem; border-radius: 4px; display: inline-block;">
                         <strong>Extracted:</strong> <code style="color: #059669; font-size: 1.1rem; font-weight: bold;">${escapeHtml(pass2.extracted_answer)}</code>

@@ -841,6 +841,14 @@ function formatDetails(details) {
                     html += `</div>`;
                 }
                 
+                // Show PASS2 thinking if present
+                if (parsed.pass2.thinking) {
+                    html += `<div style="margin-top: 0.5rem;">`;
+                    html += `<div style="font-size: 0.85rem; color: #7c3aed; margin-bottom: 0.25rem;">🧠 PASS2 THINKING:</div>`;
+                    html += `<pre style="background: #f5f3ff; padding: 0.75rem; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word; max-height: 150px; overflow-y: auto; border-left: 3px solid #7c3aed; color: #4c1d95;">${escapeHtml(parsed.pass2.thinking)}</pre>`;
+                    html += `</div>`;
+                }
+                
                 // Show extracted answer
                 if (parsed.pass2.extracted_answer) {
                     html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">`;
