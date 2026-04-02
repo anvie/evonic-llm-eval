@@ -32,15 +32,21 @@ class TwoPassEvaluator(BaseEvaluator):
     def uses_pass2(self) -> bool:
         return True
     
-    def evaluate(self, response: str, expected: Any, level: int) -> EvaluationResult:
+    def evaluate(self, response: str, expected: Any, level: int, prompt: str = "") -> EvaluationResult:
         """
         Evaluate using two-pass extraction.
         
         1. Extract clean answer via PASS2
         2. Score the clean answer using domain-specific test class
+        
+        Args:
+            response: Model response from PASS 1
+            expected: Expected answer
+            level: Test level (1-5)
+            prompt: Original question/prompt for context
         """
-        # PASS 2: Extract clean answer
-        extraction = self.extractor.extract(self.domain, level, response)
+        # PASS 2: Extract clean answer (include original question for context)
+        extraction = self.extractor.extract(self.domain, level, response, prompt)
         
         if not extraction["success"]:
             pass2_details = {

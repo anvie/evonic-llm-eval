@@ -199,6 +199,10 @@ footer {
 }
 .status-pending { background: #9ca3af; }
 .status-skipped { background: #d1d5db; }
+.status-partial { 
+    background: #f59e0b;
+    opacity: 0.8;
+}
 
 @keyframes pulse {
     0%, 100% { opacity: 1; }

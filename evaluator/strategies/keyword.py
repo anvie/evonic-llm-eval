@@ -47,7 +47,7 @@ class KeywordEvaluator(BaseEvaluator):
     def uses_pass2(self) -> bool:
         return False
     
-    def evaluate(self, response: str, expected: Any, level: int) -> EvaluationResult:
+    def evaluate(self, response: str, expected: Any, level: int, prompt: str = "") -> EvaluationResult:
         """
         Evaluate using keyword matching and content analysis.
         

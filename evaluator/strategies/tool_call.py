@@ -32,7 +32,7 @@ class ToolCallEvaluator(BaseEvaluator):
     def uses_pass2(self) -> bool:
         return True
     
-    def evaluate(self, response: str, expected: Any, level: int) -> EvaluationResult:
+    def evaluate(self, response: str, expected: Any, level: int, prompt: str = "") -> EvaluationResult:
         """Evaluate tool calls"""
         
         # Check if response already has tool_calls (from LLM with tools)

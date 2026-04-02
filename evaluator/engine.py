@@ -318,8 +318,9 @@ class EvaluationEngine:
             self._log(f'[EVAL] Using {evaluator.name} (PASS2: {evaluator.uses_pass2})')
             
             # Evaluate using domain-specific strategy (only final content, not thinking)
+            # Pass the original prompt for context (helps PASS 2 extraction)
             self._log(f'[SCORING] Evaluating response...')
-            result = evaluator.evaluate(response_content, expected, level)
+            result = evaluator.evaluate(response_content, expected, level, prompt)
             
             # Build details dict
             details = result.details

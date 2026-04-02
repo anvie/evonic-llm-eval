@@ -32,11 +32,11 @@ class SQLExecutorEvaluator(BaseEvaluator):
     def uses_pass2(self) -> bool:
         return True
     
-    def evaluate(self, response: str, expected: Any, level: int) -> EvaluationResult:
+    def evaluate(self, response: str, expected: Any, level: int, prompt: str = "") -> EvaluationResult:
         """Evaluate SQL with execution"""
         
-        # PASS 2: Extract clean SQL
-        extraction = self.extractor.extract(self.domain, level, response)
+        # PASS 2: Extract clean SQL (include original question for context)
+        extraction = self.extractor.extract(self.domain, level, response, prompt)
         
         if not extraction["success"]:
             return EvaluationResult(

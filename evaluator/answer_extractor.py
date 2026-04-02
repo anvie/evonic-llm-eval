@@ -17,13 +17,16 @@ import re
 # Each template instructs LLM to output ONLY the answer in specific format
 EXTRACTION_PROMPTS = {
     "math": {
-        "template": """Answer ONLY with the final number. No explanation, no steps, no words.
+        "template": """You are given a question and an AI's response. Extract ONLY the final numeric answer.
 
-Just the number. Nothing else.
-
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY the number (no text, no explanation, no boxes)
+2. Remove any formatting like commas, dots, or currency symbols
+3. If the response contains a calculation, return only the final result
 
 Your answer (number only):""",
         "expected_format": "number"
@@ -31,67 +34,79 @@ Your answer (number only):""",
     
     "reasoning": {
         1: {
-            "template": """Answer ONLY with "ya" or "tidak". One word only. No explanation.
+            "template": """You are given a question and an AI's response. Extract ONLY the final answer: "ya" or "tidak".
 
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY "ya" or "tidak" (one word, lowercase)
+2. No explanation, no reasoning, no other text
 
 Your answer (ya/tidak only):""",
             "expected_format": "boolean"
         },
         
         2: {
-            "template": """Answer ONLY with the sorted numbers separated by comma.
+            "template": """You are given a question and an AI's response. Extract ONLY the sorted numbers.
 
-Format: number1, number2, number3, number4, number5
-
-No explanation. Just the numbers.
-
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY the numbers separated by comma: number1, number2, number3...
+2. No explanation, no boxes, no other text
+3. Just the numbers in order
 
 Your answer (numbers only):""",
             "expected_format": "sequence"
         },
         
         3: {
-            "template": """Answer ONLY with the total number. No explanation, no steps.
+            "template": """You are given a question and an AI's response. Extract ONLY the final number.
 
-Just the number. Nothing else.
-
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY the number (no text, no explanation)
+2. Remove any formatting or extra characters
+3. Just the final count
 
 Your answer (number only):""",
             "expected_format": "number"
         },
         
         4: {
-            "template": """Answer ONLY with the statement numbers that are correct.
+            "template": """You are given a question and an AI's response. Extract ONLY the statement numbers that are correct.
 
-Format: number, number (e.g., "2, 4")
-
-No explanation. Just the numbers.
-
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY the statement numbers separated by comma (e.g., "2, 4")
+2. No explanation, no other text
+3. Just the numbers
 
 Your answer (statement numbers only):""",
             "expected_format": "statements"
         },
         
         5: {
-            "template": """Answer ONLY with the final price in Rupiah (number only, no Rp prefix, no dots, no commas).
+            "template": """You are given a question and an AI's response. Extract ONLY the final price in Rupiah.
 
-Just the number. Nothing else.
-
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY the number (no "Rp", no dots, no commas)
+2. No explanation, no text
+3. Just the final price as a number
 
 Your answer (number only):""",
             "expected_format": "number"
@@ -99,28 +114,32 @@ Your answer (number only):""",
     },
     
     "sql": {
-        "template": """Answer ONLY with the SQL query. No explanation, no markdown.
+        "template": """You are given a question and an AI's response containing SQL. Extract ONLY the SQL query.
 
-Just the SQL statement ending with semicolon.
-
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY the SQL statement (no markdown, no explanation)
+2. The SQL should end with semicolon
+3. No text before or after
 
 Your answer (SQL only):""",
         "expected_format": "sql"
     },
     
     "tool_calling": {
-        "template": """Answer ONLY with the tool names separated by comma.
+        "template": """You are given a question and an AI's response containing tool calls. Extract ONLY the tool names.
 
-Format: tool1, tool2, tool3
-
-No explanation. Just tool names.
-
----BEGIN ANSWER---
+---BEGIN RESPONSE---
 {response}
----END ANSWER---
+---END RESPONSE---
+
+Rules:
+1. Return ONLY tool names separated by comma: tool1, tool2, tool3
+2. No brackets, no explanation, no other text
+3. Just the tool names
 
 Your answer (tool names only):""",
         "expected_format": "tools"
@@ -154,7 +173,7 @@ class AnswerExtractor:
         self.enabled = getattr(config, 'TWO_PASS_ENABLED', True)
         self.temperature = getattr(config, 'TWO_PASS_TEMPERATURE', 0.0)
     
-    def extract(self, domain: str, level: int, response: str) -> Dict[str, Any]:
+    def extract(self, domain: str, level: int, response: str, question: str = "") -> Dict[str, Any]:
         """
         Extract final answer using LLM with strict format instructions.
         
@@ -162,6 +181,7 @@ class AnswerExtractor:
             domain: Test domain (math, reasoning, sql, etc.)
             level: Test level (1-5)
             response: Raw LLM response from PASS 1
+            question: Original question/prompt from PASS 1 (for context)
             
         Returns:
             {
@@ -184,8 +204,8 @@ class AnswerExtractor:
                 "parse_error": None
             }
         
-        # Get extraction prompt
-        prompt_data = self._get_extraction_prompt(domain, level, response)
+        # Get extraction prompt (include question for context)
+        prompt_data = self._get_extraction_prompt(domain, level, response, question)
         
         if not prompt_data:
             return {
@@ -250,23 +270,46 @@ class AnswerExtractor:
                 "parse_error": f"Extraction error: {str(e)}"
             }
     
-    def _get_extraction_prompt(self, domain: str, level: int, response: str) -> Optional[Dict]:
-        """Get extraction prompt and expected format for domain/level"""
+    def _get_extraction_prompt(self, domain: str, level: int, response: str, question: str = "") -> Optional[Dict]:
+        """Get extraction prompt and expected format for domain/level
+        
+        Args:
+            domain: Test domain
+            level: Test level
+            response: Model response from PASS 1
+            question: Original question for context
+        """
+        
+        # Build question context section if available
+        question_context = ""
+        if question:
+            question_context = f"""
+---ORIGINAL QUESTION---
+{question[:1000]}
+---END QUESTION---
+
+"""
         
         if domain == "reasoning":
             # Reasoning has level-specific prompts
             level_prompts = EXTRACTION_PROMPTS.get("reasoning", {})
             if level in level_prompts:
                 data = level_prompts[level]
+                template = data["template"]
+                # Replace {response} placeholder, add question context before it
+                prompt = question_context + template.format(response=response)
                 return {
-                    "prompt": data["template"].format(response=response),
+                    "prompt": prompt,
                     "expected_format": data["expected_format"]
                 }
         elif domain in EXTRACTION_PROMPTS:
             data = EXTRACTION_PROMPTS[domain]
             if "template" in data:
+                template = data["template"]
+                # Replace {response} placeholder, add question context before it
+                prompt = question_context + template.format(response=response)
                 return {
-                    "prompt": data["template"].format(response=response),
+                    "prompt": prompt,
                     "expected_format": data["expected_format"]
                 }
         

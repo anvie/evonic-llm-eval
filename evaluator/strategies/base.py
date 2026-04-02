@@ -31,7 +31,7 @@ class BaseEvaluator(ABC):
     """
     
     @abstractmethod
-    def evaluate(self, response: str, expected: Any, level: int) -> EvaluationResult:
+    def evaluate(self, response: str, expected: Any, level: int, prompt: str = "") -> EvaluationResult:
         """
         Evaluate the LLM response against expected output.
         
@@ -39,6 +39,7 @@ class BaseEvaluator(ABC):
             response: Raw LLM response from PASS 1
             expected: Expected output or validation criteria
             level: Test level (1-5)
+            prompt: Original question/prompt for context (used by PASS2)
             
         Returns:
             EvaluationResult with score, status, and details
