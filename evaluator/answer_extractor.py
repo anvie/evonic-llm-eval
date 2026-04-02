@@ -169,6 +169,7 @@ class AnswerExtractor:
                 "extracted": str,           # Clean answer from PASS 2
                 "expected_format": str,     # What format was expected
                 "raw_pass2": str,           # Raw PASS 2 output
+                "pass2_prompt": str,        # Prompt used for PASS 2
                 "parse_error": Optional[str]
             }
         """
@@ -179,6 +180,7 @@ class AnswerExtractor:
                 "extracted": response,
                 "expected_format": "raw",
                 "raw_pass2": "",
+                "pass2_prompt": "",
                 "parse_error": None
             }
         
@@ -191,9 +193,10 @@ class AnswerExtractor:
                 "extracted": response,
                 "expected_format": "raw",
                 "raw_pass2": "",
+                "pass2_prompt": "",
                 "parse_error": None
             }
-        
+
         prompt = prompt_data["prompt"]
         expected_format = prompt_data["expected_format"]
         
@@ -218,6 +221,7 @@ class AnswerExtractor:
                     "extracted": validated["cleaned"],
                     "expected_format": expected_format,
                     "raw_pass2": raw_pass2,
+                    "pass2_prompt": prompt,
                     "parse_error": None
                 }
             else:
@@ -227,6 +231,7 @@ class AnswerExtractor:
                     "extracted": raw_pass2,
                     "expected_format": expected_format,
                     "raw_pass2": raw_pass2,
+                    "pass2_prompt": prompt,
                     "parse_error": validated["error"]
                 }
                 
@@ -236,6 +241,7 @@ class AnswerExtractor:
                 "extracted": response,
                 "expected_format": expected_format,
                 "raw_pass2": "",
+                "pass2_prompt": prompt,
                 "parse_error": f"Extraction error: {str(e)}"
             }
     

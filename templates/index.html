@@ -777,6 +777,22 @@ function formatDetails(details) {
                     html += ` <span style="background: #e0e7ff; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">Format: ${parsed.pass2.format}</span>`;
                 }
                 
+                // Show PASS2 INPUT (prompt)
+                if (parsed.pass2.prompt) {
+                    html += `<div style="margin-top: 0.5rem;">`;
+                    html += `<div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📥 PASS2 INPUT (Extraction Prompt):</div>`;
+                    html += `<pre style="background: #eff6ff; padding: 0.75rem; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word; max-height: 150px; overflow-y: auto; border-left: 3px solid #3b82f6;">${escapeHtml(parsed.pass2.prompt)}</pre>`;
+                    html += `</div>`;
+                }
+                
+                // Show PASS2 OUTPUT (raw output)
+                if (parsed.pass2.raw_output) {
+                    html += `<div style="margin-top: 0.5rem;">`;
+                    html += `<div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📤 PASS2 OUTPUT (Raw Response):</div>`;
+                    html += `<pre style="background: #f8fafc; padding: 0.75rem; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word; max-height: 150px; overflow-y: auto; border-left: 3px solid #059669;">${escapeHtml(parsed.pass2.raw_output)}</pre>`;
+                    html += `</div>`;
+                }
+                
                 // Show extracted answer
                 if (parsed.pass2.extracted_answer) {
                     html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">`;
@@ -789,14 +805,6 @@ function formatDetails(details) {
                     html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">`;
                     html += `<strong>Attempted Extraction:</strong> <code style="color: #dc2626;">${escapeHtml(parsed.pass2.extracted_attempt)}</code>`;
                     html += `</div>`;
-                }
-                
-                // Show raw PASS2 output
-                if (parsed.pass2.raw_output) {
-                    html += `<details style="margin-top: 0.5rem;">`;
-                    html += `<summary style="cursor: pointer; color: #666; font-size: 0.85rem;">View Raw PASS2 Output</summary>`;
-                    html += `<pre class="code-block" style="margin-top: 0.5rem; font-size: 0.75rem; max-height: 200px; overflow-y: auto;">${escapeHtml(parsed.pass2.raw_output)}</pre>`;
-                    html += `</details>`;
                 }
                 
                 if (parsed.pass2.error) {

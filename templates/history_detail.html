@@ -55,33 +55,31 @@
             </div>
         </div>
         
+        {% if run_info.total_tokens and run_info.total_tokens > 0 %}
+        <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div style="text-align: center; padding: 0.75rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #0369a1;">{{ "%.1f"|format((run_info.total_tokens or 0) / ((run_info.total_duration_ms or 1) / 1000)) }}</div>
+                    <div style="font-size: 0.8rem; color: #0c4a6e;">tokens/second</div>
+                </div>
+                <div style="text-align: center; padding: 0.75rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #0369a1;">{{ "{:,}".format(run_info.total_tokens or 0) }}</div>
+                    <div style="font-size: 0.8rem; color: #0c4a6e;">total tokens</div>
+                </div>
+                <div style="text-align: center; padding: 0.75rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #0369a1;">{{ "%.1f"|format((run_info.total_duration_ms or 0) / 1000) }}s</div>
+                    <div style="font-size: 0.8rem; color: #0c4a6e;">total duration</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         {% if run_info.summary %}
         <div class="summary-box" style="margin-top: 1rem;">
             <strong>Executive Summary:</strong> "{{ run_info.summary }}"
         </div>
         {% endif %}
     </div>
-    
-    {% if run_info.total_tokens and run_info.total_tokens > 0 %}
-    <!-- Performance Stats Card -->
-    <div style="margin-top: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
-        <h3 style="margin: 0 0 1rem 0; color: white;">⚡ Performance Statistics</h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold;">{{ "%.1f"|format((run_info.total_tokens or 0) / ((run_info.total_duration_ms or 1) / 1000)) }}</div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">tokens/second</div>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold;">{{ "{:,}".format(run_info.total_tokens or 0) }}</div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">total tokens</div>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold;">{{ "%.1f"|format((run_info.total_duration_ms or 0) / 1000) }}s</div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">total duration</div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
     
     <!-- Test Matrix (Same UI as index.html) -->
     <div class="test-matrix">
@@ -412,6 +410,49 @@ function showModalWithData(domain, level, data) {
         `;
     }
     
+    // Show PASS2 section if available
+    if (data.details && data.details.pass2) {
+        const pass2 = data.details.pass2;
+        const bgColor = pass2.success ? '#f0fdf4' : '#fef2f2';
+        const borderColor = pass2.success ? '#059669' : '#dc2626';
+        
+        detailsHtml += `
+            <div class="detail-section">
+                <div class="detail-header" style="color: ${borderColor}; border-color: ${borderColor};">🔄 PASS 2 Extraction</div>
+                <div class="detail-content" style="background: ${bgColor}; border-left: 4px solid ${borderColor};">
+                    <div style="margin-bottom: 0.75rem;">
+                        <span style="color: ${borderColor}; font-weight: 600;">${pass2.success ? '✓ Success' : '✗ Failed'}</span>
+                        ${pass2.format ? `<span style="background: #e0e7ff; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.85rem; margin-left: 0.5rem;">Format: ${pass2.format}</span>` : ''}
+                    </div>
+                    
+                    ${pass2.prompt ? `
+                    <div style="margin-bottom: 0.75rem;">
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📥 PASS2 INPUT (Extraction Prompt):</div>
+                        <pre style="background: #eff6ff; padding: 0.75rem; border-radius: 4px; font-size: 0.8rem; white-space: pre-wrap; word-wrap: break-word; max-height: 200px; overflow-y: auto; border-left: 3px solid #3b82f6;">${escapeHtml(pass2.prompt)}</pre>
+                    </div>
+                    ` : ''}
+                    
+                    ${pass2.raw_output ? `
+                    <div style="margin-bottom: 0.75rem;">
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📤 PASS2 OUTPUT (Extracted Answer):</div>
+                        <pre style="background: #f8fafc; padding: 0.75rem; border-radius: 4px; font-size: 0.8rem; white-space: pre-wrap; word-wrap: break-word; max-height: 200px; overflow-y: auto; border-left: 3px solid #059669;">${escapeHtml(pass2.raw_output)}</pre>
+                    </div>
+                    ` : ''}
+                    
+                    ${pass2.extracted_answer ? `
+                    <div style="background: white; padding: 0.5rem 0.75rem; border-radius: 4px; display: inline-block;">
+                        <strong>Extracted:</strong> <code style="color: #059669; font-size: 1.1rem; font-weight: bold;">${escapeHtml(pass2.extracted_answer)}</code>
+                    </div>
+                    ` : ''}
+                    
+                    ${pass2.error ? `
+                    <div style="color: #dc2626; font-size: 0.85rem; margin-top: 0.5rem;"><strong>Error:</strong> ${escapeHtml(pass2.error)}</div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
     body.innerHTML = detailsHtml;
     modal.style.display = 'flex';
 }
@@ -522,8 +563,8 @@ function formatDetails(details) {
                 html += `<p><strong>Expected Result:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto; max-height: 200px;">${escapeHtml(JSON.stringify(parsed.expected_result, null, 2))}</pre>`;
             }
             
-            // Show any other fields
-            const shownKeys = ['details', 'error', 'sql_query', 'row_count', 'actual_result', 'expected_result'];
+            // Show any other fields (exclude pass2 as it's handled separately)
+            const shownKeys = ['details', 'error', 'sql_query', 'row_count', 'actual_result', 'expected_result', 'pass2'];
             const otherKeys = Object.keys(parsed).filter(k => !shownKeys.includes(k));
             if (otherKeys.length > 0) {
                 html += `<p><strong>Additional Info:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
