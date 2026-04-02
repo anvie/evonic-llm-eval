@@ -20,6 +20,7 @@ from evaluator.test_loader import test_loader
 from evaluator.test_manager import test_manager
 from evaluator.score_aggregator import ScoreAggregator, TestResult
 from evaluator.custom_evaluator import CustomEvaluator
+from evaluator.logger import test_logger
 from models.db import db
 import config
 
@@ -42,6 +43,7 @@ class EvaluationEngine:
         self.use_configurable_tests = use_configurable_tests
         self.total_tokens = 0
         self.total_duration_ms = 0
+        self.model_name: Optional[str] = None
     
     def _log(self, message: str):
         """Log a message to the queue"""
@@ -58,12 +60,16 @@ class EvaluationEngine:
             if model_name is None or model_name == "default":
                 model_name = config.LLM_MODEL
             
+            self.model_name = model_name
             self.current_run_id = db.create_evaluation_run(model_name)
             self.is_running = True
             self.was_interrupted = False
             self.total_tokens = 0
             self.total_duration_ms = 0
             self._log(f'[INFO] Memulai evaluasi untuk model: {model_name}')
+            
+            # Start test logger
+            test_logger.start_run(self.current_run_id, model_name)
             
             # Start evaluation in background thread
             self.thread = Thread(target=self._run_evaluation, args=(self.current_run_id, model_name))
@@ -139,6 +145,10 @@ class EvaluationEngine:
         finally:
             with self.lock:
                 self.is_running = False
+            
+            # Finalize test logger
+            final_status = "completed" if not self.was_interrupted else "interrupted"
+            test_logger.finalize_run(status=final_status)
     
     def _run_legacy_evaluation(self, run_id: str, model_name: str):
         """Run evaluation using legacy hardcoded tests"""
@@ -367,6 +377,23 @@ class EvaluationEngine:
             
             self._log(f'═══════════════════════════════════════════════════════════════')
 
+            # Log to JSON file
+            test_logger.log_test(
+                domain=domain,
+                level=level,
+                test_id=f"{domain}_L{level}",
+                prompt=prompt,
+                response=response_content,
+                thinking=thinking_content,
+                expected=expected,
+                score=result.score,
+                status=result.status,
+                details=details,
+                duration_ms=duration_ms,
+                tokens=total_tokens,
+                model_name=model_name
+            )
+
             return {
                 "prompt": prompt,
                 "response": response_content,
@@ -481,6 +508,23 @@ class EvaluationEngine:
         )
         
         self._log(f'═══════════════════════════════════════════════════════════════')
+        
+        # Log to JSON file
+        test_logger.log_test(
+            domain=domain,
+            level=level,
+            test_id=test_id,
+            prompt=prompt,
+            response=response_content,
+            thinking=None,  # TODO: extract thinking from configurable tests
+            expected=expected,
+            score=result.score,
+            status=result.status,
+            details=details,
+            duration_ms=duration_ms,
+            tokens=total_tokens,
+            model_name=model_name
+        )
         
         return TestResult(
             test_id=test_id,
