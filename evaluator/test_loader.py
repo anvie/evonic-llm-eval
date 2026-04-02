@@ -155,10 +155,12 @@ class TestLoader:
                  custom_dir: str = "custom_tests",
                  evaluators_dir: str = "test_definitions/evaluators",
                  custom_evaluators_dir: str = "custom_evaluators"):
-        self.tests_dir = Path(tests_dir)
-        self.custom_dir = Path(custom_dir)
-        self.evaluators_dir = Path(evaluators_dir)
-        self.custom_evaluators_dir = Path(custom_evaluators_dir)
+        # Use absolute paths based on this file's directory (evaluator/)
+        base_dir = Path(__file__).parent.parent
+        self.tests_dir = base_dir / tests_dir
+        self.custom_dir = base_dir / custom_dir
+        self.evaluators_dir = base_dir / evaluators_dir
+        self.custom_evaluators_dir = base_dir / custom_evaluators_dir
         
         # Cache
         self._domains_cache: Dict[str, DomainDefinition] = {}
