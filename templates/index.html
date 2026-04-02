@@ -27,7 +27,7 @@
         <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
             <span style="margin-right: 1.5rem;">Run ID: <code style="background: #f3f4f6; padding: 0.1rem 0.4rem; border-radius: 4px;">{{ status.run_id[:8] }}</code></span>
             {% if status.run_info and status.run_info.model_name %}
-            <span>Model: <strong style="color: #667eea;">{{ status.run_info.model_name }}</strong></span>
+            <span id="server-model-display">Model: <strong style="color: #667eea;">{{ status.run_info.model_name }}</strong></span>
             {% endif %}
         </div>
         {% endif %}
@@ -121,6 +121,7 @@ fetch('/api/config/model')
 // Load saved state on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadSavedState();
+    loadSavedLogs();
 });
 
 function saveState(data) {
@@ -150,6 +151,10 @@ function loadSavedState() {
                 showClearButton(true);
             }
             if (state.model_name) {
+                // Hide server-side model display to avoid duplication
+                const serverModelDisplay = document.getElementById('server-model-display');
+                if (serverModelDisplay) serverModelDisplay.style.display = 'none';
+                
                 document.getElementById('model-display').style.display = 'block';
                 document.getElementById('model-name-text').textContent = state.model_name;
             }
@@ -166,11 +171,6 @@ function loadSavedState() {
     }
 }
 
-function clearState() {
-    localStorage.removeItem('eval_state');
-    location.reload();
-}
-
 function showClearButton(show) {
     document.getElementById('clear-btn').style.display = show ? 'inline-block' : 'none';
 }
@@ -184,8 +184,9 @@ function startEvaluation() {
     document.getElementById('stop-btn').disabled = false;
     showClearButton(false);
     
-    // Clear old logs
+    // Clear old logs (both UI and localStorage)
     document.getElementById('log-box').innerHTML = '';
+    localStorage.removeItem('eval_logs');
     
     // Use model from config, fallback to 'default' if not loaded yet
     const modelName = configModel || 'default';
@@ -424,8 +425,13 @@ function setupLogStream() {
     eventSource.onmessage = function(event) {
         // Convert newline to <br> for HTML display
         const message = event.data.replace(/\n/g, '<br>');
-        logBox.innerHTML += '<div class="log-entry">' + message + '</div>';
+        const logEntry = '<div class="log-entry">' + message + '</div>';
+        logBox.innerHTML += logEntry;
         logBox.scrollTop = logBox.scrollHeight;
+        
+        // Save logs to localStorage
+        saveLogsToStorage();
+        
         if (event.data.includes('[SYSTEM] EVALUASI SELESAI') || event.data.includes('Evaluation stopped')) {
             eventSource.close();
             eventSource = null;
@@ -444,7 +450,9 @@ function setupLogStream() {
             if (data.status === 'running') {
                 // Reconnect after a short delay
                 setTimeout(() => {
-                    logBox.innerHTML += '<div class="log-entry" style="color: #f59e0b;">[SYSTEM] Reconnecting to log stream...</div>';
+                    const reconnectMsg = '<div class="log-entry" style="color: #f59e0b;">[SYSTEM] Reconnecting to log stream...</div>';
+                    logBox.innerHTML += reconnectMsg;
+                    saveLogsToStorage();
                     setupLogStream();
                 }, 1000);
             }
@@ -455,7 +463,25 @@ function setupLogStream() {
     };
 }
 
-// Don't auto-start log stream on page load - only when evaluation is running
+function saveLogsToStorage() {
+    const logBox = document.getElementById('log-box');
+    localStorage.setItem('eval_logs', logBox.innerHTML);
+}
+
+function loadSavedLogs() {
+    const saved = localStorage.getItem('eval_logs');
+    if (saved) {
+        const logBox = document.getElementById('log-box');
+        logBox.innerHTML = saved;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+}
+
+function clearState() {
+    localStorage.removeItem('eval_state');
+    localStorage.removeItem('eval_logs');
+    location.reload();
+}
 
 // Modal functions
 function showCellDetail(domain, level) {
