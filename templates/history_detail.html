@@ -315,13 +315,9 @@ function showCellDetail(domain, level) {
         });
 }
 
-// Bridge function for training data modal (uses shared component)
-function onGenerateTrainingDataClick(testIndex) {
-    // For multi-test view (from showModalWithTests)
-    if (typeof testIndex === 'number' && currentModalTests && currentModalTests[testIndex]) {
-        showTrainingDataModal(currentModalTests[testIndex]);
-    }
-}
+// onGenerateTrainingDataClick is now in /static/js/training-data.js (global)
+// Legacy wrapper removed:
+// function onGenerateTrainingDataClick(testIndex) { ... }
 
 // Legacy showModalWithData is no longer used - tests now fetched from API
 // and displayed using shared showModalWithTests from test-modal.js
@@ -492,15 +488,11 @@ function formatDetails(details) {
     modal.style.display = 'flex';
 }
 
-// Bridge function for training data modal (uses shared component)
-function onGenerateTrainingDataClick(domain, level) {
-    const data = testResultsData[domain]?.[level];
-    if (!data) return;
-    
-    // Add domain to the test object for category mapping
-    const testWithDomain = { ...data, domain: domain, prompt: data.prompt };
-    showTrainingDataModal(testWithDomain);
-}
+// onGenerateTrainingDataClick is now in /static/js/training-data.js (global)
+// Legacy function removed: onGenerateTrainingDataClick(domain, level)
+
+// closeModal is now in /static/js/test-modal.js
+function _legacyCloseModal() {
 
 function closeModal() {
     document.getElementById('test-modal').style.display = 'none';
