@@ -107,39 +107,8 @@
     </div>
 </div>
 
-<!-- Modal for Training Data Generation -->
-<div id="training-modal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 900px;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <h3 style="color: white; margin: 0;">📋 Generated Training Data</h3>
-            <span class="modal-close" onclick="closeTrainingModal()" style="color: white;">&times;</span>
-        </div>
-        <div class="modal-body" style="padding: 1rem;">
-            <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #666; font-size: 0.9rem;">
-                    Edit below (pretty-printed). Copy button outputs single-line JSONL format.
-                </span>
-                <button id="copy-training-btn" onclick="copyTrainingData()" 
-                        style="padding: 0.5rem 1rem; background: #667eea; color: white; border: none; 
-                               border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; 
-                               align-items: center; gap: 0.5rem;">
-                    📋 Copy as JSONL
-                </button>
-            </div>
-            <textarea id="training-textarea" 
-                      style="width: 100%; height: 500px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
-                             font-size: 0.85rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; 
-                             resize: vertical; line-height: 1.5; background: #f8fafc;"></textarea>
-            <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-                <button onclick="closeTrainingModal()" 
-                        style="padding: 0.5rem 1.5rem; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; 
-                               border-radius: 6px; font-weight: 500; cursor: pointer;">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Training Data Modal (shared component) -->
+{% include 'partials/training-modal.html' %}
 
 <script>
 // Domains loaded from server (enabled domains only)
@@ -946,7 +915,7 @@ function renderTestDetail(test) {
     if (details.conversation_log && details.conversation_log.length > 0) {
         html += `
             <div class="test-detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
-                <button onclick="showTrainingDataModalFromTest(currentSelectedTestIndex)" 
+                <button onclick="onGenerateTrainingDataClick(currentSelectedTestIndex)" 
                         style="width: 100%; padding: 0.6rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                                color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600; 
                                cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
@@ -1087,7 +1056,7 @@ function showModalWithData(domain, level, data) {
         
         detailsHtml += `
             <div class="detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
-                <button onclick="showTrainingDataModalLegacy()" 
+                <button onclick="onGenerateTrainingDataClick()" 
                         style="width: 100%; padding: 0.75rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                                color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; 
                                cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
@@ -1101,17 +1070,16 @@ function showModalWithData(domain, level, data) {
     modal.style.display = 'flex';
 }
 
-function showTrainingDataModalLegacy() {
-    if (!currentTrainingTest) return;
-    
-    const trainingData = generateTrainingDataFromTest(currentTrainingTest);
-    const prettyJson = JSON.stringify(trainingData, null, 2);
-    
-    const modal = document.getElementById('training-modal');
-    const textarea = document.getElementById('training-textarea');
-    textarea.value = prettyJson;
-    
-    modal.style.display = 'flex';
+// Bridge function for training data modal (uses shared component)
+function onGenerateTrainingDataClick(testIndex) {
+    // For multi-test view
+    if (typeof testIndex === 'number' && currentModalTests && currentModalTests[testIndex]) {
+        showTrainingDataModal(currentModalTests[testIndex]);
+    }
+    // For legacy single-test view
+    else if (currentTrainingTest) {
+        showTrainingDataModal(currentTrainingTest);
+    }
 }
 
 function formatExpected(expected) {
@@ -1200,141 +1168,8 @@ function closeModal() {
     document.getElementById('test-modal').style.display = 'none';
 }
 
-// Training Data Generation Functions
+// Variable used by legacy view for training data
 let currentTrainingTest = null;
-
-function showTrainingDataModalFromTest(testIndex) {
-    const test = currentModalTests[testIndex];
-    if (!test) return;
-    
-    currentTrainingTest = test;
-    
-    const trainingData = generateTrainingDataFromTest(test);
-    const prettyJson = JSON.stringify(trainingData, null, 2);
-    
-    const modal = document.getElementById('training-modal');
-    const textarea = document.getElementById('training-textarea');
-    textarea.value = prettyJson;
-    
-    modal.style.display = 'flex';
-}
-
-function generateTrainingDataFromTest(test) {
-    const details = test.details || {};
-    const conversationLog = details.conversation_log || [];
-    const toolsAvailable = details.tools_available || [];
-    
-    // Build system prompt with tools in Gemma 4 format
-    let systemContent = '<|think|>Kamu adalah asisten reservasi untuk Krasan Omah, sebuah penginapan di Temanggung, Jawa Tengah. Bantu tamu dengan pertanyaan tentang ketersediaan kamar, harga, dan booking.\n\n';
-    systemContent += '## PRICING (per malam)\n';
-    systemContent += '| Kamar | Weekday (Sen-Kam) | Weekend (Jum-Min) |\n';
-    systemContent += '| Bismo | Rp 400.000 | Rp 500.000 |\n';
-    systemContent += '| Sindoro | Rp 400.000 | Rp 500.000 |\n';
-    systemContent += '| Sumbing | Rp 450.000 | Rp 550.000 |\n';
-    systemContent += '| Joglo | Rp 550.000 | Rp 700.000 |\n\n';
-    systemContent += '## EXTRAS\n';
-    systemContent += '- Extra bed: Rp 150.000/malam\n';
-    systemContent += '- Extra breakfast: Rp 50.000/orang\n\n';
-    
-    // Add tool definitions in Gemma 4 format
-    toolsAvailable.forEach(tool => {
-        const toolDef = {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.parameters || { type: 'object', properties: {}, required: [] }
-        };
-        systemContent += '<|tool>\n' + JSON.stringify(toolDef) + '\n<tool|>\n';
-    });
-    
-    const messages = [
-        { role: 'system', content: systemContent.trim() },
-        { role: 'user', content: test.prompt || '' }
-    ];
-    
-    // Process each turn in conversation_log
-    conversationLog.forEach((turn, idx) => {
-        let assistantContent = '';
-        
-        // Add thinking
-        if (turn.thinking) {
-            assistantContent += '<|channel>thought\n' + turn.thinking.trim() + '\n<channel|>';
-        }
-        
-        // Add tool calls
-        if (turn.tool_calls && turn.tool_calls.length > 0) {
-            turn.tool_calls.forEach(tc => {
-                const argsStr = formatToolArgsForTraining(tc.arguments || {});
-                assistantContent += '<|tool_call>call:' + tc.name + '{' + argsStr + '}<tool_call|>';
-            });
-        }
-        
-        // Add tool responses
-        if (turn.tool_results && turn.tool_results.length > 0) {
-            turn.tool_results.forEach(tr => {
-                const resultStr = formatToolArgsForTraining(tr.result || {});
-                assistantContent += '<|tool_response>response:' + tr.function_name + '{' + resultStr + '}<tool_response|>';
-            });
-        }
-        
-        // Add final response
-        if (turn.response) {
-            if (!assistantContent.includes('<|channel>thought')) {
-                assistantContent += '<|channel>thought\n<channel|>';
-            }
-            assistantContent += turn.response;
-        }
-        
-        if (assistantContent) {
-            messages.push({ role: 'assistant', content: assistantContent });
-        }
-    });
-    
-    return {
-        messages: messages,
-        category: 'availability'
-    };
-}
-
-function formatToolArgsForTraining(obj) {
-    if (!obj || Object.keys(obj).length === 0) return '';
-    
-    const parts = [];
-    for (const [key, value] of Object.entries(obj)) {
-        if (typeof value === 'string') {
-            parts.push(key + ':<|"|>' + value + '<|"|>');
-        } else if (typeof value === 'number') {
-            parts.push(key + ':' + value);
-        } else if (Array.isArray(value)) {
-            parts.push(key + ':[' + value.map(v => typeof v === 'string' ? '"' + v + '"' : v).join(',') + ']');
-        } else {
-            parts.push(key + ':' + JSON.stringify(value));
-        }
-    }
-    return parts.join(',');
-}
-
-function copyTrainingData() {
-    const trainingData = generateTrainingDataFromTest(currentTrainingTest);
-    const compactJson = JSON.stringify(trainingData);
-    
-    navigator.clipboard.writeText(compactJson).then(() => {
-        const btn = document.getElementById('copy-training-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '✓ Copied!';
-        btn.style.background = '#10b981';
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.style.background = '#667eea';
-        }, 2000);
-    }).catch(err => {
-        console.error('Failed to copy:', err);
-        alert('Failed to copy to clipboard');
-    });
-}
-
-function closeTrainingModal() {
-    document.getElementById('training-modal').style.display = 'none';
-}
 
 function formatDetails(details) {
     if (!details) return 'No details available';
@@ -1541,26 +1376,20 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Close modal on outside click
+// Close test modal on outside click (training modal handled by shared JS)
 window.onclick = function(event) {
     const testModal = document.getElementById('test-modal');
-    const trainingModal = document.getElementById('training-modal');
-    
     if (event.target === testModal) {
         closeModal();
     }
-    if (event.target === trainingModal) {
-        closeTrainingModal();
-    }
 }
 
-// Close modal on Escape key
+// Close test modal on Escape key (training modal handled by shared JS)
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         const trainingModal = document.getElementById('training-modal');
-        if (trainingModal.style.display === 'flex') {
-            closeTrainingModal();
-        } else {
+        // Only close test modal if training modal is not visible
+        if (!trainingModal || trainingModal.style.display !== 'flex') {
             closeModal();
         }
     }
