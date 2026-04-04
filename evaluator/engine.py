@@ -553,14 +553,38 @@ class EvaluationEngine:
             expected_str = str(expected)[:100] + '...' if len(str(expected)) > 100 else str(expected)
             self._log(f'[EXPECTED] {expected_str}')
         
-        # Handle tool_calling domain with multi-turn loop
-        if domain == "tool_calling":
-            from evaluator.tools import tool_framework
-            tools = tool_framework.tools
-            self._log(f'[TOOLS] Available: {[t["function"]["name"] for t in tools]}')
+        # Check if test has embedded tools OR is tool_calling domain
+        test_tools = test.get('tools') or []  # Handle None explicitly
+        has_embedded_tools = len(test_tools) > 0
+        
+        if domain == "tool_calling" or has_embedded_tools:
+            # Use embedded tools if available, otherwise use tool_framework
+            if has_embedded_tools:
+                # Extract tools and mock responses from test definition
+                tools = []
+                mock_responses = {}
+                for t in test_tools:
+                    # Build OpenAI-compatible tool definition
+                    tool_def = {
+                        "type": "function",
+                        "function": t.get("function", t)  # Support both formats
+                    }
+                    tools.append(tool_def)
+                    
+                    # Extract mock response if provided
+                    func_name = t.get("function", {}).get("name") or t.get("name")
+                    if "mock_response" in t:
+                        mock_responses[func_name] = t["mock_response"]
+                
+                self._log(f'[TOOLS] Using embedded tools: {[t["function"]["name"] for t in tools]}')
+            else:
+                from evaluator.tools import tool_framework
+                tools = tool_framework.tools
+                mock_responses = None
+                self._log(f'[TOOLS] Available: {[t["function"]["name"] for t in tools]}')
             
             # Run tool calling loop
-            loop_result = self._run_tool_calling_loop(prompt, tools)
+            loop_result = self._run_tool_calling_loop(prompt, tools, mock_responses)
             
             duration_ms = loop_result["total_duration_ms"]
             total_tokens = loop_result["total_tokens"]
@@ -612,17 +636,21 @@ class EvaluationEngine:
         # Evaluate using appropriate evaluator
         evaluator_id = test.get('evaluator_id', '')
         
-        # Try to get predefined evaluator first
-        evaluator = get_evaluator(domain)  # Legacy evaluator
+        # Check if we need to use a custom evaluator from test_definitions/evaluators/
+        evaluator_config = test_loader.get_evaluator(evaluator_id) if evaluator_id else None
         
-        # Check if we need to use a custom evaluator
-        evaluator_config = test_loader.get_evaluator(evaluator_id)
         if evaluator_config and evaluator_config.type == 'custom':
             custom_eval = CustomEvaluator(evaluator_config.to_dict())
             self._log(f'[EVAL] Using custom evaluator: {evaluator_config.name}')
             result = custom_eval.evaluate(response_content, expected, level)
+        elif evaluator_id:
+            # Use built-in evaluator type (tool_call, keyword, two_pass, sql_executor)
+            evaluator = get_evaluator(domain, evaluator_type=evaluator_id)
+            self._log(f'[EVAL] Using {evaluator.name} (type: {evaluator_id})')
+            result = evaluator.evaluate(response_content, expected, level)
         else:
-            # Use domain evaluator
+            # Fall back to domain default evaluator
+            evaluator = get_evaluator(domain)
             self._log(f'[EVAL] Using {evaluator.name} (PASS2: {evaluator.uses_pass2})')
             result = evaluator.evaluate(response_content, expected, level)
         
@@ -721,9 +749,15 @@ class EvaluationEngine:
             total_duration_ms=self.total_duration_ms
         )
     
-    def _run_tool_calling_loop(self, prompt: str, tools: list) -> Dict[str, Any]:
+    def _run_tool_calling_loop(self, prompt: str, tools: list, mock_responses: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Run multi-turn tool calling loop with mock execution.
+        
+        Args:
+            prompt: User prompt
+            tools: List of tool definitions (OpenAI format)
+            mock_responses: Optional dict mapping tool name -> mock response
+                           If provided, uses these instead of tool_framework
         
         Continues until:
         - LLM returns final answer (no tool calls)
@@ -811,14 +845,25 @@ class EvaluationEngine:
                     }
                 })
                 
-                # Execute mock tool
-                mock_result = tool_framework.execute_tool({
-                    "id": tc_id,
-                    "function": {
-                        "name": func_name,
-                        "arguments": json.dumps(func_args) if isinstance(func_args, dict) else func_args_str
+                # Execute mock tool - check embedded mock_responses first
+                if mock_responses and func_name in mock_responses:
+                    # Use embedded mock response from test definition
+                    mock_result = {
+                        "tool_call_id": tc_id,
+                        "function_name": func_name,
+                        "result": mock_responses[func_name],
+                        "success": True
                     }
-                })
+                    self._log(f'[MOCK] Using embedded mock response for {func_name}')
+                else:
+                    # Fall back to tool_framework
+                    mock_result = tool_framework.execute_tool({
+                        "id": tc_id,
+                        "function": {
+                            "name": func_name,
+                            "arguments": json.dumps(func_args) if isinstance(func_args, dict) else func_args_str
+                        }
+                    })
                 
                 result_str = json.dumps(mock_result.get("result", {}))
                 self._log(f'[TOOL-RESULT] {result_str[:100]}...')

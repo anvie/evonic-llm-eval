@@ -13,6 +13,7 @@
             <button id="clear-btn" class="btn btn-secondary" onclick="clearState()" style="display: none;">
                 Clear
             </button>
+
         </div>
         
         <div class="status-indicator status-{{ status.status }}" id="status-indicator">
@@ -54,10 +55,10 @@
             <div style="background: #667eea; color: white; border-radius: 4px;">Total</div>
         </div>
         
-        {% for domain in ['conversation', 'math', 'sql', 'tool_calling', 'reasoning', 'health'] %}
+        {% for domain in domains %}
         <div class="matrix-row" id="row-{{ domain }}">
             <div class="select-col"><input type="checkbox" class="domain-checkbox" data-domain="{{ domain }}" checked onclick="updateSelectAllState()"></div>
-            <div style="font-weight: 600; text-transform: capitalize;">{{ domain }}</div>
+            <div style="font-weight: 600; text-transform: capitalize;">{{ domain.replace('_', ' ') }}</div>
             {% for level in range(1, 6) %}
             <div class="matrix-cell clickable-cell" id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
                 <div class="cell-main">
@@ -109,6 +110,9 @@
 </div>
 
 <script>
+// Domains loaded from server (enabled domains only)
+const DOMAINS = {{ domains | tojson }};
+
 let pollingInterval;
 let testResultsData = {};  // Store all test results for modal access
 let configModel = null;  // Store model name from config
@@ -219,7 +223,7 @@ function setCheckboxesEnabled(enabled) {
 
 // Clear matrix cells and totals
 function clearMatrixState() {
-    const domains = ['conversation', 'math', 'sql', 'tool_calling', 'reasoning', 'health'];
+    const domains = DOMAINS;
     
     for (const domain of domains) {
         // Clear individual cells

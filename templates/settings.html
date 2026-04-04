@@ -305,15 +305,44 @@
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border: 1px solid #e5e7eb;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+.domain-card.domain-disabled {
+    opacity: 0.6;
+    background: #f9fafb;
+}
+
+.domain-card.domain-disabled .domain-header {
+    background: #f3f4f6;
+}
+
+.domain-card.domain-disabled .domain-meta h3 {
+    color: #9ca3af;
+}
+
+.domain-card.domain-disabled .domain-icon {
+    filter: grayscale(50%);
+}
+
+.domain-enable-toggle {
+    display: flex;
+    align-items: center;
+    padding-right: 15px;
+}
+
+.domain-enable-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #3B82F6;
 }
 
 .domain-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
     background: #f9fafb;
-    cursor: pointer;
 }
 
 .domain-header:hover {
@@ -745,16 +774,23 @@ function renderDomains() {
     }
     
     container.innerHTML = domains.map(domain => `
-        <div class="domain-card">
-            <div class="domain-header" onclick="toggleDomainTests('${domain.id}')">
-                <div class="domain-info">
+        <div class="domain-card ${domain.enabled === false ? 'domain-disabled' : ''}" id="domain-card-${domain.id}">
+            <div class="domain-header">
+                <div class="domain-enable-toggle" onclick="event.stopPropagation();">
+                    <input type="checkbox" 
+                           id="enable-${domain.id}" 
+                           ${domain.enabled !== false ? 'checked' : ''} 
+                           onchange="toggleDomainEnabled('${domain.id}', this.checked)"
+                           title="${domain.enabled !== false ? 'Disable domain' : 'Enable domain'}">
+                </div>
+                <div class="domain-info" onclick="toggleDomainTests('${domain.id}')" style="cursor: pointer; flex: 1;">
                     <div class="domain-icon" style="background: ${domain.color}">${getDomainIcon(domain.icon)}</div>
                     <div class="domain-meta">
-                        <h3>${domain.name} ${!domain.enabled ? '(Disabled)' : ''}</h3>
+                        <h3>${domain.name}</h3>
                         <p>${domain.description || 'No description'}</p>
                     </div>
                 </div>
-                <div class="domain-stats">
+                <div class="domain-stats" onclick="toggleDomainTests('${domain.id}')" style="cursor: pointer;">
                     <div class="stat">
                         <div class="stat-value">${domain.total_tests || 0}</div>
                         <div class="stat-label">Tests</div>
@@ -894,6 +930,35 @@ async function deleteDomain(domainId) {
         }
     } catch (error) {
         alert('Error deleting domain: ' + error);
+    }
+}
+
+async function toggleDomainEnabled(domainId, enabled) {
+    try {
+        const result = await apiPut(`/api/settings/domains/${domainId}`, { enabled: enabled });
+        if (result.success) {
+            // Update local state
+            const domain = domains.find(d => d.id === domainId);
+            if (domain) domain.enabled = enabled;
+            
+            // Update card styling
+            const card = document.getElementById(`domain-card-${domainId}`);
+            if (card) {
+                if (enabled) {
+                    card.classList.remove('domain-disabled');
+                } else {
+                    card.classList.add('domain-disabled');
+                }
+            }
+        } else {
+            // Revert checkbox on failure
+            document.getElementById(`enable-${domainId}`).checked = !enabled;
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        // Revert checkbox on error
+        document.getElementById(`enable-${domainId}`).checked = !enabled;
+        alert('Error toggling domain: ' + error);
     }
 }
 

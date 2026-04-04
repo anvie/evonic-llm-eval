@@ -50,6 +50,7 @@ class TestDefinition:
     path: str = ""
     created_at: str = ""
     updated_at: str = ""
+    tools: List[Dict[str, Any]] = None  # Embedded tool definitions with mock responses
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -72,7 +73,8 @@ class TestDefinition:
             enabled=data.get('enabled', True),
             path=path,
             created_at=data.get('created_at', datetime.now().isoformat()),
-            updated_at=data.get('updated_at', datetime.now().isoformat())
+            updated_at=data.get('updated_at', datetime.now().isoformat()),
+            tools=data.get('tools', None)
         )
 
 

@@ -18,8 +18,12 @@ app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 @app.route('/')
 def index():
     """Main dashboard"""
+    from evaluator.test_manager import test_manager
     status = evaluation_engine.get_status()
-    return render_template('index.html', status=status)
+    # Get enabled domains for the test matrix
+    domains = [d for d in test_manager.list_domains() if d.get('enabled', True)]
+    domain_ids = [d['id'] for d in domains]
+    return render_template('index.html', status=status, domains=domain_ids)
 
 @app.route('/api/status')
 def api_status():
@@ -237,9 +241,10 @@ def settings():
 # Domain operations
 @app.route('/api/settings/domains', methods=['GET'])
 def api_list_domains():
-    """List all domains"""
+    """List all domains (including disabled for settings page)"""
     from evaluator.test_manager import test_manager
-    domains = test_manager.list_domains()
+    # Settings page needs to see all domains including disabled ones
+    domains = test_manager.list_domains(include_disabled=True)
     return jsonify({'domains': domains})
 
 
