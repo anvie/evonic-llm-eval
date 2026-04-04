@@ -313,6 +313,9 @@ class LLMClient:
         reasoning_content = message.get("reasoning_content")  # llama.cpp --reasoning mode
         tool_calls = message.get("tool_calls")
         
+        # DEBUG: Log thinking extraction process
+
+        
         # Priority 0: Check for tool_calls in message (OpenAI format)
         if tool_calls:
             tool_content = json.dumps({"tool_calls": tool_calls}, indent=2)

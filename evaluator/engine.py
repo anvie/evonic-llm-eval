@@ -321,13 +321,18 @@ class EvaluationEngine:
                     # Also update the legacy test_results table for compatibility
                     avg_score = level_score.average_score
                     status = 'passed' if avg_score >= 0.7 else 'failed'
+                    
+                    # Get details from first test result (includes thinking, response, etc.)
+                    first_details = test_results[0].details if test_results[0].details else {}
+                    
                     db.update_test_result(
                         run_id, domain_id, level,
                         prompt=first_prompt,
-                        response=test_results[0].details.get('response') if test_results[0].details else None,
+                        response=first_details.get('response'),
                         expected=json.dumps(first_expected) if first_expected else None,
                         score=avg_score,
                         status=status,
+                        details=json.dumps(first_details) if first_details else None,
                         model_name=model_name,
                         duration_ms=level_duration_ms
                     )
