@@ -49,67 +49,66 @@ Your answer (ya/tidak only):""",
         },
         
         2: {
-            "template": """You are given a question and an AI's response. Extract ONLY the sorted numbers.
+            "template": """You are given a question and an AI's response. Extract ONLY the final answer: "ya" or "tidak".
 
 ---BEGIN RESPONSE---
 {response}
 ---END RESPONSE---
 
 Rules:
-1. Return ONLY the numbers separated by comma: number1, number2, number3...
-2. No explanation, no boxes, no other text
-3. Just the numbers in order
+1. Return ONLY "ya" or "tidak" (one word, lowercase)
+2. No explanation, no reasoning, no other text
 
-Your answer (numbers only):""",
-            "expected_format": "sequence"
+Your answer (ya/tidak only):""",
+            "expected_format": "boolean"
         },
         
         3: {
-            "template": """You are given a question and an AI's response. Extract ONLY the final number.
+            "template": """You are given a question and an AI's response. Extract ONLY the final answer word.
 
 ---BEGIN RESPONSE---
 {response}
 ---END RESPONSE---
 
 Rules:
-1. Return ONLY the number (no text, no explanation)
-2. Remove any formatting or extra characters
-3. Just the final count
+1. Return ONLY the single word answer (no explanation, no punctuation)
+2. If it's an analogy completion, return only the missing word
+3. Just the final answer word, lowercase
 
-Your answer (number only):""",
-            "expected_format": "number"
+Your answer (word only):""",
+            "expected_format": "text"
         },
         
         4: {
-            "template": """You are given a question and an AI's response. Extract ONLY the statement numbers that are correct.
+            "template": """You are given a question about causality and an AI's response. Evaluate if the response correctly considers alternative explanations.
 
 ---BEGIN RESPONSE---
 {response}
 ---END RESPONSE---
 
 Rules:
-1. Return ONLY the statement numbers separated by comma (e.g., "2, 4")
-2. No explanation, no other text
-3. Just the numbers
+1. Return "ya" if the response considers multiple factors/alternatives
+2. Return "tidak" if the response only considers one factor
+3. Just one word, lowercase
 
-Your answer (statement numbers only):""",
-            "expected_format": "statements"
+Your answer (ya/tidak only):""",
+            "expected_format": "boolean"
         },
         
         5: {
-            "template": """You are given a question and an AI's response. Extract ONLY the final price in Rupiah.
+            "template": """You are given a question and an AI's response. Extract ONLY the final answer (number or single word).
 
 ---BEGIN RESPONSE---
 {response}
 ---END RESPONSE---
 
 Rules:
-1. Return ONLY the number (no "Rp", no dots, no commas)
-2. No explanation, no text
-3. Just the final price as a number
+1. If the answer is a number, return ONLY the number
+2. If the answer is a word, return ONLY that word (lowercase)
+3. No explanation, no units, no other text
 
-Your answer (number only):""",
-            "expected_format": "number"
+Your answer:""",
+            "expected_format": "flexible"
         }
     },
     
@@ -161,6 +160,23 @@ No explanation. Just three numbers.
 
 Your answer (three numbers only):""",
         "expected_format": "rubric"
+    },
+    
+    "health": {
+        "template": """You are given a health-related question and an AI's response. Extract the final answer.
+
+---BEGIN RESPONSE---
+{response}
+---END RESPONSE---
+
+Rules:
+1. If the answer contains BMI and category, return in format: "BMI: X.XX, Kategori: ..."
+2. If the answer is a single number, return ONLY the number
+3. If the answer is yes/no, return ONLY "ya" or "tidak" (lowercase)
+4. Preserve important information like BMI value AND category
+
+Your answer:""",
+        "expected_format": "health"
     }
 }
 
@@ -238,10 +254,13 @@ class AnswerExtractor:
                 tools=None
             )
             
-            raw_pass2 = self.client.extract_content(llm_response, strip_thinking=False).strip()
-            
-            # Strip thinking tags from PASS 2 output (for thinking models)
-            cleaned_pass2, thinking_pass2 = strip_thinking_tags(raw_pass2)
+            # Use extract_content_with_thinking to handle both:
+            # 1. llama.cpp --reasoning mode (reasoning_content field)
+            # 2. Tag-based thinking (<think> tags in content)
+            content_info = self.client.extract_content_with_thinking(llm_response)
+            cleaned_pass2 = content_info["content"].strip()
+            thinking_pass2 = content_info["thinking"]
+            raw_pass2 = content_info["raw"] or cleaned_pass2
             
             # Validate the format (use cleaned version without thinking)
             validated = self._validate_format(cleaned_pass2, expected_format)
@@ -497,6 +516,74 @@ class AnswerExtractor:
                 except ValueError:
                     pass
             return {"valid": False, "cleaned": raw, "error": "Expected three scores (0.0-1.0)"}
+        
+        elif expected_format == "text":
+            # Should be a single word or short phrase (for analogy, word completion, etc.)
+            # Clean up common artifacts
+            cleaned = raw.strip().lower()
+            # Remove quotes, periods, extra punctuation
+            cleaned = cleaned.strip('"\'.,!?')
+            # Take first word if multiple words (model might add explanation)
+            if ' ' in cleaned:
+                # Check if it's just the word with some fluff
+                words = cleaned.split()
+                # First word is likely the answer
+                cleaned = words[0].strip('"\'.,!?')
+            if cleaned:
+                return {"valid": True, "cleaned": cleaned, "error": ""}
+            return {"valid": False, "cleaned": raw, "error": f"Expected text answer, got empty"}
+        
+        elif expected_format == "health":
+            # Health answers can be numeric, boolean, or structured text (BMI + category)
+            cleaned = raw.strip()
+            cleaned_lower = cleaned.lower()
+            
+            # Check for boolean first
+            if cleaned_lower in ["ya", "tidak"]:
+                return {"valid": True, "cleaned": cleaned_lower, "error": ""}
+            
+            # Check for structured format (BMI: X.XX, Kategori: ...)
+            if "bmi" in cleaned_lower or "kategori" in cleaned_lower:
+                return {"valid": True, "cleaned": cleaned, "error": ""}
+            
+            # Check for number (including decimals)
+            # Remove common units
+            num_cleaned = cleaned.replace('kg', '').replace('cm', '').replace('bpm', '').replace('liter', '').strip()
+            match = re.match(r'^[-+]?\d+\.?\d*$', num_cleaned)
+            if match:
+                return {"valid": True, "cleaned": num_cleaned, "error": ""}
+            
+            # Try to extract first number
+            numbers = re.findall(r'[-+]?\d+\.?\d*', cleaned)
+            if numbers:
+                return {"valid": True, "cleaned": numbers[0], "error": ""}
+            
+            return {"valid": False, "cleaned": raw, "error": f"Expected number or ya/tidak, got: {raw[:50]}"}
+        
+        elif expected_format == "flexible":
+            # Flexible format - can be number or word
+            cleaned = raw.strip().lower()
+            # Remove common punctuation
+            cleaned = cleaned.strip('"\'.,!?')
+            
+            # If it's a number, return as-is
+            try:
+                float(cleaned)
+                return {"valid": True, "cleaned": cleaned, "error": ""}
+            except ValueError:
+                pass
+            
+            # If it's a single word, return it
+            if ' ' not in cleaned and cleaned:
+                return {"valid": True, "cleaned": cleaned, "error": ""}
+            
+            # Try to get first word/number
+            words = cleaned.split()
+            if words:
+                first = words[0].strip('"\'.,!?')
+                return {"valid": True, "cleaned": first, "error": ""}
+            
+            return {"valid": False, "cleaned": raw, "error": f"Could not extract answer from: {raw[:50]}"}
         
         # Default: accept any text
         return {"valid": True, "cleaned": raw, "error": ""}

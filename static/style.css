@@ -138,6 +138,11 @@ footer {
     color: #92400e;
 }
 
+.status-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
 /* Test Matrix */
 .test-matrix {
     margin-top: 2rem;
@@ -349,6 +354,7 @@ footer {
 }
 
 .log-content {
+    min-height: 100px;
     max-height: 500px;
     overflow-y: auto;
     font-size: 0.8rem;

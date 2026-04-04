@@ -2,7 +2,7 @@
   "id": "sql_select_1",
   "name": "Simple SELECT",
   "description": "Test basic SELECT query",
-  "prompt": "Buat query SQL untuk menampilkan semua data dari tabel customers",
+  "prompt": "Database schema:\n- customers (id, name, email, city, created_at)\n- products (id, name, price, category, stock)\n- orders (id, customer_id, total, status, order_date)\n- order_items (id, order_id, product_id, quantity, unit_price)\n\nBuat query SQL untuk menampilkan semua data dari tabel customers",
   "expected": {
     "query_type": "SELECT",
     "table": "customers"

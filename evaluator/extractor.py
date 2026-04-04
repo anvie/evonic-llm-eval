@@ -196,11 +196,19 @@ class AnswerExtractor:
         return value
     
     def _strip_thinking(self, content: str) -> Tuple[str, Optional[str]]:
-        """Strip thinking tags from content."""
+        """Strip thinking tags from content with auto-format detection."""
         if not content:
             return content, None
         
-        pattern = r'
+        # Import here to avoid circular imports
+        from evaluator.gemma4_parser import is_gemma4_format, strip_gemma4_thinking
+        
+        # Auto-detect Gemma 4 format
+        if is_gemma4_format(content):
+            return strip_gemma4_thinking(content)
+        
+        # Standard format: <think>...</think>
+        pattern = r'<think>(.*?)</think>'
         matches = re.findall(pattern, content, re.DOTALL)
         cleaned = re.sub(pattern, '', content, flags=re.DOTALL).strip()
         thinking = '\n'.join(matches) if matches else None

@@ -1,0 +1,16 @@
+{
+  "id": "health_dosage_2",
+  "name": "Medication Dosage",
+  "description": "Test basic medication dosage calculation",
+  "prompt": "Dokter meresepkan obat 15 mg/kg berat badan. Jika pasien beratnya 60 kg, berapa mg obat yang dibutuhkan? Jawab dengan angka saja.",
+  "expected": {
+    "answer": 900,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

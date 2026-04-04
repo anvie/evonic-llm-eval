@@ -63,61 +63,164 @@ Seorang member loyal membeli produk seharga Rp 1.200.000. Berapa harga yang haru
         
         return {"score": 0.0, "details": "Unknown level"}
     
-    def _score_level_1(self, response: str, expected: str) -> Dict[str, Any]:
+    def _score_level_1(self, response: str, expected: Any) -> Dict[str, Any]:
         """Level 1: Boolean - expects 'ya' or 'tidak'"""
         clean = response.strip().lower()
         
-        if clean == expected:
-            return {"score": 1.0, "details": f"Correct: {clean}"}
+        # Handle expected in different formats (dict from configurable tests)
+        expected_value = expected
+        if isinstance(expected, dict):
+            expected_value = expected.get('answer', expected.get('value', expected))
+        
+        # Case-insensitive comparison
+        expected_clean = str(expected_value).strip().lower()
+        
+        if clean == expected_clean:
+            return {"score": 1.0, "status": "passed", "details": f"Correct: {clean}"}
         else:
-            return {"score": 0.0, "details": f"Wrong: expected '{expected}', got '{clean}'"}
+            return {"score": 0.0, "status": "failed", "details": f"Wrong: expected '{expected_clean}', got '{clean}'"}
     
-    def _score_level_2(self, response: str, expected: list) -> Dict[str, Any]:
-        """Level 2: Sequence - expects '3, 7, 15, 18, 22'"""
-        try:
-            numbers = [int(n.strip()) for n in response.split(',')]
-            if numbers == expected:
-                return {"score": 1.0, "details": f"Correct: {numbers}"}
+    def _score_level_2(self, response: str, expected: Any) -> Dict[str, Any]:
+        """Level 2: Boolean or Sequence - can be 'ya/tidak' or number sequence"""
+        clean = response.strip().lower()
+        
+        # Handle expected in different formats (dict from configurable tests)
+        expected_value = expected
+        if isinstance(expected, dict):
+            expected_value = expected.get('answer', expected.get('value', expected))
+        
+        # If expected is string (boolean answer like "Ya")
+        if isinstance(expected_value, str):
+            expected_clean = expected_value.strip().lower()
+            if clean == expected_clean:
+                return {"score": 1.0, "status": "passed", "details": f"Correct: {clean}"}
             else:
-                return {"score": 0.0, "details": f"Wrong: expected {expected}, got {numbers}"}
-        except ValueError:
-            return {"score": 0.0, "details": f"Invalid format: '{response}'"}
+                return {"score": 0.0, "status": "failed", "details": f"Wrong: expected '{expected_clean}', got '{clean}'"}
+        
+        # If expected is list (sequence)
+        if isinstance(expected_value, list):
+            try:
+                numbers = [int(n.strip()) for n in response.split(',')]
+                if numbers == expected_value:
+                    return {"score": 1.0, "status": "passed", "details": f"Correct: {numbers}"}
+                else:
+                    return {"score": 0.0, "status": "failed", "details": f"Wrong: expected {expected_value}, got {numbers}"}
+            except ValueError:
+                return {"score": 0.0, "status": "failed", "details": f"Invalid format: '{response}'"}
+        
+        return {"score": 0.0, "status": "failed", "details": f"Unknown expected type: {type(expected_value)}"}
     
-    def _score_level_3(self, response: str, expected: int) -> Dict[str, Any]:
-        """Level 3: Number - expects '17'"""
+    def _score_level_3(self, response: str, expected: Any) -> Dict[str, Any]:
+        """Level 3: Number or Text - expects '17' or 'gelap' (analogy)"""
+        # Handle expected in different formats (dict from configurable tests)
+        expected_value = expected
+        expected_type = "number"  # default
+        if isinstance(expected, dict):
+            expected_value = expected.get('answer', expected.get('value', expected))
+            expected_type = expected.get('type', 'number')
+        
+        response_clean = response.strip().lower()
+        
+        # Text comparison (for analogy tests)
+        if expected_type == "text" or isinstance(expected_value, str):
+            expected_clean = str(expected_value).strip().lower()
+            if response_clean == expected_clean:
+                return {"score": 1.0, "details": f"Correct: {response_clean}"}
+            else:
+                return {"score": 0.0, "details": f"Wrong: expected '{expected_clean}', got '{response_clean}'"}
+        
+        # Number comparison (default)
         try:
             actual = int(response.strip())
-            if actual == expected:
+            expected_num = int(expected_value) if not isinstance(expected_value, int) else expected_value
+            if actual == expected_num:
                 return {"score": 1.0, "details": f"Correct: {actual}"}
             else:
-                return {"score": 0.0, "details": f"Wrong: expected {expected}, got {actual}"}
+                return {"score": 0.0, "details": f"Wrong: expected {expected_num}, got {actual}"}
         except ValueError:
             return {"score": 0.0, "details": f"Not a number: '{response}'"}
     
-    def _score_level_4(self, response: str, expected: list) -> Dict[str, Any]:
-        """Level 4: Statements - expects '2, 4'"""
+    def _score_level_4(self, response: str, expected: Any) -> Dict[str, Any]:
+        """Level 4: Causal reasoning - checks if response considers alternatives"""
+        clean = response.strip().lower()
+        
+        # Handle expected in different formats (dict from configurable tests)
+        if isinstance(expected, dict):
+            # Causal reasoning test - check if alternatives are considered
+            if expected.get('consider_alternatives'):
+                # Check if response is "ya" (considers alternatives)
+                if clean in ['ya', 'yes', 'true']:
+                    return {"score": 1.0, "status": "passed", "details": "Response considers alternative explanations"}
+                elif clean in ['tidak', 'no', 'false']:
+                    return {"score": 0.0, "status": "failed", "details": "Response does not consider alternatives"}
+                else:
+                    # For verbose responses, check keywords
+                    alternatives_keywords = ['alternatif', 'kemungkinan', 'faktor', 'plasebo', 'alami', 'lain']
+                    found = sum(1 for kw in alternatives_keywords if kw in clean)
+                    if found >= 2:
+                        return {"score": 1.0, "status": "passed", "details": f"Found {found} alternative consideration keywords"}
+                    else:
+                        return {"score": 0.5, "status": "partial", "details": f"Partial: found {found} keywords"}
+            
+            # If expected has specific statements
+            expected_list = expected.get('answer', expected.get('statements', []))
+            if isinstance(expected_list, list):
+                try:
+                    statements = [int(n.strip()) for n in response.split(',')]
+                    if all(s in statements for s in expected_list):
+                        return {"score": 1.0, "status": "passed", "details": f"Correct: statements {statements}"}
+                    else:
+                        return {"score": 0.0, "status": "failed", "details": f"Wrong: expected {expected_list}, got {statements}"}
+                except ValueError:
+                    pass
+        
+        # Fallback: try to parse as statement numbers
         try:
             statements = [int(n.strip()) for n in response.split(',')]
-            # Check if all expected statements are present
-            if all(s in statements for s in expected):
-                return {"score": 1.0, "details": f"Correct: statements {statements}"}
-            else:
-                return {"score": 0.0, "details": f"Wrong: expected {expected}, got {statements}"}
+            if isinstance(expected, list) and all(s in statements for s in expected):
+                return {"score": 1.0, "status": "passed", "details": f"Correct: statements {statements}"}
+            return {"score": 0.0, "status": "failed", "details": f"Got statements: {statements}"}
         except ValueError:
-            return {"score": 0.0, "details": f"Invalid format: '{response}'"}
+            return {"score": 0.0, "status": "failed", "details": f"Could not parse: '{response[:50]}'"}
     
-    def _score_level_5(self, response: str, expected: float) -> Dict[str, Any]:
-        """Level 5: Currency - expects '820800'"""
-        clean = response.strip()
+    def _score_level_5(self, response: str, expected: Any) -> Dict[str, Any]:
+        """Level 5: Flexible - can be number (combinatorics) or string"""
+        response_clean = response.strip().lower()
         
-        # Remove common separators and currency symbols
-        clean = clean.replace(',', '').replace('.', '').replace('Rp', '').replace('rp', '').strip()
+        # Handle expected in different formats (dict from configurable tests)
+        expected_value = expected
+        expected_type = None
+        if isinstance(expected, dict):
+            expected_value = expected.get('answer', expected.get('value'))
+            expected_type = expected.get('type')
+        
+        # String comparison
+        if expected_type == "string" or isinstance(expected_value, str):
+            expected_clean = str(expected_value).strip().lower()
+            if response_clean == expected_clean:
+                return {"score": 1.0, "status": "passed", "details": f"Correct: {response_clean}"}
+            else:
+                return {"score": 0.0, "status": "failed", "details": f"Wrong: expected '{expected_clean}', got '{response_clean}'"}
+        
+        # Numeric comparison
+        try:
+            # Try to parse expected as number
+            expected_num = float(expected_value) if expected_value is not None else 0
+        except (TypeError, ValueError):
+            expected_num = 0
+        
+        # Clean response for numeric comparison
+        clean = response.strip()
+        clean = clean.replace(',', '').replace('Rp', '').replace('rp', '').strip()
+        # Handle Indonesian decimal format (dots as thousands separator)
+        if '.' in clean and clean.count('.') > 1:
+            clean = clean.replace('.', '')
         
         try:
             actual = float(clean)
-            if abs(actual - expected) < 1:  # Tolerance for currency
-                return {"score": 1.0, "details": f"Correct: {actual}"}
+            if abs(actual - expected_num) < 1:  # Tolerance
+                return {"score": 1.0, "status": "passed", "details": f"Correct: {actual}"}
             else:
-                return {"score": 0.0, "details": f"Wrong: expected {expected}, got {actual}"}
+                return {"score": 0.0, "status": "failed", "details": f"Wrong: expected {expected_num}, got {actual}"}
         except ValueError:
-            return {"score": 0.0, "details": f"Not a number: '{response}'"}
+            return {"score": 0.0, "status": "failed", "details": f"Not a number: '{response}'"}

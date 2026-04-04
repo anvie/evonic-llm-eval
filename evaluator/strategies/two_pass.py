@@ -41,10 +41,16 @@ class TwoPassEvaluator(BaseEvaluator):
         
         Args:
             response: Model response from PASS 1
-            expected: Expected answer
+            expected: Expected answer (can be float, dict with 'answer' key, or other types)
             level: Test level (1-5)
             prompt: Original question/prompt for context
         """
+        # Handle expected in different formats
+        # Configurable tests pass expected as dict: {"answer": 10.0, "type": "numeric"}
+        expected_value = expected
+        if isinstance(expected, dict):
+            expected_value = expected.get("answer", expected.get("value", expected))
+        
         # PASS 2: Extract clean answer (include original question for context)
         extraction = self.extractor.extract(self.domain, level, response, prompt)
         
@@ -81,7 +87,7 @@ class TwoPassEvaluator(BaseEvaluator):
         test_class = get_test_class(self.domain)
         if test_class:
             test_instance = test_class(level)
-            score_result = test_instance.score_response(extracted, expected)
+            score_result = test_instance.score_response(extracted, expected_value)
         else:
             score_result = {"score": 0.0, "details": f"Unknown domain: {self.domain}"}
         

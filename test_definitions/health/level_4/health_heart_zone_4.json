@@ -1,0 +1,17 @@
+{
+  "id": "health_heart_zone_4",
+  "name": "Heart Rate Zone Training",
+  "description": "Test heart rate zone calculation for fitness",
+  "prompt": "Atlet berusia 30 tahun ingin berlatih di zona aerobik (70-80% HRmax). Hitung rentang denyut jantung targetnya menggunakan formula Karvonen dengan resting HR 60 bpm. Rumus: Target HR = ((HRmax - Resting HR) * %intensity) + Resting HR. Jawab format: 'Zona aerobik: X - Y bpm'",
+  "expected": {
+    "answer": "Zona aerobik: 144 - 156 bpm",
+    "type": "text",
+    "keywords": ["144", "156"]
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

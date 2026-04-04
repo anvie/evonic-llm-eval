@@ -1,0 +1,17 @@
+{
+  "id": "health_diabetes_risk_4",
+  "name": "Diabetes Risk Assessment",
+  "description": "Test diabetes risk factor analysis",
+  "prompt": "Pasien: usia 55, BMI 29, tekanan darah 138/88, riwayat keluarga diabetes, tidak berolahraga. Berapa faktor risiko diabetes tipe 2 yang dimiliki? Sebutkan faktor-faktornya.",
+  "expected": {
+    "answer": "5 faktor risiko: usia >45, BMI >25, tekanan darah tinggi, riwayat keluarga, kurang aktivitas fisik",
+    "type": "text",
+    "keywords": ["5", "lima", "usia", "BMI", "riwayat keluarga", "olahraga"]
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "health_bmi_category_3",
+  "name": "BMI Category Analysis",
+  "description": "Test BMI calculation and category determination",
+  "prompt": "Seseorang memiliki berat 85 kg dan tinggi 1.70 m. Hitung BMI dan tentukan kategorinya (underweight/normal/overweight/obese). Jawab format: 'BMI: X.XX, Kategori: ...'",
+  "expected": {
+    "answer": "BMI: 29.41, Kategori: overweight",
+    "type": "text",
+    "keywords": ["29.4", "overweight"]
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

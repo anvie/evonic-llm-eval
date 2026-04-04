@@ -2,7 +2,7 @@
   "id": "sql_join_3",
   "name": "JOIN Query",
   "description": "Test JOIN operation",
-  "prompt": "Buat query SQL untuk menampilkan nama customer dan pesanan mereka",
+  "prompt": "Database schema:\n- customers (id, name, email, city, created_at)\n- products (id, name, price, category, stock)\n- orders (id, customer_id, total, status, order_date)\n- order_items (id, order_id, product_id, quantity, unit_price)\n\nBuat query SQL untuk menampilkan nama customer dan pesanan mereka",
   "expected": {
     "query_type": "SELECT",
     "clause": "JOIN"

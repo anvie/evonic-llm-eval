@@ -12,7 +12,7 @@ Indonesian-language villa customer service. Your job is to analyze failed evalua
 tests and identify patterns, root causes, and actionable improvements.
 
 You will receive a batch of failed test results across domains: conversation, math, \
-sql, tool_calling, and reasoning. Each test has a prompt, expected output, actual \
+sql, tool_calling, reasoning, and health. Each test has a prompt, expected output, actual \
 response, score, and scoring details.
 
 Respond with a JSON object (no markdown fences) following this schema:

@@ -68,13 +68,20 @@ class ToolCallEvaluator(BaseEvaluator):
     
     def _extract_tool_calls(self, response: str) -> List[Dict]:
         """Extract tool calls from LLM response"""
+        # Try JSON format first (OpenAI style)
         try:
-            # Try to parse as JSON with tool_calls
             data = json.loads(response)
             if isinstance(data, dict) and "tool_calls" in data:
                 return data["tool_calls"]
         except json.JSONDecodeError:
             pass
+        
+        # Try Gemma 4 format: <|tool_call>function{args}<|tool_call|>
+        from evaluator.gemma4_parser import extract_gemma4_tool_calls, gemma4_tool_calls_to_openai_format
+        
+        gemma4_calls = extract_gemma4_tool_calls(response)
+        if gemma4_calls:
+            return gemma4_tool_calls_to_openai_format(gemma4_calls)
         
         return []
     
@@ -128,7 +135,13 @@ class ToolCallEvaluator(BaseEvaluator):
         
         expected_tools = []
         if isinstance(expected, dict):
-            expected_tools = expected.get("tools", [])
+            # Handle both "tool" (singular) and "tools" (plural)
+            if "tool" in expected:
+                expected_tools = [expected["tool"]]
+            elif "tools" in expected:
+                expected_tools = expected.get("tools", [])
+            elif "chain" in expected:
+                expected_tools = expected.get("chain", [])
         elif isinstance(expected, list):
             expected_tools = expected
         

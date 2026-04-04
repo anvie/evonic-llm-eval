@@ -6,13 +6,9 @@
         <h2>LLM Evaluation Dashboard</h2>
         
         <div class="button-group">
-            <button id="start-btn" class="btn btn-primary" onclick="startEvaluation()" 
-                    {{ 'disabled' if status.status == 'running' else '' }}>
-                Start Evaluation
-            </button>
-            <button id="stop-btn" class="btn btn-danger" onclick="stopEvaluation()"
-                    {{ 'disabled' if status.status != 'running' else '' }}>
-                Stop Evaluation
+            <button id="toggle-btn" class="btn {{ 'btn-danger' if status.status == 'running' else 'btn-primary' }}" 
+                    onclick="toggleEvaluation()">
+                {{ 'Stop Evaluation' if status.status == 'running' else 'Start Evaluation' }}
             </button>
             <button id="clear-btn" class="btn btn-secondary" onclick="clearState()" style="display: none;">
                 Clear
@@ -48,6 +44,7 @@
         <h3>Test Matrix <span style="font-size: 0.75rem; color: #666; font-weight: normal;">(Click any cell to see details)</span></h3>
         
         <div class="matrix-header">
+            <div class="select-col"><input type="checkbox" id="select-all" checked onclick="toggleAllDomains(this.checked)" title="Select/Deselect All"></div>
             <div>Domain</div>
             <div>Level 1</div>
             <div>Level 2</div>
@@ -57,8 +54,9 @@
             <div style="background: #667eea; color: white; border-radius: 4px;">Total</div>
         </div>
         
-        {% for domain in ['conversation', 'math', 'sql', 'tool_calling', 'reasoning'] %}
-        <div class="matrix-row">
+        {% for domain in ['conversation', 'math', 'sql', 'tool_calling', 'reasoning', 'health'] %}
+        <div class="matrix-row" id="row-{{ domain }}">
+            <div class="select-col"><input type="checkbox" class="domain-checkbox" data-domain="{{ domain }}" checked onclick="updateSelectAllState()"></div>
             <div style="font-weight: 600; text-transform: capitalize;">{{ domain }}</div>
             {% for level in range(1, 6) %}
             <div class="matrix-cell clickable-cell" id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
@@ -129,6 +127,137 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSavedLogs();
 });
 
+// Toggle evaluation (start or stop based on current state)
+function toggleEvaluation() {
+    const btn = document.getElementById('toggle-btn');
+    const isRunning = btn.classList.contains('btn-danger');
+    
+    if (isRunning) {
+        stopEvaluation();
+    } else {
+        startEvaluation();
+    }
+}
+
+// Update toggle button state
+function updateToggleButton(running) {
+    const btn = document.getElementById('toggle-btn');
+    if (running) {
+        btn.textContent = 'Stop Evaluation';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-danger');
+    } else {
+        btn.textContent = 'Start Evaluation';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-primary');
+    }
+}
+
+// Domain selection functions
+function toggleAllDomains(checked) {
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+        updateRowState(cb.dataset.domain, checked);
+    });
+    updateTotalTestCount();
+}
+
+function updateSelectAllState() {
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+    const selectAll = document.getElementById('select-all');
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    if (checkedCount === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+    } else if (checkedCount === checkboxes.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+    } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+    }
+    
+    // Update row visual state
+    checkboxes.forEach(cb => {
+        updateRowState(cb.dataset.domain, cb.checked);
+    });
+    
+    updateTotalTestCount();
+}
+
+function updateRowState(domain, enabled) {
+    const row = document.getElementById(`row-${domain}`);
+    if (row) {
+        if (enabled) {
+            row.classList.remove('disabled');
+        } else {
+            row.classList.add('disabled');
+        }
+    }
+}
+
+function getSelectedDomains() {
+    const checkboxes = document.querySelectorAll('.domain-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.dataset.domain);
+}
+
+function updateTotalTestCount() {
+    const selectedCount = getSelectedDomains().length;
+    const totalTests = selectedCount * 5;
+    document.getElementById('progress-text').textContent = `0/${totalTests} tests completed`;
+}
+
+function setCheckboxesEnabled(enabled) {
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+    
+    selectAll.disabled = !enabled;
+    checkboxes.forEach(cb => cb.disabled = !enabled);
+}
+
+// Clear matrix cells and totals
+function clearMatrixState() {
+    const domains = ['conversation', 'math', 'sql', 'tool_calling', 'reasoning', 'health'];
+    
+    for (const domain of domains) {
+        // Clear individual cells
+        for (let level = 1; level <= 5; level++) {
+            const cell = document.getElementById(`cell-${domain}-${level}`);
+            if (cell) {
+                const statusEl = cell.querySelector('.cell-status');
+                if (statusEl) statusEl.className = 'cell-status status-pending';
+                
+                const scoreEl = cell.querySelector('.cell-score');
+                if (scoreEl) scoreEl.textContent = '-';
+                
+                const durationEl = document.getElementById(`duration-${domain}-${level}`);
+                if (durationEl) durationEl.textContent = '';
+            }
+        }
+        
+        // Clear domain totals
+        const scoreEl = document.getElementById(`total-score-${domain}`);
+        const passedEl = document.getElementById(`total-passed-${domain}`);
+        const durationEl = document.getElementById(`total-duration-${domain}`);
+        
+        if (scoreEl) {
+            scoreEl.textContent = '-';
+            scoreEl.style.color = '';
+        }
+        if (passedEl) passedEl.textContent = '0/5';
+        if (durationEl) durationEl.textContent = '';
+    }
+    
+    // Clear stored test results
+    testResultsData = {};
+    
+    // Reset progress bar
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('progress-text').textContent = '0/25 tests completed';
+}
+
 function saveState(data) {
     const state = {
         run_id: data.run_id,
@@ -151,9 +280,14 @@ function loadSavedState() {
             if (state.domains) {
                 updateMatrix(state.domains);
             }
-            if (state.status && state.status !== 'running') {
+            if (state.status) {
                 updateStatusIndicator(state.status);
-                showClearButton(true);
+                if (state.status === 'running') {
+                    updateToggleButton(true);
+                } else {
+                    updateToggleButton(false);
+                    showClearButton(true);
+                }
             }
             if (state.model_name) {
                 // Hide server-side model display to avoid duplication
@@ -183,17 +317,29 @@ function showClearButton(show) {
 function startEvaluation() {
     console.log('[DEBUG] startEvaluation called');
     
+    // Check if any domain is selected
+    const selectedDomains = getSelectedDomains();
+    if (selectedDomains.length === 0) {
+        alert('Please select at least one domain to test.');
+        return;
+    }
+    
     // Remove summary/interrupted boxes from previous run
     const summaryBox = document.getElementById('summary-box');
     const interruptedBox = document.getElementById('interrupted-box');
     if (summaryBox) summaryBox.remove();
     if (interruptedBox) interruptedBox.remove();
     
+    // Clear the matrix cells and totals
+    clearMatrixState();
+    
     // Update UI immediately
     updateStatusIndicator('running');
-    document.getElementById('start-btn').disabled = true;
-    document.getElementById('stop-btn').disabled = false;
+    updateToggleButton(true);  // Set to "running" state
     showClearButton(false);
+    
+    // Disable checkboxes during evaluation
+    setCheckboxesEnabled(false);
     
     // Clear old logs (both UI and localStorage)
     document.getElementById('log-box').innerHTML = '';
@@ -202,10 +348,12 @@ function startEvaluation() {
     // Use model from config, fallback to 'default' if not loaded yet
     const modelName = configModel || 'default';
     
+    console.log('[DEBUG] Selected domains:', selectedDomains);
+    
     fetch('/api/start', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({model_name: modelName})
+        body: JSON.stringify({model_name: modelName, domains: selectedDomains})
     })
     .then(response => {
         console.log('[DEBUG] Got response:', response.status);
@@ -219,16 +367,14 @@ function startEvaluation() {
         } else {
             alert('Error: ' + data.error);
             updateStatusIndicator('idle');
-            document.getElementById('start-btn').disabled = false;
-            document.getElementById('stop-btn').disabled = true;
+            updateToggleButton(false);
         }
     })
     .catch(error => {
         console.error('[DEBUG] Error:', error);
         alert('Failed to start evaluation: ' + error.message);
         updateStatusIndicator('idle');
-        document.getElementById('start-btn').disabled = false;
-        document.getElementById('stop-btn').disabled = true;
+        updateToggleButton(false);
     });
 }
 
@@ -257,9 +403,9 @@ function stopEvaluation() {
     .then(data => {
         if (data.success) {
             updateStatusIndicator('idle');
-            document.getElementById('stop-btn').disabled = true;
-            document.getElementById('start-btn').disabled = false;
+            updateToggleButton(false);
             clearInterval(pollingInterval);
+            showClearButton(true);
             
             // Log stop message
             const logBox = document.getElementById('log-box');
@@ -295,16 +441,20 @@ function updateStatus() {
         // Save state for persistence
         saveState(data);
         
-        if (data.status === 'completed' || data.status === 'interrupted') {
+        if (data.status === 'completed' || data.status === 'interrupted' || data.status === 'error') {
             clearInterval(pollingInterval);
-            document.getElementById('stop-btn').disabled = true;
-            document.getElementById('start-btn').disabled = false;
+            updateToggleButton(false);
             showClearButton(true);
             
-            // Log completion/interrupted message
+            // Log completion/interrupted/error message
             const logBox = document.getElementById('log-box');
             
-            if (data.status === 'interrupted') {
+            if (data.status === 'error') {
+                logBox.innerHTML += '<div class="log-entry" style="color: #ef4444; font-weight: bold;">[SYSTEM] ====== EVALUASI ERROR ======</div>';
+                if (data.error_message) {
+                    logBox.innerHTML += `<div class="log-entry" style="color: #ef4444;">[ERROR] ${data.error_message}</div>`;
+                }
+            } else if (data.status === 'interrupted') {
                 logBox.innerHTML += '<div class="log-entry" style="color: #f59e0b; font-weight: bold;">[SYSTEM] ====== EVALUASI DIHENTIKAN ======</div>';
             } else {
                 logBox.innerHTML += '<div class="log-entry" style="color: #4ade80; font-weight: bold;">[SYSTEM] ====== EVALUASI SELESAI ======</div>';
@@ -416,8 +566,7 @@ function updateProgress(data) {
 // Initialize polling if evaluation is running
 {% if status.status == 'running' %}
 window.addEventListener('load', function() {
-    document.getElementById('start-btn').disabled = true;
-    document.getElementById('stop-btn').disabled = false;
+    updateToggleButton(true);
     startPolling();
     setupLogStream();  // Also start log stream if running
 });
@@ -425,15 +574,26 @@ window.addEventListener('load', function() {
 
 function setupLogStream() {
     const logBox = document.getElementById('log-box');
+    console.log('[LOG STREAM] Setting up log stream...');
     
     // Close existing connection if any
     if (eventSource) {
+        console.log('[LOG STREAM] Closing existing connection');
         eventSource.close();
     }
     
+    // Add initial message to show connection attempt
+    logBox.innerHTML += '<div class="log-entry" style="color: #60a5fa;">[SYSTEM] Connecting to log stream...</div>';
+    
     eventSource = new EventSource('/api/log_stream');
+    console.log('[LOG STREAM] EventSource created');
+    
+    eventSource.onopen = function() {
+        console.log('[LOG STREAM] Connection opened');
+    };
     
     eventSource.onmessage = function(event) {
+        console.log('[LOG STREAM] Message received:', event.data.substring(0, 50));
         // Convert newline to <br> for HTML display
         const message = event.data.replace(/\n/g, '<br>');
         const logEntry = '<div class="log-entry">' + message + '</div>';
@@ -577,6 +737,16 @@ function showModalWithData(domain, level, data) {
             <div class="detail-header">Model</div>
             <div class="detail-content">
                 <span style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600;">${escapeHtml(data.model_name)}</span>
+            </div>
+        </div>
+        ` : ''}
+        
+        ${data.details && (data.details.evaluator || data.details.scoring_method) ? `
+        <div class="detail-section">
+            <div class="detail-header">⚙️ Evaluator</div>
+            <div class="detail-content">
+                <span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600;">${escapeHtml(data.details.evaluator || data.details.scoring_method || 'default')}</span>
+                ${data.details.pass2 && data.details.pass2.format ? `<span style="margin-left: 0.5rem; color: #666; font-size: 0.9rem;">(format: ${escapeHtml(data.details.pass2.format)})</span>` : ''}
             </div>
         </div>
         ` : ''}
@@ -958,6 +1128,30 @@ document.addEventListener('keydown', function(event) {
 </script>
 
 <style>
+/* Domain selection checkboxes */
+.select-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    max-width: 40px;
+}
+
+.select-col input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.matrix-row.disabled {
+    opacity: 0.5;
+}
+
+.matrix-row.disabled .clickable-cell {
+    pointer-events: none;
+}
+
 /* Clickable cells */
 .clickable-cell {
     cursor: pointer;

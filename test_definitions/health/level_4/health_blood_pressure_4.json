@@ -1,0 +1,17 @@
+{
+  "id": "health_blood_pressure_4",
+  "name": "Blood Pressure Analysis",
+  "description": "Test blood pressure classification and recommendations",
+  "prompt": "Pasien memiliki tekanan darah 145/95 mmHg. Klasifikasikan (normal/elevated/hypertension stage 1/hypertension stage 2) dan berikan 2 rekomendasi utama. Format: 'Klasifikasi: ..., Rekomendasi: ...'",
+  "expected": {
+    "answer": "Klasifikasi: hypertension stage 1, Rekomendasi: diet rendah garam dan olahraga teratur",
+    "type": "text",
+    "keywords": ["hypertension stage 1", "hipertensi"]
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

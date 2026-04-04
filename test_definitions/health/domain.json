@@ -1,0 +1,11 @@
+{
+  "id": "health",
+  "name": "Health",
+  "description": "Health and medical knowledge tests - covering BMI, nutrition, symptoms, and medical calculations",
+  "icon": "heart-pulse",
+  "color": "#EF4444",
+  "evaluator_id": "two_pass",
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

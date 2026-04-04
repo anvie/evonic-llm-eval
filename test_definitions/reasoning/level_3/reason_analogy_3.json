@@ -5,7 +5,8 @@
   "prompt": "Panas : Dingin seperti Terang : ...",
   "expected": {
     "answer": "Gelap",
-    "reasoning": "analogy"
+    "reasoning": "analogy",
+    "type": "text"
   },
   "evaluator_id": "two_pass",
   "timeout_ms": 30000,

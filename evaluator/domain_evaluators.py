@@ -19,6 +19,7 @@ DOMAIN_EVALUATORS: Dict[str, Type[BaseEvaluator]] = {
     "sql": SQLExecutorEvaluator,
     "conversation": KeywordEvaluator,  # No PASS2 needed - uses keyword matching
     "tool_calling": ToolCallEvaluator,
+    "health": TwoPassEvaluator,  # Health domain - uses two-pass for numeric/text extraction
 }
 
 # Evaluator type name → class mapping for config overrides

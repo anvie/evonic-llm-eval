@@ -1,0 +1,17 @@
+{
+  "id": "health_compound_dosing_5",
+  "name": "Complex Medication Dosing",
+  "description": "Test multi-factor medication dosing calculation",
+  "prompt": "Pasien lansia 75 tahun, fungsi ginjal (eGFR) 45 mL/min/1.73m², perlu antibiotik gentamicin. Dosis normal: 5 mg/kg/hari dibagi 2 dosis. Berat pasien 65 kg. Untuk gangguan ginjal sedang (eGFR 30-59), dosis dikurangi 50%. Hitung: (1) Total dosis harian setelah penyesuaian, (2) Dosis per injeksi jika diberikan 2x sehari. Jawab format: 'Total: X mg/hari, Per injeksi: Y mg'",
+  "expected": {
+    "answer": "Total: 162.5 mg/hari, Per injeksi: 81.25 mg",
+    "type": "text",
+    "keywords": ["162.5", "81.25"]
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

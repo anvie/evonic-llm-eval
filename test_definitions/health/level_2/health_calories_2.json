@@ -1,0 +1,16 @@
+{
+  "id": "health_calories_2",
+  "name": "Calorie Calculation",
+  "description": "Test calorie calculation from macronutrients",
+  "prompt": "Jika makanan mengandung 50 gram karbohidrat, 20 gram protein, dan 10 gram lemak, berapa total kalori? (karbo=4kal/g, protein=4kal/g, lemak=9kal/g). Jawab dengan angka saja.",
+  "expected": {
+    "answer": 370,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "health_weight_loss_5",
+  "name": "Weight Loss Planning",
+  "description": "Test comprehensive weight loss program design",
+  "prompt": "Pasien wanita 35 tahun, berat 90 kg, tinggi 160 cm, ingin menurunkan berat badan 15 kg dalam 6 bulan. Hitung: (1) BMI awal, (2) Defisit kalori harian yang dibutuhkan (asumsi 7700 kal = 1 kg), (3) Target kalori harian jika TDEE-nya 2000 kal. Format: 'BMI: X, Defisit: Y kal/hari, Target kalori: Z kal/hari'",
+  "expected": {
+    "answer": "BMI: 35.16, Defisit: 642 kal/hari, Target kalori: 1358 kal/hari",
+    "type": "text",
+    "keywords": ["35", "642", "1358"]
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "health_med_interaction_5",
+  "name": "Drug Interaction Analysis",
+  "description": "Test medication interaction knowledge",
+  "prompt": "Pasien hipertensi (tekanan 150/95) terapi dengan amlodipine 5mg, juga mengeluh GERD dan minum antasida mengandung aluminium hidroksida. Jelaskan: (1) Interaksi obat yang mungkin terjadi, (2) Waktu pemisahan optimal antara kedua obat, (3) Rekomendasi alternatif antasida yang lebih aman. Jawab dalam 3 poin.",
+  "expected": {
+    "answer": "1. Antasida dapat mengurangi absorbsi amlodipine, 2. Pemisahan minimal 2 jam, 3. Alternatif: ranitidine atau PPI",
+    "type": "text",
+    "keywords": ["absorbsi", "2 jam", "ranitidine", "PPI"]
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

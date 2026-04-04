@@ -128,28 +128,28 @@ class TestExtractionPrompts:
         assert prompt_data["expected_format"] == "boolean"
     
     def test_reasoning_l2_prompt(self):
-        """Reasoning L2 should ask for sequence"""
+        """Reasoning L2 should ask for boolean (ya/tidak)"""
         prompt_data = answer_extractor._get_extraction_prompt("reasoning", 2, "some answer")
         assert prompt_data is not None
-        assert prompt_data["expected_format"] == "sequence"
+        assert prompt_data["expected_format"] == "boolean"
     
     def test_reasoning_l3_prompt(self):
-        """Reasoning L3 should ask for number"""
+        """Reasoning L3 should ask for text (analogy answers)"""
         prompt_data = answer_extractor._get_extraction_prompt("reasoning", 3, "some answer")
         assert prompt_data is not None
-        assert prompt_data["expected_format"] == "number"
+        assert prompt_data["expected_format"] == "text"
     
     def test_reasoning_l4_prompt(self):
-        """Reasoning L4 should ask for statements"""
+        """Reasoning L4 should ask for boolean (causal reasoning)"""
         prompt_data = answer_extractor._get_extraction_prompt("reasoning", 4, "some answer")
         assert prompt_data is not None
-        assert prompt_data["expected_format"] == "statements"
+        assert prompt_data["expected_format"] == "boolean"
     
     def test_reasoning_l5_prompt(self):
-        """Reasoning L5 should ask for number (currency)"""
+        """Reasoning L5 should ask for flexible format (number or text)"""
         prompt_data = answer_extractor._get_extraction_prompt("reasoning", 5, "some answer")
         assert prompt_data is not None
-        assert prompt_data["expected_format"] == "number"
+        assert prompt_data["expected_format"] == "flexible"
     
     def test_sql_prompt(self):
         """SQL extraction prompt should ask for SQL"""

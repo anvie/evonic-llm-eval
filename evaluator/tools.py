@@ -14,6 +14,111 @@ class ToolFramework:
             {
                 "type": "function",
                 "function": {
+                    "name": "get_weather",
+                    "description": "Get current weather information for a location",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "string",
+                                "description": "City name or location"
+                            }
+                        },
+                        "required": ["location"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_restaurants",
+                    "description": "Search for restaurants by criteria",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "cuisine": {
+                                "type": "string",
+                                "description": "Type of cuisine (Italian, Japanese, etc.)"
+                            },
+                            "location": {
+                                "type": "string",
+                                "description": "City or area"
+                            },
+                            "min_rating": {
+                                "type": "number",
+                                "description": "Minimum rating (1-5)"
+                            }
+                        },
+                        "required": ["location"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_hotels",
+                    "description": "Search for hotels in a location",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "location": {
+                                "type": "string",
+                                "description": "City or area"
+                            },
+                            "check_in": {
+                                "type": "string",
+                                "description": "Check-in date (YYYY-MM-DD)"
+                            },
+                            "check_out": {
+                                "type": "string",
+                                "description": "Check-out date (YYYY-MM-DD)"
+                            }
+                        },
+                        "required": ["location"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_order",
+                    "description": "Get order details by customer ID",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "customer_id": {
+                                "type": "integer",
+                                "description": "Customer ID"
+                            }
+                        },
+                        "required": ["customer_id"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "send_notification",
+                    "description": "Send notification to a user",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "email": {
+                                "type": "string",
+                                "description": "Email address"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Notification message"
+                            }
+                        },
+                        "required": ["email", "message"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "calculator",
                     "description": "Perform mathematical calculations",
                     "parameters": {
@@ -136,6 +241,16 @@ class ToolFramework:
                 result = self._file_create(arguments)
             elif function_name == "file_edit":
                 result = self._file_edit(arguments)
+            elif function_name == "get_weather":
+                result = self._get_weather(arguments)
+            elif function_name == "search_restaurants":
+                result = self._search_restaurants(arguments)
+            elif function_name == "search_hotels":
+                result = self._search_hotels(arguments)
+            elif function_name == "get_order":
+                result = self._get_order(arguments)
+            elif function_name == "send_notification":
+                result = self._send_notification(arguments)
             else:
                 result = {"error": f"Unknown tool: {function_name}"}
             
@@ -261,6 +376,75 @@ class ToolFramework:
             
         except Exception as e:
             return {"error": f"File edit error: {str(e)}"}
+    
+    def _get_weather(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Get mock weather data"""
+        location = args.get("location", "Unknown")
+        # Mock weather responses
+        weather_data = {
+            "jakarta": {"temp": 32, "condition": "Cerah berawan", "humidity": 75},
+            "bali": {"temp": 30, "condition": "Cerah", "humidity": 70},
+            "yogyakarta": {"temp": 29, "condition": "Berawan", "humidity": 80},
+            "surabaya": {"temp": 33, "condition": "Panas", "humidity": 65},
+        }
+        loc_lower = location.lower()
+        if loc_lower in weather_data:
+            return {"location": location, "weather": weather_data[loc_lower], "status": "success"}
+        return {"location": location, "weather": {"temp": 28, "condition": "Normal", "humidity": 70}, "status": "success"}
+    
+    def _search_restaurants(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Search mock restaurants"""
+        cuisine = args.get("cuisine", "any")
+        location = args.get("location", "Jakarta")
+        min_rating = args.get("min_rating", 0)
+        
+        # Mock restaurant data
+        restaurants = [
+            {"name": "Ristorante Italia", "cuisine": "Italian", "rating": 4.5, "location": "Jakarta"},
+            {"name": "Sushi Tei", "cuisine": "Japanese", "rating": 4.2, "location": "Jakarta"},
+            {"name": "Warung Padang", "cuisine": "Indonesian", "rating": 4.8, "location": "Jakarta"},
+        ]
+        
+        filtered = [r for r in restaurants if r["rating"] >= min_rating]
+        if cuisine.lower() != "any":
+            filtered = [r for r in filtered if cuisine.lower() in r["cuisine"].lower()]
+        
+        return {"restaurants": filtered, "count": len(filtered), "status": "success"}
+    
+    def _search_hotels(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Search mock hotels"""
+        location = args.get("location", "Bali")
+        
+        # Mock hotel data
+        hotels = [
+            {"name": "Grand Hyatt", "location": "Bali", "rating": 4.8, "price_per_night": 2500000},
+            {"name": "Ayana Resort", "location": "Bali", "rating": 4.9, "price_per_night": 3000000},
+            {"name": "Alila Villas", "location": "Bali", "rating": 4.7, "price_per_night": 2800000},
+        ]
+        
+        return {"hotels": hotels, "location": location, "count": len(hotels), "status": "success"}
+    
+    def _get_order(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Get mock order data"""
+        customer_id = args.get("customer_id", 0)
+        
+        # Mock order data
+        orders = {
+            123: {"order_id": "ORD-001", "items": ["Laptop", "Mouse"], "total": 15000000, "status": "shipped"},
+            456: {"order_id": "ORD-002", "items": ["Phone"], "total": 8000000, "status": "delivered"},
+        }
+        
+        if customer_id in orders:
+            return {"customer_id": customer_id, "order": orders[customer_id], "status": "success"}
+        return {"customer_id": customer_id, "order": None, "status": "not_found"}
+    
+    def _send_notification(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Send mock notification"""
+        email = args.get("email", "")
+        message = args.get("message", "")
+        
+        # Mock: just return success
+        return {"email": email, "message_preview": message[:50], "status": "sent", "notification_id": "NOTIF-12345"}
 
 # Global tool framework instance
 tool_framework = ToolFramework()

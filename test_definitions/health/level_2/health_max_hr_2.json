@@ -1,0 +1,16 @@
+{
+  "id": "health_max_hr_2",
+  "name": "Max Heart Rate Calculation",
+  "description": "Test maximum heart rate calculation using age",
+  "prompt": "Hitung denyut jantung maksimum untuk seseorang berusia 40 tahun menggunakan rumus (220 - umur). Berikan jawaban dalam bpm.",
+  "expected": {
+    "answer": 180,
+    "type": "numeric"
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

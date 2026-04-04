@@ -2,7 +2,7 @@
   "id": "sql_aggregate_4",
   "name": "Aggregation",
   "description": "Test aggregate functions",
-  "prompt": "Buat query SQL untuk menghitung total penjualan per bulan",
+  "prompt": "Database schema:\n- customers (id, name, email, city, created_at)\n- products (id, name, price, category, stock)\n- orders (id, customer_id, total, status, order_date)\n- order_items (id, order_id, product_id, quantity, unit_price)\n\nBuat query SQL untuk menghitung total penjualan per bulan",
   "expected": {
     "query_type": "SELECT",
     "functions": [

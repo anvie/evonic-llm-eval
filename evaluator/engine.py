@@ -36,12 +36,14 @@ class EvaluationEngine:
         """
         self.current_run_id: Optional[str] = None
         self.is_running = False
-        self.was_interrupted = False
+        self.was_interrupted = False  # User clicked Stop
+        self.has_error = False       # Error occurred during evaluation
+        self.error_message: Optional[str] = None
         self.lock = Lock()
         self.thread: Optional[Thread] = None
         self.log_queue = queue.Queue()
         self.use_configurable_tests = use_configurable_tests
-        self.total_tokens = 0
+        self.total_tokens=0
         self.total_duration_ms = 0
         self.model_name: Optional[str] = None
     
@@ -56,15 +58,18 @@ class EvaluationEngine:
             if self.is_running:
                 raise Exception("Evaluation already running")
             
-            # Use config model if not specified
+            # Use actual model name from endpoint if not specified
             if model_name is None or model_name == "default":
-                model_name = config.LLM_MODEL
+                from evaluator.llm_client import llm_client
+                model_name = llm_client.get_actual_model_name()
             
             self.model_name = model_name
             self.current_run_id = db.create_evaluation_run(model_name)
             self.is_running = True
             self.was_interrupted = False
-            self.total_tokens = 0
+            self.has_error = False
+            self.error_message = None
+            self.total_tokens=0
             self.total_duration_ms = 0
             self._log(f'[INFO] Memulai evaluasi untuk model: {model_name}')
             
@@ -106,6 +111,8 @@ class EvaluationEngine:
             # Determine status
             if self.is_running:
                 status = "running"
+            elif self.has_error:
+                status = "error"
             elif self.was_interrupted:
                 status = "interrupted"
             else:
@@ -122,7 +129,8 @@ class EvaluationEngine:
                 "run_info": run_info,
                 "test_results": test_results,
                 "stats": stats,
-                "tok_per_sec": round(tok_per_sec, 1) if tok_per_sec else None
+                "tok_per_sec": round(tok_per_sec, 1) if tok_per_sec else None,
+                "error_message": self.error_message if self.has_error else None
             }
     
     def _run_evaluation(self, run_id: str, model_name: str):
@@ -140,19 +148,30 @@ class EvaluationEngine:
                 self._generate_summary(run_id, model_name)
                 
         except Exception as e:
+            import traceback
             self._log(f'[ERROR] Evaluation error: {e}')
+            self._log(f'[ERROR] Traceback: {traceback.format_exc()[-500:]}')
             print(f"Evaluation error: {e}")
+            traceback.print_exc()
+            # Mark as error (not user-interrupted)
+            self.has_error = True
+            self.error_message = str(e)
         finally:
             with self.lock:
                 self.is_running = False
             
             # Finalize test logger
-            final_status = "completed" if not self.was_interrupted else "interrupted"
+            if self.has_error:
+                final_status = "error"
+            elif self.was_interrupted:
+                final_status = "interrupted"
+            else:
+                final_status = "completed"
             test_logger.finalize_run(status=final_status)
     
     def _run_legacy_evaluation(self, run_id: str, model_name: str):
         """Run evaluation using legacy hardcoded tests"""
-        domains = ["conversation", "math", "sql", "tool_calling", "reasoning"]
+        domains = ["conversation", "math", "sql", "tool_calling", "reasoning", "health"]
         
         for domain in domains:
             for level in range(1, 6):  # Levels 1-5
@@ -365,6 +384,10 @@ class EvaluationEngine:
             if not isinstance(details, dict):
                 details = {"details": str(details)}
             
+            # Add evaluator info
+            details["evaluator"] = evaluator.name
+            details["uses_pass2"] = evaluator.uses_pass2
+            
             # Add thinking content to details if present
             if thinking_content:
                 details["thinking"] = thinking_content
@@ -477,7 +500,14 @@ class EvaluationEngine:
         self.total_tokens += total_tokens
         self.total_duration_ms += duration_ms
         
-        response_content = llm_client.extract_content(llm_response)
+        # Extract content with thinking separation
+        content_info = llm_client.extract_content_with_thinking(llm_response)
+        response_content = content_info["content"]
+        thinking_content = content_info["thinking"]
+        
+        # Log if thinking content was detected
+        if thinking_content:
+            self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
         
         # Log response
         response_display = response_content[:200] + '...' if len(response_content) > 200 else response_content
@@ -506,8 +536,19 @@ class EvaluationEngine:
         if not isinstance(details, dict):
             details = {"details": str(details)}
         
+        # Add evaluator info
+        if evaluator_config and evaluator_config.type == 'custom':
+            details["evaluator"] = f"custom:{evaluator_config.name}"
+        else:
+            details["evaluator"] = evaluator.name
+            details["uses_pass2"] = evaluator.uses_pass2
+        
         # Include response in details for modal display
         details['response'] = response_content
+        
+        # Add thinking content to details if present
+        if thinking_content:
+            details["thinking"] = thinking_content
         
         # Log result
         status_icon = '✓' if result.status == 'passed' else '✗'
@@ -538,7 +579,7 @@ class EvaluationEngine:
             test_id=test_id,
             prompt=prompt,
             response=response_content,
-            thinking=None,  # TODO: extract thinking from configurable tests
+            thinking=thinking_content,
             expected=expected,
             score=result.score,
             status=result.status,
@@ -640,6 +681,8 @@ class EvaluationEngine:
         # Determine status
         if self.is_running:
             status = "running"
+        elif self.has_error:
+            status = "error"
         elif self.was_interrupted:
             status = "interrupted"
         else:
@@ -657,7 +700,8 @@ class EvaluationEngine:
             "status": status,
             "tok_per_sec": round(tok_per_sec, 1) if tok_per_sec else None,
             "total_tokens": self.total_tokens,
-            "total_duration_ms": self.total_duration_ms
+            "total_duration_ms": self.total_duration_ms,
+            "error_message": self.error_message if self.has_error else None
         }
 
 

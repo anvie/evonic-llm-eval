@@ -178,8 +178,11 @@ def api_config():
 @app.route('/api/config/model')
 def api_config_model():
     """Get ONLY the model name (safe for client-side)"""
+    from evaluator.llm_client import llm_client
+    actual_model = llm_client.get_actual_model_name()
     return jsonify({
-        'model': config.LLM_MODEL
+        'model': actual_model,
+        'config_model': config.LLM_MODEL  # Also return config for comparison
     })
 
 @app.route('/api/log_stream')
@@ -188,18 +191,38 @@ def log_stream():
     def generate():
         yield "data: [SYSTEM] Log stream connected.\n\n"
         last_message_time = time.time()
+        heartbeat_interval = 15  # Send heartbeat every 15 seconds
+        last_heartbeat = time.time()
+        
         while True:
             try:
-                message = evaluation_engine.log_queue.get(timeout=1)
+                message = evaluation_engine.log_queue.get(timeout=0.5)  # Shorter timeout for responsiveness
                 yield f"data: {message}\n\n"
                 last_message_time = time.time()
                 if message == "EVAL_COMPLETE":
                     break
             except queue.Empty:
+                # Send heartbeat to keep connection alive
+                if time.time() - last_heartbeat > heartbeat_interval:
+                    yield ": heartbeat\n\n"  # SSE comment (ignored by client but keeps connection alive)
+                    last_heartbeat = time.time()
+                
                 if not evaluation_engine.is_running and time.time() - last_message_time > 2:
+                    # Drain any remaining messages in queue before closing
+                    while not evaluation_engine.log_queue.empty():
+                        try:
+                            message = evaluation_engine.log_queue.get_nowait()
+                            yield f"data: {message}\n\n"
+                        except queue.Empty:
+                            break
                     yield "data: [SYSTEM] Evaluation stopped. Closing stream.\n\n"
                     break
-    return Response(generate(), mimetype='text/event-stream')
+    
+    response = Response(generate(), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
+    response.headers['Connection'] = 'keep-alive'
+    return response
 
 
 # ==================== Settings API ====================
@@ -429,5 +452,6 @@ if __name__ == '__main__':
     app.run(
         host=config.HOST,
         port=config.PORT,
-        debug=config.DEBUG
+        debug=config.DEBUG,
+        use_reloader=False  # Disable reloader to prevent killing evaluation thread
     )

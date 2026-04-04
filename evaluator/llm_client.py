@@ -5,9 +5,18 @@ import re
 from typing import Dict, Any, Optional, Tuple
 import config
 
+# Import Gemma 4 parser for auto-detection
+from evaluator.gemma4_parser import is_gemma4_format, strip_gemma4_thinking
+
 def strip_thinking_tags(content: str) -> Tuple[str, Optional[str]]:
     """
-    Strip thinking tags (<tool_call>...`) from content.
+    Strip thinking tags from content with auto-format detection.
+    
+    Supports:
+    - Standard: <think>...</think>
+    - Gemma 4: <|channel>thought...<channel|>
+    
+    Auto-detects format and uses appropriate parser.
     
     Returns:
         Tuple of (cleaned_content, thinking_content)
@@ -17,7 +26,11 @@ def strip_thinking_tags(content: str) -> Tuple[str, Optional[str]]:
     if not content:
         return content, None
     
-    # Pattern to match thinking tags (non-greedy)
+    # Auto-detect Gemma 4 format
+    if is_gemma4_format(content):
+        return strip_gemma4_thinking(content)
+    
+    # Standard format: <think>...</think>
     thinking_pattern = r'<think>(.*?)</think>'
     
     # Find all thinking blocks
@@ -40,14 +53,88 @@ class LLMClient:
         self.api_key = config.LLM_API_KEY
         self.model = config.LLM_MODEL
         self.timeout = config.LLM_TIMEOUT
+        self._cached_model_name = None
     
-    def chat_completion(self, messages: list, tools: Optional[list] = None, temperature: float = 0.1) -> Dict[str, Any]:
+    def get_actual_model_name(self, force_refresh: bool = False) -> str:
+        """
+        Get the actual model name from the remote endpoint.
+        
+        For llama.cpp servers, this fetches from /props endpoint.
+        Falls back to config model name if endpoint is unavailable.
+        
+        Args:
+            force_refresh: If True, bypass cache and fetch fresh
+            
+        Returns:
+            The actual model name from the server, or config fallback
+        """
+        if self._cached_model_name and not force_refresh:
+            return self._cached_model_name
+        
+        # Try llama.cpp specific /props endpoint first
+        try:
+            props_url = f"{self.base_url.rstrip('/v1')}/props"
+            response = requests.get(props_url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if "model_alias" in data:
+                    self._cached_model_name = data["model_alias"]
+                    return self._cached_model_name
+        except Exception:
+            pass
+        
+        # Try OpenAI-compatible /v1/models endpoint
+        try:
+            models_url = f"{self.base_url}/models"
+            response = requests.get(models_url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                # Handle different response formats
+                if "data" in data and data["data"]:
+                    self._cached_model_name = data["data"][0].get("id", self.model)
+                    return self._cached_model_name
+                elif "models" in data and data["models"]:
+                    self._cached_model_name = data["models"][0].get("name", self.model)
+                    return self._cached_model_name
+        except Exception:
+            pass
+        
+        # Fallback to config
+        return self.model
+    
+    def chat_completion(self, messages: list, tools: Optional[list] = None, temperature: float = 0.1, enable_thinking: bool = True) -> Dict[str, Any]:
         """Send chat completion request to OpenAI-compatible endpoint"""
         url = f"{self.base_url}/chat/completions"
         
+        # For Gemma4 models, inject <|think|> token to activate thinking mode
+        # This goes at the start of the first system/user message
+        processed_messages = []
+        thinking_injected = False
+        # Use actual model name from endpoint for detection
+        actual_model = self._cached_model_name or self.model or ""
+        model_lower = actual_model.lower()
+        is_gemma4 = 'gemma-4' in model_lower or 'gemma4' in model_lower or 'gemma-4-base' in model_lower
+        
+        # DEBUG: Log Gemma4 detection
+        if config.DEBUG:
+            print(f"[DEBUG] Model detection: cached={self._cached_model_name}, config={self.model}, is_gemma4={is_gemma4}, enable_thinking={enable_thinking}")
+        
+        for msg in messages:
+            new_msg = msg.copy()
+            if not thinking_injected and is_gemma4 and enable_thinking:
+                role = msg.get('role', '')
+                content = msg.get('content', '')
+                # Inject think token at start of first user/system message
+                if role in ('user', 'system') and content:
+                    new_msg['content'] = '<|think|>\n' + content
+                    thinking_injected = True
+                    if config.DEBUG:
+                        print(f"[DEBUG] Injected <|think|> token into {role} message")
+            processed_messages.append(new_msg)
+        
         payload = {
             "model": self.model,
-            "messages": messages,
+            "messages": processed_messages,
             "temperature": temperature,
             "max_tokens": 4096  # Increased for reasoning models that need tokens for thinking
         }
@@ -200,6 +287,10 @@ class LLMClient:
         """
         Extract both thinking and final content from LLM response.
         
+        Handles two formats:
+        1. llama.cpp --reasoning mode: thinking in message.reasoning_content, answer in message.content
+        2. Tag-based thinking: <think>...</think> or <|channel>thought...<channel|> in content
+        
         Returns:
             Dict with:
             - content: final content (without thinking tags)
@@ -218,18 +309,52 @@ class LLMClient:
             return {"content": "No response generated", "thinking": None, "raw": None}
         
         message = choices[0].get("message", {})
-        raw_content = message.get("content", "") or message.get("reasoning_content", "")
+        content = message.get("content", "")
+        reasoning_content = message.get("reasoning_content")  # llama.cpp --reasoning mode
+        tool_calls = message.get("tool_calls")
         
-        if not raw_content:
-            return {"content": "No content generated", "thinking": None, "raw": None}
+        # Priority 0: Check for tool_calls in message (OpenAI format)
+        if tool_calls:
+            tool_content = json.dumps({"tool_calls": tool_calls}, indent=2)
+            return {
+                "content": tool_content,
+                "thinking": reasoning_content,
+                "raw": tool_content,
+                "tool_calls": tool_calls
+            }
         
-        cleaned, thinking = strip_thinking_tags(raw_content)
+        # Priority 0.5: Check for Gemma4 tool calls in content
+        if content and '<|tool_call>' in content:
+            from evaluator.gemma4_parser import extract_gemma4_tool_calls, gemma4_tool_calls_to_openai_format
+            gemma4_calls = extract_gemma4_tool_calls(content)
+            if gemma4_calls:
+                openai_calls = gemma4_tool_calls_to_openai_format(gemma4_calls)
+                tool_content = json.dumps({"tool_calls": openai_calls}, indent=2)
+                return {
+                    "content": tool_content,
+                    "thinking": reasoning_content,
+                    "raw": content,
+                    "tool_calls": openai_calls
+                }
         
-        return {
-            "content": cleaned,
-            "thinking": thinking,
-            "raw": raw_content
-        }
+        # Priority 1: llama.cpp reasoning_content field (from --reasoning on)
+        if reasoning_content:
+            return {
+                "content": content or "No content generated",
+                "thinking": reasoning_content,
+                "raw": content
+            }
+        
+        # Priority 2: Tag-based thinking extraction (<think> or Gemma4 format)
+        if content:
+            cleaned, thinking = strip_thinking_tags(content)
+            return {
+                "content": cleaned,
+                "thinking": thinking,
+                "raw": content
+            }
+        
+        return {"content": "No content generated", "thinking": None, "raw": None}
     
     def get_error_info(self, response: Dict[str, Any]) -> Optional[Dict[str, str]]:
         """Get error information from failed response"""

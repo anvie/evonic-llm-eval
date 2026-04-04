@@ -1,0 +1,17 @@
+{
+  "id": "health_bmi_1",
+  "name": "Basic BMI Calculation",
+  "description": "Test simple BMI calculation",
+  "prompt": "Hitung BMI seseorang dengan berat 70 kg dan tinggi 1.75 meter. Berikan jawaban dalam angka saja.",
+  "expected": {
+    "answer": 22.86,
+    "type": "numeric",
+    "tolerance": 0.1
+  },
+  "evaluator_id": "two_pass",
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-03T07:51:00.000000",
+  "updated_at": "2026-04-03T07:51:00.000000"
+}

@@ -2,7 +2,7 @@
   "id": "sql_subquery_5",
   "name": "Subquery",
   "description": "Test subquery usage",
-  "prompt": "Buat query SQL untuk menampilkan customers yang memiliki total pesanan di atas rata-rata",
+  "prompt": "Database schema:\n- customers (id, name, email, city, created_at)\n- products (id, name, price, category, stock)\n- orders (id, customer_id, total, status, order_date)\n- order_items (id, order_id, product_id, quantity, unit_price)\n\nBuat query SQL untuk menampilkan customers yang memiliki total pesanan di atas rata-rata",
   "expected": {
     "query_type": "SELECT",
     "clause": "SUBQUERY"

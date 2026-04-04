@@ -13,8 +13,8 @@ def start_server():
     print("EVONIC LLM EVALUATOR - SERVER STARTUP")
     print("=" * 60)
     
-    # Ensure we're in the right directory
-    project_dir = '/home/hermes/dev/evonic-llm-eval'
+    # Ensure we're in the right directory (use script's location)
+    project_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(project_dir)
     print(f"Working directory: {os.getcwd()}")
     
@@ -32,7 +32,9 @@ def start_server():
     
     # Set environment
     env = os.environ.copy()
-    env['PATH'] = '/home/hermes/.local/bin:' + env.get('PATH', '')
+    # Add user's local bin to PATH
+    home_dir = os.path.expanduser('~')
+    env['PATH'] = f'{home_dir}/.local/bin:' + env.get('PATH', '')
     
     # Read current config
     print("\nCurrent Configuration:")

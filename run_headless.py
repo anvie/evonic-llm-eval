@@ -173,7 +173,7 @@ class HeadlessRunner:
             Dictionary with run_id, results, and summary
         """
         if domains is None:
-            domains = ["conversation", "math", "sql", "tool_calling", "reasoning"]
+            domains = ["conversation", "math", "sql", "tool_calling", "reasoning", "health"]
         if levels is None:
             levels = [1, 2, 3, 4, 5]
         
