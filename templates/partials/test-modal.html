@@ -1,0 +1,281 @@
+<!-- Test Modal - Shared Component -->
+<div id="test-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header" id="modal-header">
+            <h3 id="modal-title">Test Details</h3>
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+    </div>
+</div>
+
+<!-- Include test-modal.js -->
+<script src="/static/js/test-modal.js"></script>
+
+<style>
+/* Test Modal Two-Column Layout */
+.modal-two-col {
+    display: flex;
+    gap: 1rem;
+    min-height: 400px;
+}
+
+.modal-test-list {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid #e5e7eb;
+    padding-right: 1rem;
+}
+
+.test-list-header {
+    font-weight: 600;
+    color: #374151;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.test-list-header .pass-count {
+    font-size: 0.85rem;
+    color: #059669;
+}
+
+.test-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.test-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.15s;
+}
+
+.test-list-item:hover {
+    background: #f3f4f6;
+}
+
+.test-list-item.active {
+    background: #e0e7ff;
+    font-weight: 600;
+}
+
+.test-list-item.passed .test-status-icon {
+    color: #10b981;
+}
+
+.test-list-item.failed .test-status-icon {
+    color: #ef4444;
+}
+
+.test-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modal-test-detail {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 600px;
+}
+
+.test-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.test-detail-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1f2937;
+    word-break: break-word;
+}
+
+.test-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.test-meta .score {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.test-meta .duration {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.test-detail-section {
+    margin-bottom: 1rem;
+}
+
+.section-header {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.section-content {
+    background: #f9fafb;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.prompt-box { max-height: 100px; overflow-y: auto; }
+.expected-box { overflow-y: auto; }
+.response-box { max-height: 150px; overflow-y: auto; }
+.thinking-box { background: #f5f3ff; max-height: auto; overflow-y: auto; }
+
+.tools-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+    font-family: monospace;
+    font-size: 0.8rem;
+    background: #f0f9ff;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+}
+
+.tool-name {
+    color: #0369a1;
+    font-weight: 600;
+}
+
+.tool-params-inline {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+
+.eval-box {
+    font-size: 0.85rem;
+}
+
+.eval-box code {
+    background: #e5e7eb;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+/* Modal Base Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.modal-header-success {
+    background: #d1fae5 !important;
+    border-bottom: 1px solid #6ee7b7 !important;
+}
+
+.modal-header-error {
+    background: #fef2f2 !important;
+    border-bottom: 1px solid #fecaca !important;
+}
+
+.modal-close {
+    font-size: 1.75rem;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge-passed {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.status-badge-failed {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.score-passed {
+    color: #10b981;
+}
+
+.score-failed {
+    color: #ef4444;
+}
+</style>

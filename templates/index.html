@@ -96,16 +96,8 @@
     </div>
 </div>
 
-<!-- Modal for test details -->
-<div id="test-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header" id="modal-header">
-            <h3 id="modal-title">Test Details</h3>
-            <span class="modal-close" onclick="closeModal()">&times;</span>
-        </div>
-        <div id="modal-body" class="modal-body"></div>
-    </div>
-</div>
+<!-- Test Modal (shared component) -->
+{% include 'partials/test-modal.html' %}
 
 <!-- Training Data Modal (shared component) -->
 {% include 'partials/training-modal.html' %}
@@ -721,82 +713,9 @@ function showCellDetail(domain, level) {
     }
 }
 
-function showModalNoData(domain, level) {
-    const modal = document.getElementById('test-modal');
-    const header = document.getElementById('modal-header');
-    const title = document.getElementById('modal-title');
-    const body = document.getElementById('modal-body');
-    
-    header.className = 'modal-header';
-    title.innerHTML = `${domain.toUpperCase()} Level ${level}`;
-    
-    body.innerHTML = `
-        <div style="text-align: center; padding: 2rem; color: #666;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
-            <p>No test data available yet.</p>
-            <p style="font-size: 0.9rem;">This test has not been executed or is still pending.</p>
-        </div>
-    `;
-    
-    modal.style.display = 'flex';
-}
+// Modal functions are now in shared /static/js/test-modal.js
 
-function showModalWithTests(domain, level, tests, summaryData) {
-    const modal = document.getElementById('test-modal');
-    const header = document.getElementById('modal-header');
-    const title = document.getElementById('modal-title');
-    const body = document.getElementById('modal-body');
-    
-    currentModalTests = tests;
-    currentSelectedTestIndex = 0;
-    
-    // Calculate summary stats
-    const passed = tests.filter(t => t.status === 'passed').length;
-    const total = tests.length;
-    const overallStatus = summaryData.status || (passed === total ? 'passed' : 'failed');
-    
-    const headerClass = overallStatus === 'passed' ? 'modal-header-success' : 'modal-header-error';
-    header.className = 'modal-header ' + headerClass;
-    title.innerHTML = `${domain.replace(/_/g, ' ').toUpperCase()} Level ${level} — ${passed}/${total} Passed`;
-    
-    // Two-column layout
-    body.innerHTML = `
-        <div class="modal-two-col">
-            <div class="modal-test-list">
-                <div class="test-list-header">Tests <span class="pass-count">${passed}/${total}</span></div>
-                <div class="test-list-items" id="test-list-items">
-                    ${tests.map((t, i) => `
-                        <div class="test-list-item ${i === 0 ? 'active' : ''} ${t.status}" 
-                             data-index="${i}" onclick="selectTest(${i})">
-                            <span class="test-status-icon">${t.status === 'passed' ? '✓' : '✗'}</span>
-                            <span class="test-name">${escapeHtml(t.test_id || t.name || 'Test ' + (i+1))}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            <div class="modal-test-detail" id="modal-test-detail">
-                ${renderTestDetail(tests[0])}
-            </div>
-        </div>
-    `;
-    
-    modal.style.display = 'flex';
-}
-
-function selectTest(index) {
-    currentSelectedTestIndex = index;
-    
-    // Update active state in list
-    document.querySelectorAll('.test-list-item').forEach((el, i) => {
-        el.classList.toggle('active', i === index);
-    });
-    
-    // Update detail view
-    const detailDiv = document.getElementById('modal-test-detail');
-    detailDiv.innerHTML = renderTestDetail(currentModalTests[index]);
-}
-
-function renderTestDetail(test) {
+function renderTestDetailLegacy(test) {
     if (!test) return '<div class="no-test">No test data</div>';
     
     const details = test.details || {};
@@ -1082,91 +1001,7 @@ function onGenerateTrainingDataClick(testIndex) {
     }
 }
 
-function formatExpected(expected) {
-    if (!expected) {
-        return '<em style="color: #999;">No expected output defined</em>';
-    }
-    
-    try {
-        const parsed = typeof expected === 'string' ? JSON.parse(expected) : expected;
-        
-        if (typeof parsed === 'object') {
-            // SQL expected format (new)
-            if (parsed.description && parsed.required_columns) {
-                let html = `<strong>Description:</strong> ${escapeHtml(parsed.description)}<br><br>`;
-                
-                if (parsed.required_columns) {
-                    html += '<strong>Required Columns:</strong><br>';
-                    html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-                    parsed.required_columns.forEach(col => {
-                        html += `<span style="background: #d1fae5; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">${escapeHtml(col)}</span>`;
-                    });
-                    html += '</div>';
-                }
-                
-                if (parsed.min_rows) {
-                    html += `<br><strong>Minimum Rows:</strong> ${parsed.min_rows}`;
-                }
-                if (parsed.max_rows) {
-                    html += `<br><strong>Maximum Rows:</strong> ${parsed.max_rows}`;
-                }
-                if (parsed.forbidden_columns) {
-                    html += `<br><strong>Forbidden Columns:</strong> <span style="color: #ef4444;">${parsed.forbidden_columns.join(', ')}</span>`;
-                }
-                
-                return html;
-            }
-            
-            // Handle different test types
-            if (parsed.exact_match !== undefined) {
-                return `<strong>Exact Match:</strong><br><code class="code-block">${escapeHtml(String(parsed.exact_match))}</code>`;
-            }
-            
-            if (parsed.keywords) {
-                let html = '<strong>Expected Keywords:</strong><br>';
-                html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-                parsed.keywords.forEach(kw => {
-                    html += `<span style="background: #d1fae5; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">${escapeHtml(kw)}</span>`;
-                });
-                html += '</div>';
-                
-                if (parsed.relevance_weight || parsed.correctness_weight || parsed.fluency_weight) {
-                    html += '<br><strong>Scoring Weights:</strong><br>';
-                    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;">';
-                    if (parsed.relevance_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Relevance</strong><br>${(parsed.relevance_weight * 100)}%</div>`;
-                    if (parsed.correctness_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Correctness</strong><br>${(parsed.correctness_weight * 100)}%</div>`;
-                    if (parsed.fluency_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Fluency</strong><br>${(parsed.fluency_weight * 100)}%</div>`;
-                    html += '</div>';
-                }
-                return html;
-            }
-            
-            if (parsed.tool) {
-                let html = `<strong>Expected Tool:</strong> <code style="background: #e0e7ff; padding: 0.25rem 0.5rem; border-radius: 4px;">${escapeHtml(parsed.tool)}</code>`;
-                if (parsed.result !== undefined) {
-                    html += `<br><strong>Expected Result:</strong> ${escapeHtml(String(parsed.result))}`;
-                }
-                return html;
-            }
-            
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                // Old SQL expected results format
-                return `<strong>Expected Results:</strong> (${parsed.length} rows)<br><pre class="code-block" style="max-height: 200px;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
-            }
-            
-            // Generic object
-            return `<pre class="code-block">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
-        }
-        
-        return escapeHtml(String(parsed));
-    } catch (e) {
-        return escapeHtml(String(expected));
-    }
-}
-
-function closeModal() {
-    document.getElementById('test-modal').style.display = 'none';
-}
+// formatExpected and closeModal are now in shared /static/js/test-modal.js
 
 // Variable used by legacy view for training data
 let currentTrainingTest = null;
@@ -1369,12 +1204,7 @@ function formatDetails(details) {
     }
 }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// escapeHtml is now in shared /static/js/test-modal.js
 
 // Close test modal on outside click (training modal handled by shared JS)
 window.onclick = function(event) {
