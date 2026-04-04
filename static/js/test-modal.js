@@ -195,7 +195,7 @@ function renderTestDetail(test, domain) {
     if (details.conversation_log && details.conversation_log.length > 0) {
         html += `
             <div class="test-detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
-                <button onclick="onGenerateTrainingDataClick(currentSelectedTestIndex)" 
+                <button onclick="console.log('[TEST-MODAL] Button clicked, idx=', currentSelectedTestIndex); onGenerateTrainingDataClick(currentSelectedTestIndex)"
                         style="width: 100%; padding: 0.6rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                                color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600; 
                                cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
