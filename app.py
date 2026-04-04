@@ -152,9 +152,12 @@ def api_run_matrix(run_id):
     run_info = db.get_evaluation_run(run_id)
     model_name = run_info.get("model_name") if run_info else None
     
+    # Get unique domains from actual test results
+    domains_in_run = set(r["domain"] for r in test_results)
+    
     # Organize by domain and level
     matrix = {}
-    for domain in ["conversation", "math", "sql", "tool_calling", "reasoning", "health"]:
+    for domain in domains_in_run:
         matrix[domain] = {}
         for level in range(1, 6):
             matrix[domain][level] = {
