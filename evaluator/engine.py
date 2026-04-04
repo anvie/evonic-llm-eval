@@ -678,12 +678,12 @@ class EvaluationEngine:
         if thinking_content:
             details["thinking"] = thinking_content
         
-        # Add conversation log and tools for tool-calling tests
-        if domain == "tool_calling" or has_embedded_tools:
-            if loop_result:
-                details["conversation_log"] = loop_result.get("conversation_log", [])
-            # Store tool definitions for UI display
-            if tools:
+        # Add conversation log (for tool-calling tests or any test with multi-turn interaction)
+        if loop_result and loop_result.get("conversation_log"):
+            details["conversation_log"] = loop_result["conversation_log"]
+        
+        # Store tool definitions for UI display (only for tool-calling tests)
+        if (domain == "tool_calling" or has_embedded_tools) and tools:
                 details["tools_available"] = [
                     {
                         "name": t.get("function", {}).get("name", ""),
