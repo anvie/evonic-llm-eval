@@ -47,40 +47,25 @@
                     {% endif %}
                 </span>
             </div>
+            {% if run_info.total_tokens and run_info.total_tokens > 0 %}
             <div class="info-item">
-                <span class="info-label">Status</span>
-                <span class="info-value">
-                    {% if run_info.completed_at %}
-                    <span class="status-indicator status-completed">COMPLETED</span>
-                    {% else %}
-                    <span class="status-indicator status-interrupted">INTERRUPTED</span>
-                    {% endif %}
-                </span>
+                <span class="info-label">Speed</span>
+                <span class="info-value" style="color: #0369a1; font-weight: 600;">{{ "%.1f"|format((run_info.total_tokens or 0) / ((run_info.total_duration_ms or 1) / 1000)) }} tok/s</span>
             </div>
-        </div>
-        
-        {% if run_info.total_tokens and run_info.total_tokens > 0 %}
-        <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-                <div style="text-align: center; padding: 0.75rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px;">
-                    <div style="font-size: 1.5rem; font-weight: bold; color: #0369a1;">{{ "%.1f"|format((run_info.total_tokens or 0) / ((run_info.total_duration_ms or 1) / 1000)) }}</div>
-                    <div style="font-size: 0.8rem; color: #0c4a6e;">tokens/second</div>
-                </div>
-                <div style="text-align: center; padding: 0.75rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px;">
-                    <div style="font-size: 1.5rem; font-weight: bold; color: #0369a1;">{{ "{:,}".format(run_info.total_tokens or 0) }}</div>
-                    <div style="font-size: 0.8rem; color: #0c4a6e;">total tokens</div>
-                </div>
-                <div style="text-align: center; padding: 0.75rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px;">
-                    <div style="font-size: 1.5rem; font-weight: bold; color: #0369a1;">{{ "%.1f"|format((run_info.total_duration_ms or 0) / 1000) }}s</div>
-                    <div style="font-size: 0.8rem; color: #0c4a6e;">total duration</div>
-                </div>
+            <div class="info-item">
+                <span class="info-label">Tokens</span>
+                <span class="info-value" style="color: #0369a1; font-weight: 600;">{{ "{:,}".format(run_info.total_tokens or 0) }}</span>
             </div>
+            <div class="info-item">
+                <span class="info-label">Duration</span>
+                <span class="info-value" style="color: #0369a1; font-weight: 600;">{{ "%.1f"|format((run_info.total_duration_ms or 0) / 1000) }}s</span>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
         
         {% if run_info.summary %}
         <div class="summary-box" style="margin-top: 1rem;">
-            <strong>Executive Summary:</strong> "{{ run_info.summary }}"
+            <strong>Summary:</strong> "{{ run_info.summary }}"
         </div>
         {% endif %}
     </div>

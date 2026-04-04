@@ -78,7 +78,7 @@
     
     {% if status.run_info and status.run_info.summary and status.status == 'completed' %}
     <div id="summary-box" style="margin-top: 2rem; padding: 1.5rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
-        <h3>Executive Summary</h3>
+        <h3>Summary</h3>
         <p style="color: #1e40af; font-style: italic;">"{{ status.run_info.summary }}"</p>
         <div style="margin-top: 0.5rem; color: #666;">
             Overall Score: <strong>{{ "%.2f"|format(status.run_info.overall_score * 100) }}%</strong>
