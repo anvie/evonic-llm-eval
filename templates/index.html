@@ -102,6 +102,10 @@
 <!-- Training Data Modal (shared component) -->
 {% include 'partials/training-modal.html' %}
 
+<!-- Shared JS -->
+<script src="{{ url_for('static', filename='js/test-modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training-data.js') }}"></script>
+
 <script>
 // Domains loaded from server (enabled domains only)
 const DOMAINS = {{ domains | tojson }};

@@ -141,6 +141,10 @@
 <!-- Training Data Modal (shared component) -->
 {% include 'partials/training-modal.html' %}
 
+<!-- Shared JS -->
+<script src="{{ url_for('static', filename='js/test-modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training-data.js') }}"></script>
+
 <script>
 let testResultsData = {};  // Store all test results for modal access
 

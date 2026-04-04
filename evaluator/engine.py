@@ -557,11 +557,13 @@ class EvaluationEngine:
             expected_str = str(expected)[:100] + '...' if len(str(expected)) > 100 else str(expected)
             self._log(f'[EXPECTED] {expected_str}')
         
-        # Check if test has embedded tools OR is tool_calling domain
+        # Check if test has embedded tools OR is tool_calling domain OR uses tool_call evaluator
         test_tools = test.get('tools') or []  # Handle None explicitly
         has_embedded_tools = len(test_tools) > 0
+        evaluator_id = test.get('evaluator_id', '')
+        uses_tool_evaluator = evaluator_id == 'tool_call'
         
-        if domain == "tool_calling" or has_embedded_tools:
+        if domain == "tool_calling" or has_embedded_tools or uses_tool_evaluator:
             # Use embedded tools if available, otherwise use tool_framework
             if has_embedded_tools:
                 # Extract tools and mock responses from test definition
