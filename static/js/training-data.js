@@ -32,8 +32,14 @@ function showTrainingDataModal(test) {
  * @param {number} testIndex - Index of selected test
  */
 function onGenerateTrainingDataClick(testIndex) {
-    if (typeof window.currentModalTests !== 'undefined' && window.currentModalTests[testIndex]) {
-        showTrainingDataModal(window.currentModalTests[testIndex]);
+    console.log('[TRAINING] Button clicked, testIndex=', testIndex);
+    console.log('[TRAINING] currentModalTests=', currentModalTests);
+    // currentModalTests is in global scope from test-modal.js
+    if (typeof currentModalTests !== 'undefined' && currentModalTests[testIndex]) {
+        console.log('[TRAINING] Showing modal for test:', currentModalTests[testIndex]);
+        showTrainingDataModal(currentModalTests[testIndex]);
+    } else {
+        console.error('[TRAINING ERROR] no test found at index', testIndex, 'currentModalTests=', currentModalTests);
     }
 }
 
