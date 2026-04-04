@@ -63,6 +63,27 @@
         </tbody>
     </table>
     
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}" class="page-btn">&lt; Prev</a>
+        {% else %}
+        <span class="page-btn disabled">&lt; Prev</span>
+        {% endif %}
+        
+        <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+        
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}" class="page-btn">Next &gt;</a>
+        {% else %}
+        <span class="page-btn disabled">Next &gt;</span>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="total-info">Total: {{ total_count }} runs</div>
+    
     {% else %}
     <div style="text-align: center; padding: 3rem; color: #666;">
         <h3>No evaluation runs yet</h3>
@@ -122,6 +143,48 @@
 .score-low {
     background: #fee2e2;
     color: #dc2626;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+}
+
+.page-btn {
+    padding: 0.5rem 1rem;
+    background: #667eea;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.page-btn:hover {
+    background: #5a67d8;
+}
+
+.page-btn.disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.page-info {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.total-info {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
 }
 </style>
 {% endblock %}

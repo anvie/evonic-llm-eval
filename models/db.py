@@ -284,15 +284,23 @@ class Database:
             )
             return [dict(row) for row in cursor.fetchall()]
     
-    def get_all_runs(self) -> List[Dict[str, Any]]:
-        """Get all evaluation runs"""
+    def get_all_runs(self, limit: int = 20, offset: int = 0) -> List[Dict[str, Any]]:
+        """Get evaluation runs with pagination, ordered by most recent first"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM evaluation_runs ORDER BY started_at DESC"
+                "SELECT * FROM evaluation_runs ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                (limit, offset)
             )
             return [dict(row) for row in cursor.fetchall()]
+    
+    def get_runs_count(self) -> int:
+        """Get total count of evaluation runs"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM evaluation_runs")
+            return cursor.fetchone()[0]
     
     def get_run_stats(self, run_id: str) -> Dict[str, Any]:
         """Get statistics for a run"""

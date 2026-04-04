@@ -90,9 +90,20 @@ def api_test_matrix():
 
 @app.route('/history')
 def history():
-    """Evaluation history page"""
-    runs = db.get_all_runs()
-    return render_template('history.html', runs=runs)
+    """Evaluation history page with pagination"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    offset = (page - 1) * per_page
+    runs = db.get_all_runs(limit=per_page, offset=offset)
+    total_count = db.get_runs_count()
+    total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
+    
+    return render_template('history.html', 
+                          runs=runs, 
+                          page=page, 
+                          total_pages=total_pages,
+                          total_count=total_count)
 
 @app.route('/history/<run_id>')
 def history_detail(run_id):
@@ -104,10 +115,20 @@ def history_detail(run_id):
     if not run_info:
         return "Run not found", 404
     
+    # Extract unique domains from actual test results (preserving order)
+    seen = set()
+    domains = []
+    for r in test_results:
+        d = r.get('domain')
+        if d and d not in seen:
+            seen.add(d)
+            domains.append(d)
+    
     return render_template('history_detail.html', 
                           run_info=run_info, 
                           test_results=test_results,
-                          stats=stats)
+                          stats=stats,
+                          domains=domains)
 
 @app.route('/api/run/<run_id>')
 def api_run_details(run_id):
