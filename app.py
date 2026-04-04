@@ -171,6 +171,134 @@ def api_run_matrix(run_id):
         "status": "completed"
     })
 
+@app.route('/api/run/<run_id>/tests/<domain>/<int:level>')
+def api_run_cell_tests(run_id, domain, level):
+    """Get individual test results for a specific cell (domain + level)"""
+    import json
+    
+    individual_results = db.get_individual_test_results(run_id, domain, level)
+    
+    # Parse JSON fields
+    tests = []
+    for result in individual_results:
+        test = dict(result)
+        # Parse JSON fields
+        if test.get('details'):
+            try:
+                test['details'] = json.loads(test['details'])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        if test.get('expected'):
+            try:
+                test['expected'] = json.loads(test['expected'])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        tests.append(test)
+    
+    return jsonify({
+        "run_id": run_id,
+        "domain": domain,
+        "level": level,
+        "tests": tests
+    })
+
+
+# ============================================
+# V1 History API Endpoints
+# ============================================
+
+def _parse_test_result(result: dict) -> dict:
+    """Parse JSON fields in test result"""
+    import json
+    test = dict(result)
+    # Parse JSON fields
+    if test.get('details'):
+        try:
+            test['details'] = json.loads(test['details'])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    if test.get('expected'):
+        try:
+            test['expected'] = json.loads(test['expected'])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return test
+
+
+@app.route('/api/v1/history/last/id')
+def api_v1_history_last_id():
+    """Get the most recent run ID and info"""
+    last_run = db.get_last_run()
+    if not last_run:
+        return jsonify({"error": "No evaluation runs found"}), 404
+    
+    return jsonify({
+        "run_id": last_run.get("run_id"),
+        "model_name": last_run.get("model_name"),
+        "started_at": last_run.get("started_at"),
+        "completed_at": last_run.get("completed_at"),
+        "status": last_run.get("status")
+    })
+
+
+@app.route('/api/v1/history/last/<domain>/<int:level>')
+def api_v1_history_last_domain_level(domain, level):
+    """Get test results for the most recent run at specified domain/level"""
+    last_run_id = db.get_last_run_id()
+    if not last_run_id:
+        return jsonify({"error": "No evaluation runs found"}), 404
+    
+    individual_results = db.get_individual_test_results(last_run_id, domain, level)
+    
+    if not individual_results:
+        return jsonify({
+            "run_id": last_run_id,
+            "domain": domain,
+            "level": level,
+            "tests": [],
+            "message": "No test results found for this domain/level"
+        })
+    
+    tests = [_parse_test_result(r) for r in individual_results]
+    
+    return jsonify({
+        "run_id": last_run_id,
+        "domain": domain,
+        "level": level,
+        "tests": tests
+    })
+
+
+@app.route('/api/v1/history/<run_id>/<domain>/<int:level>')
+def api_v1_history_run_domain_level(run_id, domain, level):
+    """Get test results for a specific run/domain/level with full details"""
+    # Verify run exists
+    run_info = db.get_evaluation_run(run_id)
+    if not run_info:
+        return jsonify({"error": f"Run '{run_id}' not found"}), 404
+    
+    individual_results = db.get_individual_test_results(run_id, domain, level)
+    
+    if not individual_results:
+        return jsonify({
+            "run_id": run_id,
+            "domain": domain,
+            "level": level,
+            "tests": [],
+            "message": "No test results found for this domain/level"
+        })
+    
+    tests = [_parse_test_result(r) for r in individual_results]
+    
+    return jsonify({
+        "run_id": run_id,
+        "domain": domain,
+        "level": level,
+        "model_name": run_info.get("model_name"),
+        "tests": tests
+    })
+
+
 @app.route('/api/config')
 def api_config():
     """Get current configuration"""

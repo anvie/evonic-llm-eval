@@ -539,6 +539,10 @@ class EvaluationEngine:
         expected = test.get('expected', {})
         weight = test.get('weight', 1.0)
         
+        # Initialize variables for tool calling
+        loop_result = None
+        tools = None
+        
         self._log(f'')
         self._log(f'═══════════════════════════════════════════════════════════════')
         self._log(f'[TEST] {test.get("name", test_id)} ({domain} L{level})')
@@ -674,6 +678,21 @@ class EvaluationEngine:
         if thinking_content:
             details["thinking"] = thinking_content
         
+        # Add conversation log and tools for tool-calling tests
+        if domain == "tool_calling" or has_embedded_tools:
+            if loop_result:
+                details["conversation_log"] = loop_result.get("conversation_log", [])
+            # Store tool definitions for UI display
+            if tools:
+                details["tools_available"] = [
+                    {
+                        "name": t.get("function", {}).get("name", ""),
+                        "description": t.get("function", {}).get("description", ""),
+                        "parameters": t.get("function", {}).get("parameters", {})
+                    }
+                    for t in tools
+                ]
+        
         # Log result
         status_icon = '✓' if result.status == 'passed' else '✗'
         self._log(f'[RESULT] {status_icon} Status: {result.status.upper()}, Score: {result.score*100:.0f}%')
@@ -777,6 +796,7 @@ class EvaluationEngine:
         
         messages = [{"role": "user", "content": prompt}]
         all_tool_calls = []
+        conversation_log = []  # Capture each turn's details
         total_duration_ms = 0
         total_tokens = 0
         thinking_content = None
@@ -784,6 +804,15 @@ class EvaluationEngine:
         
         for iteration in range(MAX_TOOL_ITERATIONS):
             self._log(f'[TOOL-LOOP] Iteration {iteration + 1}/{MAX_TOOL_ITERATIONS}')
+            
+            # Initialize turn log
+            turn_log = {
+                "turn": iteration + 1,
+                "thinking": None,
+                "tool_calls": [],
+                "tool_results": [],
+                "response": None
+            }
             
             # Send to LLM
             llm_response = llm_client.chat_completion(messages, tools)
@@ -798,9 +827,13 @@ class EvaluationEngine:
             content_info = llm_client.extract_content_with_thinking(llm_response)
             response_content = content_info["content"]
             
-            # Capture thinking from first iteration
-            if iteration == 0 and content_info.get("thinking"):
-                thinking_content = content_info["thinking"]
+            # Capture thinking for this turn
+            turn_thinking = content_info.get("thinking")
+            if turn_thinking:
+                turn_log["thinking"] = turn_thinking
+                # Also store first turn thinking as main thinking
+                if iteration == 0:
+                    thinking_content = turn_thinking
             
             # Check for tool calls
             tool_calls = content_info.get("tool_calls", [])
@@ -817,6 +850,8 @@ class EvaluationEngine:
             # If no tool calls, we have the final answer
             if not tool_calls:
                 final_response = response_content
+                turn_log["response"] = response_content
+                conversation_log.append(turn_log)
                 self._log(f'[TOOL-LOOP] Final answer received (no more tool calls)')
                 break
             
@@ -836,14 +871,15 @@ class EvaluationEngine:
                 
                 self._log(f'[TOOL-CALL] {func_name}({json.dumps(func_args)[:50]}...)')
                 
-                # Store tool call
-                all_tool_calls.append({
+                # Store tool call info
+                tool_call_info = {
                     "id": tc_id,
                     "function": {
                         "name": func_name,
                         "arguments": func_args_str if isinstance(func_args_str, str) else json.dumps(func_args)
                     }
-                })
+                }
+                all_tool_calls.append(tool_call_info)
                 
                 # Execute mock tool - check embedded mock_responses first
                 if mock_responses and func_name in mock_responses:
@@ -868,6 +904,18 @@ class EvaluationEngine:
                 result_str = json.dumps(mock_result.get("result", {}))
                 self._log(f'[TOOL-RESULT] {result_str[:100]}...')
                 
+                # Add to turn log
+                turn_log["tool_calls"].append({
+                    "name": func_name,
+                    "arguments": func_args,
+                    "id": tc_id
+                })
+                turn_log["tool_results"].append({
+                    "tool_call_id": tc_id,
+                    "function_name": func_name,
+                    "result": mock_result.get("result", {})
+                })
+                
                 # Add to conversation
                 messages.append({
                     "role": "assistant",
@@ -879,6 +927,9 @@ class EvaluationEngine:
                     "tool_call_id": tc_id,
                     "content": result_str
                 })
+            
+            # Add turn to conversation log
+            conversation_log.append(turn_log)
         
         return {
             "all_tool_calls": all_tool_calls,
@@ -887,6 +938,7 @@ class EvaluationEngine:
             "total_duration_ms": total_duration_ms,
             "total_tokens": total_tokens,
             "thinking": thinking_content,
+            "conversation_log": conversation_log,
             "messages": messages
         }
     

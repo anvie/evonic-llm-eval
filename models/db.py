@@ -667,6 +667,24 @@ class Database:
                 )
             
             return [dict(row) for row in cursor.fetchall()]
+    
+    def get_last_run(self) -> Optional[Dict[str, Any]]:
+        """Get the most recent evaluation run"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM evaluation_runs 
+                ORDER BY started_at DESC 
+                LIMIT 1
+            """)
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
+    def get_last_run_id(self) -> Optional[str]:
+        """Get the most recent evaluation run ID"""
+        run = self.get_last_run()
+        return run["run_id"] if run else None
 
 # Create global database instance
 db = Database()

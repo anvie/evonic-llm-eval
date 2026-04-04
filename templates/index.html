@@ -42,8 +42,6 @@
     </div>
 
     <div class="test-matrix">
-        <h3>Test Matrix <span style="font-size: 0.75rem; color: #666; font-weight: normal;">(Click any cell to see details)</span></h3>
-        
         <div class="matrix-header">
             <div class="select-col"><input type="checkbox" id="select-all" checked onclick="toggleAllDomains(this.checked)" title="Select/Deselect All"></div>
             <div>Domain</div>
@@ -52,7 +50,7 @@
             <div>Level 3</div>
             <div>Level 4</div>
             <div>Level 5</div>
-            <div style="background: #667eea; color: white; border-radius: 4px;">Total</div>
+            <div class="font-semibold text-center">Total</div>
         </div>
         
         {% for domain in domains %}
@@ -276,6 +274,11 @@ function saveState(data) {
         timestamp: Date.now()
     };
     localStorage.setItem('eval_state', JSON.stringify(state));
+    
+    // Update currentRunId for modal API calls
+    if (data.run_id) {
+        currentRunId = data.run_id;
+    }
 }
 
 function loadSavedState() {
@@ -309,6 +312,8 @@ function loadSavedState() {
                 if (runIdEl) {
                     runIdEl.textContent = state.run_id.substring(0, 8);
                 }
+                // Update currentRunId for modal API calls
+                currentRunId = state.run_id;
             }
         } catch (e) {
             console.error('Error loading saved state:', e);
@@ -675,6 +680,10 @@ function clearState() {
 }
 
 // Modal functions
+let currentRunId = null;  // Track current run for API calls
+let currentModalTests = [];  // Store tests for current modal
+let currentSelectedTestIndex = 0;  // Currently selected test index
+
 function showCellDetail(domain, level) {
     const data = testResultsData[domain]?.[level];
     
@@ -684,7 +693,29 @@ function showCellDetail(domain, level) {
         return;
     }
     
-    showModalWithData(domain, level, data);
+    // Get run_id from status or stored value
+    const runId = currentRunId || document.getElementById('status-text')?.dataset?.runId;
+    
+    if (runId) {
+        // Fetch individual test results from API
+        fetch(`/api/run/${runId}/tests/${domain}/${level}`)
+            .then(r => r.json())
+            .then(apiData => {
+                if (apiData.tests && apiData.tests.length > 0) {
+                    showModalWithTests(domain, level, apiData.tests, data);
+                } else {
+                    // Fall back to legacy single-test view
+                    showModalWithData(domain, level, data);
+                }
+            })
+            .catch(err => {
+                console.error('Failed to fetch test details:', err);
+                showModalWithData(domain, level, data);
+            });
+    } else {
+        // No run_id, use legacy view
+        showModalWithData(domain, level, data);
+    }
 }
 
 function showModalNoData(domain, level) {
@@ -705,6 +736,179 @@ function showModalNoData(domain, level) {
     `;
     
     modal.style.display = 'flex';
+}
+
+function showModalWithTests(domain, level, tests, summaryData) {
+    const modal = document.getElementById('test-modal');
+    const header = document.getElementById('modal-header');
+    const title = document.getElementById('modal-title');
+    const body = document.getElementById('modal-body');
+    
+    currentModalTests = tests;
+    currentSelectedTestIndex = 0;
+    
+    // Calculate summary stats
+    const passed = tests.filter(t => t.status === 'passed').length;
+    const total = tests.length;
+    const overallStatus = summaryData.status || (passed === total ? 'passed' : 'failed');
+    
+    const headerClass = overallStatus === 'passed' ? 'modal-header-success' : 'modal-header-error';
+    header.className = 'modal-header ' + headerClass;
+    title.innerHTML = `${domain.replace(/_/g, ' ').toUpperCase()} Level ${level} — ${passed}/${total} Passed`;
+    
+    // Two-column layout
+    body.innerHTML = `
+        <div class="modal-two-col">
+            <div class="modal-test-list">
+                <div class="test-list-header">Tests <span class="pass-count">${passed}/${total}</span></div>
+                <div class="test-list-items" id="test-list-items">
+                    ${tests.map((t, i) => `
+                        <div class="test-list-item ${i === 0 ? 'active' : ''} ${t.status}" 
+                             data-index="${i}" onclick="selectTest(${i})">
+                            <span class="test-status-icon">${t.status === 'passed' ? '✓' : '✗'}</span>
+                            <span class="test-name">${escapeHtml(t.test_id || t.name || 'Test ' + (i+1))}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="modal-test-detail" id="modal-test-detail">
+                ${renderTestDetail(tests[0])}
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function selectTest(index) {
+    currentSelectedTestIndex = index;
+    
+    // Update active state in list
+    document.querySelectorAll('.test-list-item').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+    });
+    
+    // Update detail view
+    const detailDiv = document.getElementById('modal-test-detail');
+    detailDiv.innerHTML = renderTestDetail(currentModalTests[index]);
+}
+
+function renderTestDetail(test) {
+    if (!test) return '<div class="no-test">No test data</div>';
+    
+    const details = test.details || {};
+    const scoreDisplay = test.score !== null ? (test.score * 100).toFixed(1) + '%' : 'N/A';
+    const scoreClass = test.status === 'passed' ? 'score-passed' : 'score-failed';
+
+
+    
+    let html = `
+        <div class="test-detail-header">
+            <h3>${escapeHtml(test.test_id || test.name || 'Test')}</h3>
+            <div class="test-meta">
+                <span class="score ${scoreClass}">${scoreDisplay}</span>
+                <span class="status-badge status-badge-${test.status}">${test.status.toUpperCase()}</span>
+                ${test.duration_ms ? `<span class="duration">${test.duration_ms}ms</span>` : ''}
+            </div>
+        </div>
+    `;
+    
+    
+    // Tools Available section - compact inline format
+    if (details.tools_available && details.tools_available.length > 0) {
+        const toolsText = details.tools_available.map(t => {
+            const params = t.parameters?.properties 
+                ? Object.keys(t.parameters.properties).join(', ')
+                : '';
+            return `<span class="tool-name">${escapeHtml(t.name)}</span>(<span class="tool-params-inline">${params}</span>)`;
+        }).join(' • ');
+        
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">🔧 AVAILABLE TOOLS (${details.tools_available.length})</div>
+                <div class="section-content tools-box">${toolsText}</div>
+            </div>
+        `;
+    }
+
+    html += `
+        <div class="test-detail-section">
+            <div class="section-header">📥 PROMPT</div>
+            <div class="section-content prompt-box">${escapeHtml(test.prompt || '')}</div>
+        </div>
+        
+        <div class="test-detail-section">
+            <div class="section-header">🎯 EXPECTED</div>
+            <div class="section-content expected-box">${formatExpected(test.expected)}</div>
+        </div>`
+
+
+    // Conversation Log (multi-turn) - Tailwind compact
+    if (details.conversation_log && details.conversation_log.length > 0) {
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">TURNS (${details.conversation_log.length})</div>
+                <div class="space-y-2">
+                    ${details.conversation_log.map((turn, i) => `
+                        <div class="border border-gray-200 rounded text-xs">
+                            <div class="bg-gray-100 px-2 py-1 font-semibold text-gray-600 border-b border-gray-200">Turn ${turn.turn || i+1}</div>
+                            ${turn.thinking ? `
+                                <div class="px-2 py-1 bg-purple-50 border-b border-gray-100">
+                                    <span class="text-purple-600 font-medium">💭 [thinking]</span><br />
+                                    <pre class="text-gray-700 ml-1 overflow-wrap text-wrap max-h-full overflow-y-auto">${escapeHtml(turn.thinking)}</pre>
+                                </div>
+                            ` : ''}
+                            ${turn.tool_calls && turn.tool_calls.length > 0 ? `
+                                <div class="px-2 py-1 bg-blue-50 border-b border-gray-100 font-mono">
+                                    <span class="text-blue-600">🔧</span>
+                                    ${turn.tool_calls.map(tc => `<span class="text-indigo-600 font-semibold ml-1">${escapeHtml(tc.name)}</span><span class="text-gray-500">(${escapeHtml(JSON.stringify(tc.arguments || {})).substring(0, 60)})</span>`).join(' ')}
+                                </div>
+                            ` : ''}
+                            ${turn.tool_results && turn.tool_results.length > 0 ? `
+                                <div class="px-2 py-1 bg-green-50 border-b border-gray-100 font-mono text-gray-600">
+                                    <span class="text-green-600">📥</span>
+                                    <span class="ml-1">${escapeHtml(JSON.stringify(turn.tool_results[0]?.result || {}, null, 0)).substring(0, 120)}${JSON.stringify(turn.tool_results[0]?.result || {}).length > 120 ? '...' : ''}</span>
+                                </div>
+                            ` : ''}
+                            ${turn.response ? `
+                                <div class="px-2 py-1 bg-amber-50 font-semibold text-md md:text-lg">
+                                    <p class="text-amber-600">💬 [response]</p>
+                                    <p class="text-gray-700 ml-1">${escapeHtml(turn.response)}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else if (details.thinking) {
+        // Single-turn thinking
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">🧠 THINKING</div>
+                <div class="section-content thinking-box">
+                    <pre>${escapeHtml(details.thinking)}</pre>
+                </div>
+            </div>
+        `;
+    }
+    
+    
+    // Evaluation Details
+    if (details.evaluator || details.called_tools || details.missing_tools) {
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">🔍 EVALUATION</div>
+                <div class="section-content eval-box">
+                    ${details.evaluator ? `<div><strong>Evaluator:</strong> ${escapeHtml(details.evaluator)}</div>` : ''}
+                    ${details.called_tools ? `<div><strong>Called:</strong> ${details.called_tools.map(t => `<code>${escapeHtml(t)}</code>`).join(', ')}</div>` : ''}
+                    ${details.missing_tools && details.missing_tools.length > 0 ? `<div style="color: #dc2626;"><strong>Missing:</strong> ${details.missing_tools.map(t => `<code>${escapeHtml(t)}</code>`).join(', ')}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    return html;
 }
 
 function showModalWithData(domain, level, data) {
@@ -1191,8 +1395,8 @@ document.addEventListener('keydown', function(event) {
 .modal-content {
     background: white;
     border-radius: 12px;
-    width: 90%;
-    max-width: 700px;
+    width: 95%;
+    max-width: 1100px;
     max-height: 90vh;
     overflow: hidden;
     display: flex;
@@ -1239,6 +1443,173 @@ document.addEventListener('keydown', function(event) {
     padding: 1.5rem;
     overflow-y: auto;
     max-height: calc(90vh - 80px);
+}
+
+/* Two-column modal layout */
+.modal-two-col {
+    display: flex;
+    gap: 0.75rem;
+    height: calc(90vh - 120px);
+}
+
+.modal-test-list {
+    width: 180px;
+    flex-shrink: 0;
+    border-right: 1px solid #e5e7eb;
+    padding-right: 0.75rem;
+    overflow-y: auto;
+}
+
+.test-list-header {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid #667eea;
+}
+
+.test-list-header .pass-count {
+    color: #10b981;
+    font-weight: 700;
+}
+
+.test-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.test-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.15s;
+}
+
+.test-list-item:hover {
+    background: #f3f4f6;
+}
+
+.test-list-item.active {
+    background: #e0e7ff;
+    font-weight: 600;
+}
+
+.test-list-item.passed .test-status-icon {
+    color: #10b981;
+}
+
+.test-list-item.failed .test-status-icon {
+    color: #ef4444;
+}
+
+.test-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modal-test-detail {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.test-detail-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.test-detail-header h3 {
+    margin: 0 0 0.3rem 0;
+    font-size: 1rem;
+    color: #1f2937;
+}
+
+.test-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.test-meta .score {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.test-meta .duration {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.test-detail-section {
+    margin-bottom: 0.6rem;
+}
+
+.section-header {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #374151;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+}
+
+.section-content {
+    background: #f9fafb;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    word-break: break-word;
+}
+
+.prompt-box { border-left: 2px solid #3b82f6; max-height: 100px; overflow-y: auto; }
+.expected-box { border-left: 2px solid #10b981; overflow-y: auto; }
+.response-box { border-left: 2px solid #f59e0b; max-height: 150px; overflow-y: auto; }
+.thinking-box { border-left: 2px solid #7c3aed; background: #f5f3ff; max-height: 120px; overflow-y: auto; }
+.tools-box { border-left: 2px solid #6366f1; }
+.eval-box { border-left: 2px solid #6b7280; }
+
+/* Tools styling - compact inline */
+.tools-box {
+    padding: 0.4rem !important;
+    font-family: monospace;
+    font-size: 0.8rem !important;
+    line-height: 1.4;
+}
+
+.tool-item {
+    display: inline;
+}
+
+.tool-item::after {
+    content: " • ";
+    color: #999;
+}
+
+.tool-item:last-child::after {
+    content: "";
+}
+
+.tool-name {
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+.tool-params-inline {
+    color: #666;
+}
+
+/* Conversation log - using Tailwind now */
+.conversation-log {
+    padding: 0 !important;
+    background: transparent !important;
 }
 
 .detail-section {
