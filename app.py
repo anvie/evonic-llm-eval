@@ -33,8 +33,9 @@ def api_start():
     try:
         data = request.get_json()
         model_name = data.get('model_name', 'default')
+        domains = data.get('domains', None)  # None means all domains
         
-        run_id = evaluation_engine.start_evaluation(model_name)
+        run_id = evaluation_engine.start_evaluation(model_name, domains=domains)
         return jsonify({
             'success': True, 
             'run_id': run_id,
@@ -128,7 +129,7 @@ def api_run_matrix(run_id):
     
     # Organize by domain and level
     matrix = {}
-    for domain in ["conversation", "math", "sql", "tool_calling", "reasoning"]:
+    for domain in ["conversation", "math", "sql", "tool_calling", "reasoning", "health"]:
         matrix[domain] = {}
         for level in range(1, 6):
             matrix[domain][level] = {

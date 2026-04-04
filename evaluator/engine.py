@@ -52,8 +52,13 @@ class EvaluationEngine:
         timestamp = time.strftime('%H:%M:%S')
         self.log_queue.put(f"[{timestamp}] {message}")
     
-    def start_evaluation(self, model_name: str = None) -> str:
-        """Start a new evaluation run"""
+    def start_evaluation(self, model_name: str = None, domains: list = None) -> str:
+        """Start a new evaluation run
+        
+        Args:
+            model_name: Model to evaluate (None = use configured model)
+            domains: List of domain names to test (None = all domains)
+        """
         with self.lock:
             if self.is_running:
                 raise Exception("Evaluation already running")
@@ -64,6 +69,7 @@ class EvaluationEngine:
                 model_name = llm_client.get_actual_model_name()
             
             self.model_name = model_name
+            self.selected_domains = domains  # Store selected domains
             self.current_run_id = db.create_evaluation_run(model_name)
             self.is_running = True
             self.was_interrupted = False
@@ -71,13 +77,16 @@ class EvaluationEngine:
             self.error_message = None
             self.total_tokens=0
             self.total_duration_ms = 0
+            
+            domains_str = ', '.join(domains) if domains else 'all'
             self._log(f'[INFO] Memulai evaluasi untuk model: {model_name}')
+            self._log(f'[INFO] Domain yang dipilih: {domains_str}')
             
             # Start test logger
             test_logger.start_run(self.current_run_id, model_name)
             
             # Start evaluation in background thread
-            self.thread = Thread(target=self._run_evaluation, args=(self.current_run_id, model_name))
+            self.thread = Thread(target=self._run_evaluation, args=(self.current_run_id, model_name, domains))
             self.thread.daemon = True
             self.thread.start()
             
@@ -133,15 +142,21 @@ class EvaluationEngine:
                 "error_message": self.error_message if self.has_error else None
             }
     
-    def _run_evaluation(self, run_id: str, model_name: str):
-        """Main evaluation loop - supports both legacy and configurable tests"""
+    def _run_evaluation(self, run_id: str, model_name: str, domains: list = None):
+        """Main evaluation loop - supports both legacy and configurable tests
+        
+        Args:
+            run_id: Unique run identifier
+            model_name: Model being evaluated
+            domains: List of domain names to test (None = all domains)
+        """
         self._log(f'[SYSTEM] Evaluation thread (run_id: {run_id}) dimulai.')
         
         try:
             if self.use_configurable_tests:
-                self._run_configurable_evaluation(run_id, model_name)
+                self._run_configurable_evaluation(run_id, model_name, domains)
             else:
-                self._run_legacy_evaluation(run_id, model_name)
+                self._run_legacy_evaluation(run_id, model_name, domains)
             
             # Generate summary after all tests
             if self.is_running:
@@ -169,9 +184,21 @@ class EvaluationEngine:
                 final_status = "completed"
             test_logger.finalize_run(status=final_status)
     
-    def _run_legacy_evaluation(self, run_id: str, model_name: str):
-        """Run evaluation using legacy hardcoded tests"""
-        domains = ["conversation", "math", "sql", "tool_calling", "reasoning", "health"]
+    def _run_legacy_evaluation(self, run_id: str, model_name: str, selected_domains: list = None):
+        """Run evaluation using legacy hardcoded tests
+        
+        Args:
+            run_id: Unique run identifier
+            model_name: Model being evaluated
+            selected_domains: List of domain names to test (None = all domains)
+        """
+        all_domains = ["conversation", "math", "sql", "tool_calling", "reasoning", "health"]
+        
+        # Filter domains if selection provided
+        if selected_domains:
+            domains = [d for d in all_domains if d in selected_domains]
+        else:
+            domains = all_domains
         
         for domain in domains:
             for level in range(1, 6):  # Levels 1-5
@@ -204,8 +231,14 @@ class EvaluationEngine:
                 # Small delay between tests
                 time.sleep(0.5)
     
-    def _run_configurable_evaluation(self, run_id: str, model_name: str):
-        """Run evaluation using configurable test definitions"""
+    def _run_configurable_evaluation(self, run_id: str, model_name: str, selected_domains: list = None):
+        """Run evaluation using configurable test definitions
+        
+        Args:
+            run_id: Unique run identifier
+            model_name: Model being evaluated
+            selected_domains: List of domain names to test (None = all domains)
+        """
         # Sync tests from files to database
         test_manager.sync_to_db()
         
@@ -217,6 +250,10 @@ class EvaluationEngine:
             
             # Skip disabled domains
             if not domain_data.get('enabled', True):
+                continue
+            
+            # Skip domains not in selection (if selection provided)
+            if selected_domains and domain_id not in selected_domains:
                 continue
             
             # Run tests for each level
@@ -267,6 +304,12 @@ class EvaluationEngine:
                 if test_results:
                     level_score = ScoreAggregator.calculate_level_score(test_results)
                     
+                    # Calculate total duration for this level
+                    level_duration_ms = sum(
+                        r.details.get('duration_ms', 0) if r.details else 0 
+                        for r in test_results
+                    )
+                    
                     # Store level score
                     db.save_level_score(
                         run_id, domain_id, level,
@@ -285,7 +328,8 @@ class EvaluationEngine:
                         expected=json.dumps(first_expected) if first_expected else None,
                         score=avg_score,
                         status=status,
-                        model_name=model_name
+                        model_name=model_name,
+                        duration_ms=level_duration_ms
                     )
                 
                 time.sleep(0.5)
@@ -545,6 +589,7 @@ class EvaluationEngine:
         
         # Include response in details for modal display
         details['response'] = response_content
+        details['duration_ms'] = duration_ms
         
         # Add thinking content to details if present
         if thinking_content:

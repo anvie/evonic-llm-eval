@@ -253,9 +253,11 @@ function clearMatrixState() {
     // Clear stored test results
     testResultsData = {};
     
-    // Reset progress bar
+    // Reset progress bar with selected domain count
+    const selectedCount = getSelectedDomains().length;
+    const totalTests = selectedCount * 5;
     document.getElementById('progress-fill').style.width = '0%';
-    document.getElementById('progress-text').textContent = '0/25 tests completed';
+    document.getElementById('progress-text').textContent = `0/${totalTests} tests completed`;
 }
 
 function saveState(data) {
@@ -406,6 +408,7 @@ function stopEvaluation() {
             updateToggleButton(false);
             clearInterval(pollingInterval);
             showClearButton(true);
+            setCheckboxesEnabled(true);
             
             // Log stop message
             const logBox = document.getElementById('log-box');
@@ -414,6 +417,7 @@ function stopEvaluation() {
     })
     .catch(error => {
         console.error('Error:', error);
+        setCheckboxesEnabled(true);
     });
 }
 
@@ -445,6 +449,7 @@ function updateStatus() {
             clearInterval(pollingInterval);
             updateToggleButton(false);
             showClearButton(true);
+            setCheckboxesEnabled(true);
             
             // Log completion/interrupted/error message
             const logBox = document.getElementById('log-box');
@@ -1163,11 +1168,7 @@ document.addEventListener('keydown', function(event) {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.cell-duration {
-    font-size: 0.7rem;
-    color: #9ca3af;
-    margin-top: 0.15rem;
-}
+/* cell-duration styles are in style.css */
 
 /* Modal styles */
 .modal {
