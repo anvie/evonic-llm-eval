@@ -146,6 +146,42 @@
     </div>
 </div>
 
+<!-- Modal for Training Data Generation -->
+<div id="training-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h3 style="color: white; margin: 0;">📋 Generated Training Data</h3>
+            <span class="modal-close" onclick="closeTrainingModal()" style="color: white;">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 1rem;">
+            <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #666; font-size: 0.9rem;">
+                    Edit below (pretty-printed). Copy button outputs single-line JSONL format.
+                </span>
+                <button id="copy-training-btn" onclick="copyTrainingData()" 
+                        style="padding: 0.5rem 1rem; background: #667eea; color: white; border: none; 
+                               border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; 
+                               align-items: center; gap: 0.5rem; transition: background 0.2s;"
+                        onmouseover="this.style.background='#5a67d8';"
+                        onmouseout="this.style.background='#667eea';">
+                    📋 Copy as JSONL
+                </button>
+            </div>
+            <textarea id="training-textarea" 
+                      style="width: 100%; height: 500px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
+                             font-size: 0.85rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; 
+                             resize: vertical; line-height: 1.5; background: #f8fafc;"></textarea>
+            <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button onclick="closeTrainingModal()" 
+                        style="padding: 0.5rem 1.5rem; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; 
+                               border-radius: 6px; font-weight: 500; cursor: pointer;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let testResultsData = {};  // Store all test results for modal access
 
@@ -471,8 +507,171 @@ function showModalWithData(domain, level, data) {
         `;
     }
     
+    // Add Generate Training Data button if conversation_log exists
+    if (data.details && data.details.conversation_log && data.details.conversation_log.length > 0) {
+        detailsHtml += `
+            <div class="detail-section" style="margin-top: 2rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
+                <button onclick="showTrainingDataModal('${domain}', ${level})" 
+                        style="width: 100%; padding: 0.75rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                               color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; 
+                               cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+                               transition: transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    📋 Generate Training Data
+                </button>
+            </div>
+        `;
+    }
+    
     body.innerHTML = detailsHtml;
     modal.style.display = 'flex';
+}
+
+// Store current data for training generation
+let currentTrainingContext = {};
+
+function showTrainingDataModal(domain, level) {
+    const data = testResultsData[domain]?.[level];
+    if (!data) return;
+    
+    currentTrainingContext = { domain, level, data };
+    
+    const trainingData = generateTrainingData(domain, level, data);
+    const prettyJson = JSON.stringify(trainingData, null, 2);
+    
+    const modal = document.getElementById('training-modal');
+    const textarea = document.getElementById('training-textarea');
+    textarea.value = prettyJson;
+    
+    modal.style.display = 'flex';
+}
+
+function generateTrainingData(domain, level, data) {
+    const details = data.details || {};
+    const conversationLog = details.conversation_log || [];
+    const toolsAvailable = details.tools_available || [];
+    
+    // Build system prompt with tools in Gemma 4 format
+    let systemContent = '<|think|>Kamu adalah asisten reservasi untuk Krasan Omah, sebuah penginapan di Temanggung, Jawa Tengah. Bantu tamu dengan pertanyaan tentang ketersediaan kamar, harga, dan booking.\n\n';
+    systemContent += '## PRICING (per malam)\n';
+    systemContent += '| Kamar | Weekday (Sen-Kam) | Weekend (Jum-Min) |\n';
+    systemContent += '| Bismo | Rp 400.000 | Rp 500.000 |\n';
+    systemContent += '| Sindoro | Rp 400.000 | Rp 500.000 |\n';
+    systemContent += '| Sumbing | Rp 450.000 | Rp 550.000 |\n';
+    systemContent += '| Joglo | Rp 550.000 | Rp 700.000 |\n\n';
+    systemContent += '## EXTRAS\n';
+    systemContent += '- Extra bed: Rp 150.000/malam\n';
+    systemContent += '- Extra breakfast: Rp 50.000/orang\n\n';
+    
+    // Add tool definitions in Gemma 4 format
+    toolsAvailable.forEach(tool => {
+        const toolDef = {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters || { type: 'object', properties: {}, required: [] }
+        };
+        systemContent += '<|tool>\n' + JSON.stringify(toolDef) + '\n<tool|>\n';
+    });
+    
+    const messages = [
+        { role: 'system', content: systemContent.trim() },
+        { role: 'user', content: data.prompt || '' }
+    ];
+    
+    // Process each turn in conversation_log
+    conversationLog.forEach((turn, idx) => {
+        let assistantContent = '';
+        
+        // Add thinking
+        if (turn.thinking) {
+            assistantContent += '<|channel>thought\n' + turn.thinking.trim() + '\n<channel|>';
+        }
+        
+        // Add tool calls
+        if (turn.tool_calls && turn.tool_calls.length > 0) {
+            turn.tool_calls.forEach(tc => {
+                const argsStr = formatToolArgs(tc.arguments || {});
+                assistantContent += '<|tool_call>call:' + tc.name + '{' + argsStr + '}<tool_call|>';
+            });
+        }
+        
+        // Add tool responses
+        if (turn.tool_results && turn.tool_results.length > 0) {
+            turn.tool_results.forEach(tr => {
+                const resultStr = formatToolArgs(tr.result || {});
+                assistantContent += '<|tool_response>response:' + tr.function_name + '{' + resultStr + '}<tool_response|>';
+            });
+        }
+        
+        // Add final response (only on last turn or if response exists)
+        if (turn.response) {
+            if (!assistantContent.includes('<|channel>thought')) {
+                assistantContent += '<|channel>thought\n<channel|>';
+            }
+            assistantContent += turn.response;
+        }
+        
+        if (assistantContent) {
+            messages.push({ role: 'assistant', content: assistantContent });
+        }
+    });
+    
+    return {
+        messages: messages,
+        category: mapDomainToCategory(domain)
+    };
+}
+
+function formatToolArgs(obj) {
+    if (!obj || Object.keys(obj).length === 0) return '';
+    
+    const parts = [];
+    for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'string') {
+            parts.push(key + ':<|"|>' + value + '<|"|>');
+        } else if (typeof value === 'number') {
+            parts.push(key + ':' + value);
+        } else if (Array.isArray(value)) {
+            parts.push(key + ':[' + value.map(v => typeof v === 'string' ? '"' + v + '"' : v).join(',') + ']');
+        } else {
+            parts.push(key + ':' + JSON.stringify(value));
+        }
+    }
+    return parts.join(',');
+}
+
+function mapDomainToCategory(domain) {
+    const mapping = {
+        'krasan_villa': 'availability',
+        'booking': 'booking',
+        'pricing': 'price'
+    };
+    return mapping[domain] || 'general';
+}
+
+function copyTrainingData() {
+    const { domain, level, data } = currentTrainingContext;
+    const trainingData = generateTrainingData(domain, level, data);
+    const compactJson = JSON.stringify(trainingData);
+    
+    navigator.clipboard.writeText(compactJson).then(() => {
+        const btn = document.getElementById('copy-training-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✓ Copied!';
+        btn.style.background = '#10b981';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+
+function closeTrainingModal() {
+    document.getElementById('training-modal').style.display = 'none';
 }
 
 function closeModal() {
@@ -604,16 +803,26 @@ function formatDetails(details) {
 
 // Close modal on outside click
 window.onclick = function(event) {
-    const modal = document.getElementById('test-modal');
-    if (event.target === modal) {
+    const testModal = document.getElementById('test-modal');
+    const trainingModal = document.getElementById('training-modal');
+    
+    if (event.target === testModal) {
         closeModal();
+    }
+    if (event.target === trainingModal) {
+        closeTrainingModal();
     }
 }
 
 // Close modal on Escape key
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-        closeModal();
+        const trainingModal = document.getElementById('training-modal');
+        if (trainingModal.style.display === 'flex') {
+            closeTrainingModal();
+        } else {
+            closeModal();
+        }
     }
 });
 </script>
