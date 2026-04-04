@@ -1077,7 +1077,40 @@ function showModalWithData(domain, level, data) {
         `;
     }
     
+    // Generate Training Data button (for legacy single-test view)
+    if (data.details && data.details.conversation_log && data.details.conversation_log.length > 0) {
+        // Store data for training generation
+        currentTrainingTest = {
+            prompt: data.prompt,
+            details: data.details
+        };
+        
+        detailsHtml += `
+            <div class="detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
+                <button onclick="showTrainingDataModalLegacy()" 
+                        style="width: 100%; padding: 0.75rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                               color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; 
+                               cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    📋 Generate Training Data
+                </button>
+            </div>
+        `;
+    }
+    
     body.innerHTML = detailsHtml;
+    modal.style.display = 'flex';
+}
+
+function showTrainingDataModalLegacy() {
+    if (!currentTrainingTest) return;
+    
+    const trainingData = generateTrainingDataFromTest(currentTrainingTest);
+    const prettyJson = JSON.stringify(trainingData, null, 2);
+    
+    const modal = document.getElementById('training-modal');
+    const textarea = document.getElementById('training-textarea');
+    textarea.value = prettyJson;
+    
     modal.style.display = 'flex';
 }
 
