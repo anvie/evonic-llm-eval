@@ -676,8 +676,7 @@ function clearState() {
 
 // Modal functions
 let currentRunId = null;  // Track current run for API calls
-let currentModalTests = [];  // Store tests for current modal
-let currentSelectedTestIndex = 0;  // Currently selected test index
+// currentModalTests and currentSelectedTestIndex are in test-modal.js
 
 function showCellDetail(domain, level) {
     const data = testResultsData[domain]?.[level];
@@ -989,22 +988,8 @@ function showModalWithData(domain, level, data) {
     modal.style.display = 'flex';
 }
 
-// Bridge function for training data modal (uses shared component)
-function onGenerateTrainingDataClick(testIndex) {
-    // For multi-test view
-    if (typeof testIndex === 'number' && currentModalTests && currentModalTests[testIndex]) {
-        showTrainingDataModal(currentModalTests[testIndex]);
-    }
-    // For legacy single-test view
-    else if (currentTrainingTest) {
-        showTrainingDataModal(currentTrainingTest);
-    }
-}
-
+// onGenerateTrainingDataClick is now in /static/js/training-data.js
 // formatExpected and closeModal are now in shared /static/js/test-modal.js
-
-// Variable used by legacy view for training data
-let currentTrainingTest = null;
 
 function formatDetails(details) {
     if (!details) return 'No details available';

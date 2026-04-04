@@ -28,6 +28,16 @@ function showTrainingDataModal(test) {
 }
 
 /**
+ * Handle training data button click
+ * @param {number} testIndex - Index of selected test
+ */
+function onGenerateTrainingDataClick(testIndex) {
+    if (typeof window.currentModalTests !== 'undefined' && window.currentModalTests[testIndex]) {
+        showTrainingDataModal(window.currentModalTests[testIndex]);
+    }
+}
+
+/**
  * Generate Gemma 4 format training data from test result
  * @param {Object} test - Test object
  * @returns {Object} Training data in Gemma 4 JSONL format
