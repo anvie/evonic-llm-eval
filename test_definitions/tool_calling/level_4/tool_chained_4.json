@@ -1,8 +1,8 @@
 {
   "id": "tool_chained_4",
   "name": "Chained Tool Calls",
-  "description": "Test chained tool calls",
-  "prompt": "Cari pesanan terbaru customer ID 123 dan kirim notifikasi ke email mereka",
+  "description": "Test chained tool calls - get order then send notification",
+  "prompt": "Gunakan tools yang tersedia: Pertama cari detail pesanan customer ID 123 (gunakan get_order), lalu kirim notifikasi status pesanan ke email customer tersebut (gunakan send_notification). Email customer tersedia di data pesanan.",
   "expected": {
     "chain": [
       "get_order",

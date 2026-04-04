@@ -24,6 +24,9 @@ from evaluator.logger import test_logger
 from models.db import db
 import config
 
+# Maximum iterations for multi-turn tool calling
+MAX_TOOL_ITERATIONS = 5
+
 
 class EvaluationEngine:
     def __init__(self, use_configurable_tests: bool = False):
@@ -374,41 +377,63 @@ class EvaluationEngine:
                 expected_str = str(expected)[:100] + '...' if len(str(expected)) > 100 else str(expected)
                 self._log(f'[EXPECTED] {expected_str}')
 
-            # Send to LLM (PASS 1)
-            messages = [{"role": "user", "content": prompt}]
-
-            # Add tools for tool_calling domain
-            tools = None
+            # Handle tool_calling domain with multi-turn loop
             if domain == "tool_calling":
                 from evaluator.tools import tool_framework
                 tools = tool_framework.tools
                 self._log(f'[TOOLS] Available: {[t["function"]["name"] for t in tools]}')
-
-            self._log(f'[LLM] Sending request to model...')
-            llm_response = llm_client.chat_completion(messages, tools)
-            
-            # Safely extract duration and tokens
-            duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
-            total_tokens = llm_response.get("total_tokens", 0) if isinstance(llm_response, dict) else 0
-            
-            # Check for LLM errors
-            error_info = llm_client.get_error_info(llm_response)
-            if error_info:
-                self._log(f'[ERROR] LLM {error_info["type"]}: {error_info["message"]}')
-                if error_info["detail"]:
-                    self._log(f'[ERROR] Detail: {error_info["detail"][:100]}')
+                
+                # Run tool calling loop
+                loop_result = self._run_tool_calling_loop(prompt, tools)
+                
+                duration_ms = loop_result["total_duration_ms"]
+                total_tokens = loop_result["total_tokens"]
+                thinking_content = loop_result["thinking"]
+                
+                # Build response content with all tool calls
+                all_tool_calls = loop_result["all_tool_calls"]
+                if all_tool_calls:
+                    response_content = json.dumps({"tool_calls": all_tool_calls}, indent=2)
+                else:
+                    response_content = loop_result["final_response"]
+                
+                self._log(f'[LLM] Total: {duration_ms}ms, {total_tokens} tokens, {loop_result["iterations"]} iteration(s)')
+                self._log(f'[TOOLS] Made {len(all_tool_calls)} tool call(s): {[tc["function"]["name"] for tc in all_tool_calls]}')
+                
+                # Accumulate tokens and duration
+                self.total_tokens += total_tokens
+                self.total_duration_ms += duration_ms
+                
+                error_info = None  # No single error for loop
             else:
-                self._log(f'[LLM] Response received in {duration_ms}ms, {total_tokens} tokens')
-            
-            # Accumulate tokens and duration for tok/s calculation
-            self.total_tokens += total_tokens
-            self.total_duration_ms += duration_ms
-            
-            # Extract content with thinking separation
-            content_info = llm_client.extract_content_with_thinking(llm_response)
-            response_content = content_info["content"]  # Final content (without thinking)
-            thinking_content = content_info["thinking"]  # Thinking content (if present)
-            raw_content = content_info["raw"]  # Original content
+                # Standard single-turn LLM call for other domains
+                messages = [{"role": "user", "content": prompt}]
+                tools = None
+
+                self._log(f'[LLM] Sending request to model...')
+                llm_response = llm_client.chat_completion(messages, tools)
+                
+                # Safely extract duration and tokens
+                duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
+                total_tokens = llm_response.get("total_tokens", 0) if isinstance(llm_response, dict) else 0
+                
+                # Check for LLM errors
+                error_info = llm_client.get_error_info(llm_response)
+                if error_info:
+                    self._log(f'[ERROR] LLM {error_info["type"]}: {error_info["message"]}')
+                    if error_info["detail"]:
+                        self._log(f'[ERROR] Detail: {error_info["detail"][:100]}')
+                else:
+                    self._log(f'[LLM] Response received in {duration_ms}ms, {total_tokens} tokens')
+                
+                # Accumulate tokens and duration for tok/s calculation
+                self.total_tokens += total_tokens
+                self.total_duration_ms += duration_ms
+                
+                # Extract content with thinking separation
+                content_info = llm_client.extract_content_with_thinking(llm_response)
+                response_content = content_info["content"]  # Final content (without thinking)
+                thinking_content = content_info["thinking"]  # Thinking content (if present)
             
             # Log if thinking content was detected
             if thinking_content:
@@ -528,31 +553,52 @@ class EvaluationEngine:
             expected_str = str(expected)[:100] + '...' if len(str(expected)) > 100 else str(expected)
             self._log(f'[EXPECTED] {expected_str}')
         
-        # Send to LLM
-        messages = [{"role": "user", "content": prompt}]
-        tools = None
-        
-        # Add tools for tool_calling domain
+        # Handle tool_calling domain with multi-turn loop
         if domain == "tool_calling":
             from evaluator.tools import tool_framework
             tools = tool_framework.tools
             self._log(f'[TOOLS] Available: {[t["function"]["name"] for t in tools]}')
-        
-        self._log(f'[LLM] Sending request to model...')
-        llm_response = llm_client.chat_completion(messages, tools)
-        
-        duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
-        total_tokens = llm_response.get("total_tokens", 0) if isinstance(llm_response, dict) else 0
-        self._log(f'[LLM] Response received in {duration_ms}ms, {total_tokens} tokens')
-        
-        # Accumulate tokens
-        self.total_tokens += total_tokens
-        self.total_duration_ms += duration_ms
-        
-        # Extract content with thinking separation
-        content_info = llm_client.extract_content_with_thinking(llm_response)
-        response_content = content_info["content"]
-        thinking_content = content_info["thinking"]
+            
+            # Run tool calling loop
+            loop_result = self._run_tool_calling_loop(prompt, tools)
+            
+            duration_ms = loop_result["total_duration_ms"]
+            total_tokens = loop_result["total_tokens"]
+            thinking_content = loop_result["thinking"]
+            
+            # Build response content with all tool calls
+            all_tool_calls = loop_result["all_tool_calls"]
+            if all_tool_calls:
+                response_content = json.dumps({"tool_calls": all_tool_calls}, indent=2)
+            else:
+                response_content = loop_result["final_response"]
+            
+            self._log(f'[LLM] Total: {duration_ms}ms, {total_tokens} tokens, {loop_result["iterations"]} iteration(s)')
+            self._log(f'[TOOLS] Made {len(all_tool_calls)} tool call(s): {[tc["function"]["name"] for tc in all_tool_calls]}')
+            
+            # Accumulate tokens and duration
+            self.total_tokens += total_tokens
+            self.total_duration_ms += duration_ms
+        else:
+            # Standard single-turn LLM call for other domains
+            messages = [{"role": "user", "content": prompt}]
+            tools = None
+            
+            self._log(f'[LLM] Sending request to model...')
+            llm_response = llm_client.chat_completion(messages, tools)
+            
+            duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
+            total_tokens = llm_response.get("total_tokens", 0) if isinstance(llm_response, dict) else 0
+            self._log(f'[LLM] Response received in {duration_ms}ms, {total_tokens} tokens')
+            
+            # Accumulate tokens
+            self.total_tokens += total_tokens
+            self.total_duration_ms += duration_ms
+            
+            # Extract content with thinking separation
+            content_info = llm_client.extract_content_with_thinking(llm_response)
+            response_content = content_info["content"]
+            thinking_content = content_info["thinking"]
         
         # Log if thinking content was detected
         if thinking_content:
@@ -674,6 +720,130 @@ class EvaluationEngine:
             total_tokens=self.total_tokens,
             total_duration_ms=self.total_duration_ms
         )
+    
+    def _run_tool_calling_loop(self, prompt: str, tools: list) -> Dict[str, Any]:
+        """
+        Run multi-turn tool calling loop with mock execution.
+        
+        Continues until:
+        - LLM returns final answer (no tool calls)
+        - OR max iterations reached
+        
+        Returns:
+            Dict with:
+            - all_tool_calls: List of all tool calls made
+            - final_response: Final text response
+            - iterations: Number of iterations
+            - total_duration_ms: Total duration
+            - total_tokens: Total tokens used
+            - thinking: Thinking content (if any)
+            - messages: Full conversation history
+        """
+        from evaluator.tools import tool_framework
+        
+        messages = [{"role": "user", "content": prompt}]
+        all_tool_calls = []
+        total_duration_ms = 0
+        total_tokens = 0
+        thinking_content = None
+        final_response = ""
+        
+        for iteration in range(MAX_TOOL_ITERATIONS):
+            self._log(f'[TOOL-LOOP] Iteration {iteration + 1}/{MAX_TOOL_ITERATIONS}')
+            
+            # Send to LLM
+            llm_response = llm_client.chat_completion(messages, tools)
+            
+            # Accumulate stats
+            duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
+            tokens = llm_response.get("total_tokens", 0) if isinstance(llm_response, dict) else 0
+            total_duration_ms += duration_ms
+            total_tokens += tokens
+            
+            # Extract content and thinking
+            content_info = llm_client.extract_content_with_thinking(llm_response)
+            response_content = content_info["content"]
+            
+            # Capture thinking from first iteration
+            if iteration == 0 and content_info.get("thinking"):
+                thinking_content = content_info["thinking"]
+            
+            # Check for tool calls
+            tool_calls = content_info.get("tool_calls", [])
+            
+            # Also try to extract from response content if it's JSON
+            if not tool_calls:
+                try:
+                    data = json.loads(response_content)
+                    if isinstance(data, dict) and "tool_calls" in data:
+                        tool_calls = data["tool_calls"]
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            
+            # If no tool calls, we have the final answer
+            if not tool_calls:
+                final_response = response_content
+                self._log(f'[TOOL-LOOP] Final answer received (no more tool calls)')
+                break
+            
+            # Process tool calls
+            self._log(f'[TOOL-LOOP] Got {len(tool_calls)} tool call(s)')
+            
+            for tc in tool_calls:
+                func_name = tc.get("function", {}).get("name", "unknown")
+                func_args_str = tc.get("function", {}).get("arguments", "{}")
+                tc_id = tc.get("id", f"call_{len(all_tool_calls)}")
+                
+                # Parse arguments
+                try:
+                    func_args = json.loads(func_args_str) if isinstance(func_args_str, str) else func_args_str
+                except json.JSONDecodeError:
+                    func_args = {}
+                
+                self._log(f'[TOOL-CALL] {func_name}({json.dumps(func_args)[:50]}...)')
+                
+                # Store tool call
+                all_tool_calls.append({
+                    "id": tc_id,
+                    "function": {
+                        "name": func_name,
+                        "arguments": func_args_str if isinstance(func_args_str, str) else json.dumps(func_args)
+                    }
+                })
+                
+                # Execute mock tool
+                mock_result = tool_framework.execute_tool({
+                    "id": tc_id,
+                    "function": {
+                        "name": func_name,
+                        "arguments": json.dumps(func_args) if isinstance(func_args, dict) else func_args_str
+                    }
+                })
+                
+                result_str = json.dumps(mock_result.get("result", {}))
+                self._log(f'[TOOL-RESULT] {result_str[:100]}...')
+                
+                # Add to conversation
+                messages.append({
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [tc]
+                })
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc_id,
+                    "content": result_str
+                })
+        
+        return {
+            "all_tool_calls": all_tool_calls,
+            "final_response": final_response,
+            "iterations": iteration + 1,
+            "total_duration_ms": total_duration_ms,
+            "total_tokens": total_tokens,
+            "thinking": thinking_content,
+            "messages": messages
+        }
     
     def get_test_matrix(self, run_id: Optional[str] = None) -> Dict[str, Any]:
         """Get test matrix for UI display"""

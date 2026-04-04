@@ -428,10 +428,24 @@ class ToolFramework:
         """Get mock order data"""
         customer_id = args.get("customer_id", 0)
         
-        # Mock order data
+        # Mock order data (includes email for chained tool calling tests)
         orders = {
-            123: {"order_id": "ORD-001", "items": ["Laptop", "Mouse"], "total": 15000000, "status": "shipped"},
-            456: {"order_id": "ORD-002", "items": ["Phone"], "total": 8000000, "status": "delivered"},
+            123: {
+                "order_id": "ORD-001",
+                "items": ["Laptop", "Mouse"],
+                "total": 15000000,
+                "status": "shipped",
+                "customer_name": "John Doe",
+                "email": "john.doe@example.com"
+            },
+            456: {
+                "order_id": "ORD-002",
+                "items": ["Phone"],
+                "total": 8000000,
+                "status": "delivered",
+                "customer_name": "Jane Smith",
+                "email": "jane.smith@example.com"
+            },
         }
         
         if customer_id in orders:
