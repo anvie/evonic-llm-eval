@@ -659,7 +659,7 @@ class Database:
             cursor.execute("""
                 INSERT INTO individual_test_results 
                 (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name))
             conn.commit()
     
