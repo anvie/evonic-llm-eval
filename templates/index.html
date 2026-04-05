@@ -1434,6 +1434,19 @@ document.addEventListener('keydown', function(event) {
     color: #374151;
     margin-bottom: 0.3rem;
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-header:hover {
+    color: #1f2937;
+}
+
+.toggle-icon {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    transition: transform 0.2s;
 }
 
 .section-content {
@@ -1448,6 +1461,31 @@ document.addEventListener('keydown', function(event) {
 .expected-box { overflow-y: auto; }
 .response-box { max-height: 150px; overflow-y: auto; }
 .thinking-box { background: #f5f3ff; max-height: auto; overflow-y: auto; }
+.system-prompt-box { 
+    background: #fef3c7; 
+    border-left: 3px solid #f59e0b;
+    max-height: 200px; 
+    overflow-y: auto; 
+}
+
+.mode-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.mode-overwrite {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.mode-append {
+    background: #dbeafe;
+    color: #2563eb;
+}
 
 /* Tools styling - compact inline */
 .tools-box {

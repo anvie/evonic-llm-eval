@@ -115,6 +115,27 @@ function renderTestDetail(test, domain) {
         `;
     }
 
+    // System Prompt (collapsible, only if present)
+    const systemPrompt = test.system_prompt || details.system_prompt || null;
+    if (systemPrompt) {
+        const systemPromptMode = test.system_prompt_mode || details.system_prompt_mode || 'overwrite';
+        const modeBadge = systemPromptMode === 'append' 
+            ? '<span class="mode-badge mode-append">APPEND</span>' 
+            : '<span class="mode-badge mode-overwrite">OVERWRITE</span>';
+        
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header" style="cursor: pointer; user-select: none;" onclick="toggleSystemPrompt()">
+                    🎭 SYSTEM PROMPT ${modeBadge}
+                    <span class="toggle-icon" id="system-prompt-toggle">▶</span>
+                </div>
+                <div class="section-content system-prompt-box" id="system-prompt-content" style="display: none;">
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.85rem; line-height: 1.5;">${escapeHtml(systemPrompt)}</pre>
+                </div>
+            </div>
+        `;
+    }
+    
     html += `
         <div class="test-detail-section">
             <div class="section-header">📥 PROMPT</div>
@@ -335,3 +356,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+/**
+ * Toggle system prompt visibility (collapsed/expanded)
+ */
+function toggleSystemPrompt() {
+    const content = document.getElementById('system-prompt-content');
+    const toggle = document.getElementById('system-prompt-toggle');
+    
+    if (content && toggle) {
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            toggle.textContent = '▼';
+        } else {
+            content.style.display = 'none';
+            toggle.textContent = '▶';
+        }
+    }
+}
