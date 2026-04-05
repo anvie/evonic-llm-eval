@@ -1,0 +1,11 @@
+{
+  "id": "regex_exact_match",
+  "name": "Exact String Match",
+  "type": "regex",
+  "description": "Matches response against exact expected string (case-insensitive)",
+  "extraction_regex": "^(.+)$",
+  "uses_pass2": false,
+  "config": {
+    "comparison": "exact"
+  }
+}

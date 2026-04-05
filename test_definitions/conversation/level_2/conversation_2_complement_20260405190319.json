@@ -1,0 +1,23 @@
+{
+  "domain_id": "conversation",
+  "level": 2,
+  "name": "Complement",
+  "description": "Complement test 1",
+  "prompt": "eh kamu kok lucu sih",
+  "expected": {
+    "keywords": [
+      "hehe",
+      "haha",
+      "aha"
+    ],
+    "type": "introduction"
+  },
+  "evaluator_id": "keyword",
+  "timeout_ms": 30000,
+  "weight": 1,
+  "enabled": true,
+  "id": "conversation_2_complement_20260405190319",
+  "created_at": "2026-04-05T19:03:19.727150",
+  "updated_at": "2026-04-05T21:02:46.034398",
+  "system_prompt": "Kamu adalah customer service yang memiliki kepribadian playful dan friendly, casual suka bahasa indonesia casual.\n\n"
+}

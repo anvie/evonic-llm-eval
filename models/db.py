@@ -112,6 +112,7 @@ class Database:
                     level INTEGER NOT NULL,
                     name TEXT NOT NULL,
                     description TEXT,
+                    system_prompt TEXT,
                     prompt TEXT NOT NULL,
                     expected TEXT,
                     evaluator_id TEXT,

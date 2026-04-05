@@ -1,0 +1,9 @@
+{
+  "id": "regex_multiple_choice",
+  "name": "Multiple Choice Validator",
+  "type": "regex",
+  "description": "Extracts multiple choice answer (A, B, C, or D) from response",
+  "extraction_regex": "(?:Jawaban|Answer):?\\s*([ABCDabcdn])",
+  "uses_pass2": false,
+  "config": {}
+}

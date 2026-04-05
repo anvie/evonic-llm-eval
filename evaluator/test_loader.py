@@ -44,6 +44,7 @@ class TestDefinition:
     evaluator_id: str
     domain_id: str
     level: int
+    system_prompt: Optional[str] = None
     timeout_ms: int = 30000
     weight: float = 1.0
     enabled: bool = True
@@ -63,6 +64,7 @@ class TestDefinition:
             id=data.get('id', ''),
             name=data.get('name', ''),
             description=data.get('description', ''),
+            system_prompt=data.get('system_prompt', None),
             prompt=data.get('prompt', ''),
             expected=data.get('expected', {}),
             evaluator_id=data.get('evaluator_id', ''),

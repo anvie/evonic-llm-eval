@@ -1,0 +1,9 @@
+{
+  "id": "regex_date_extractor",
+  "name": "Date Format Validator",
+  "type": "regex",
+  "description": "Extracts and validates date in YYYY-MM-DD format",
+  "extraction_regex": "(\\d{4}-\\d{2}-\\d{2})",
+  "uses_pass2": false,
+  "config": {}
+}

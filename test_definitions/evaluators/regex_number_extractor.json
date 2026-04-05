@@ -1,0 +1,9 @@
+{
+  "id": "regex_number_extractor",
+  "name": "Number Extractor",
+  "type": "regex",
+  "description": "Extracts numeric answer from response (e.g., 'Jawaban: 42' or 'Score: 85')",
+  "extraction_regex": "(?:Jawaban|Score|Answer|Nilai):?\\s*(\\d+(?:\\.\\d+)?)",
+  "uses_pass2": false,
+  "config": {}
+}

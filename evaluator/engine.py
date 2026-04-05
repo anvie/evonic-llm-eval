@@ -384,7 +384,7 @@ class EvaluationEngine:
                 self._log(f'[TOOLS] Available: {[t["function"]["name"] for t in tools]}')
                 
                 # Run tool calling loop
-                loop_result = self._run_tool_calling_loop(prompt, tools)
+                loop_result = self._run_tool_calling_loop(prompt, tools, system_prompt=system_prompt)
                 
                 duration_ms = loop_result["total_duration_ms"]
                 total_tokens = loop_result["total_tokens"]
@@ -557,6 +557,9 @@ class EvaluationEngine:
             expected_str = str(expected)[:100] + '...' if len(str(expected)) > 100 else str(expected)
             self._log(f'[EXPECTED] {expected_str}')
         
+        # Get optional system prompt
+        system_prompt = test.get('system_prompt')
+        
         # Check if test has embedded tools OR is tool_calling domain OR uses tool_call evaluator
         test_tools = test.get('tools') or []  # Handle None explicitly
         has_embedded_tools = len(test_tools) > 0
@@ -590,7 +593,7 @@ class EvaluationEngine:
                 self._log(f'[TOOLS] Available: {[t["function"]["name"] for t in tools]}')
             
             # Run tool calling loop
-            loop_result = self._run_tool_calling_loop(prompt, tools, mock_responses)
+            loop_result = self._run_tool_calling_loop(prompt, tools, mock_responses, system_prompt=system_prompt)
             
             duration_ms = loop_result["total_duration_ms"]
             total_tokens = loop_result["total_tokens"]
@@ -611,7 +614,14 @@ class EvaluationEngine:
             self.total_duration_ms += duration_ms
         else:
             # Standard single-turn LLM call for other domains
-            messages = [{"role": "user", "content": prompt}]
+            if system_prompt:
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ]
+                self._log(f'[SYSTEM] Using custom system prompt ({len(system_prompt)} chars)')
+            else:
+                messages = [{"role": "user", "content": prompt}]
             tools = None
             
             self._log(f'[LLM] Sending request to model...')
@@ -770,7 +780,7 @@ class EvaluationEngine:
             total_duration_ms=self.total_duration_ms
         )
     
-    def _run_tool_calling_loop(self, prompt: str, tools: list, mock_responses: Dict[str, Any] = None) -> Dict[str, Any]:
+    def _run_tool_calling_loop(self, prompt: str, tools: list, mock_responses: Dict[str, Any] = None, system_prompt: str = None) -> Dict[str, Any]:
         """
         Run multi-turn tool calling loop with mock execution.
         
@@ -779,6 +789,7 @@ class EvaluationEngine:
             tools: List of tool definitions (OpenAI format)
             mock_responses: Optional dict mapping tool name -> mock response
                            If provided, uses these instead of tool_framework
+            system_prompt: Optional system prompt
         
         Continues until:
         - LLM returns final answer (no tool calls)
@@ -796,7 +807,10 @@ class EvaluationEngine:
         """
         from evaluator.tools import tool_framework
         
-        messages = [{"role": "user", "content": prompt}]
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
         all_tool_calls = []
         conversation_log = []  # Capture each turn's details
         total_duration_ms = 0

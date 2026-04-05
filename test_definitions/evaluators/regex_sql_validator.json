@@ -1,0 +1,11 @@
+{
+  "id": "regex_sql_validator",
+  "name": "SQL Keyword Validator",
+  "type": "regex",
+  "description": "Validates that SQL query contains required keywords (SELECT, FROM, WHERE, etc.)",
+  "extraction_regex": "(?i)\\b(SELECT)\\b.*\\b(FROM)\\b.*\\b(WHERE)\\b",
+  "uses_pass2": false,
+  "config": {
+    "required_keywords": ["SELECT", "FROM", "WHERE"]
+  }
+}

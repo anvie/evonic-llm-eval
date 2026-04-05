@@ -59,6 +59,11 @@ class CustomEvaluator:
         """
         Evaluate a response using the configured evaluation method.
         
+        Supports three modes:
+        1. Regex-only: Extract score/value directly from response
+        2. LLM prompt: Use LLM to evaluate and return score
+        3. Hybrid: Use LLM to generate evaluation text, then regex to extract score
+        
         Args:
             response: The LLM response to evaluate
             expected: Expected result or criteria
@@ -67,9 +72,18 @@ class CustomEvaluator:
         Returns:
             EvaluationResult with score and details
         """
-        if self.extraction_regex:
+        # Determine evaluation mode
+        has_regex = bool(self.extraction_regex)
+        has_prompt = bool(self.eval_prompt)
+        
+        if has_regex and has_prompt:
+            # Hybrid mode: LLM evaluates, regex extracts score
+            return self._evaluate_hybrid(response, expected, level)
+        elif has_regex:
+            # Regex-only mode
             return self._evaluate_with_regex(response, expected, level)
-        elif self.eval_prompt:
+        elif has_prompt:
+            # LLM prompt-only mode
             return self._evaluate_with_prompt(response, expected, level)
         else:
             return EvaluationResult(
@@ -80,44 +94,98 @@ class CustomEvaluator:
             )
     
     def _evaluate_with_regex(self, response: str, expected: Any, level: int) -> EvaluationResult:
-        """Extract score using regex pattern"""
+        """
+        Evaluate using regex pattern.
+        
+        Supports two modes:
+        1. Score extraction: Regex captures a number (0-100 or 0-1)
+        2. Exact match: Regex matches the entire expected answer
+        """
         try:
-            # Try to find score in response
             pattern = self.extraction_regex
             match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
             
             if match:
-                # Extract score from first capture group
-                score_str = match.group(1)
-                score = float(score_str)
-                
-                # Normalize score to 0-1 range
-                if score > 1.0:
-                    score = score / 100.0  # Assume percentage
-                
-                # Determine status
-                status = 'passed' if score >= 0.7 else 'failed'
-                
-                return EvaluationResult(
-                    score=score,
-                    status=status,
-                    details={
-                        'method': 'regex',
-                        'extracted_score': score_str,
-                        'pattern': pattern
-                    },
-                    reasoning=f'Extracted score {score_str} using pattern {pattern}'
-                )
+                # Check if we have capture groups
+                if match.lastindex and match.lastindex >= 1:
+                    # Mode 1: Extract value from capture group
+                    extracted = match.group(1)
+                    
+                    # Try to interpret as score
+                    try:
+                        score = float(extracted)
+                        # Normalize to 0-1 if > 1
+                        if score > 1.0:
+                            score = score / 100.0
+                        status = 'passed' if score >= 0.7 else 'failed'
+                        
+                        return EvaluationResult(
+                            score=score,
+                            status=status,
+                            details={
+                                'method': 'regex_extract',
+                                'extracted_value': extracted,
+                                'pattern': pattern
+                            },
+                            reasoning=f'Extracted value "{extracted}" → score {score}'
+                        )
+                    except ValueError:
+                        # Not a number, treat as string matching
+                        # Compare extracted value with expected
+                        if expected is not None:
+                            expected_str = str(expected)
+                            # Check if extracted matches expected
+                            is_match = extracted.strip().lower() == expected_str.strip().lower()
+                            score = 1.0 if is_match else 0.0
+                            
+                            return EvaluationResult(
+                                score=score,
+                                status='passed' if is_match else 'failed',
+                                details={
+                                    'method': 'regex_match',
+                                    'extracted_value': extracted,
+                                    'expected': expected_str,
+                                    'match': is_match,
+                                    'pattern': pattern
+                                },
+                                reasoning=f'Extracted "{extracted}" vs expected "{expected_str}": {"MATCH" if is_match else "NO MATCH"}'
+                            )
+                        else:
+                            # No expected value, just return extracted
+                            return EvaluationResult(
+                                score=1.0,
+                                status='passed',
+                                details={
+                                    'method': 'regex_extract',
+                                    'extracted_value': extracted,
+                                    'pattern': pattern
+                                },
+                                reasoning=f'Successfully extracted: {extracted}'
+                            )
+                else:
+                    # Mode 2: Full match (no capture groups)
+                    # Regex matched something - that's a pass
+                    return EvaluationResult(
+                        score=1.0,
+                        status='passed',
+                        details={
+                            'method': 'regex_full_match',
+                            'matched_text': match.group(0),
+                            'pattern': pattern
+                        },
+                        reasoning=f'Pattern matched: {match.group(0)}'
+                    )
             else:
+                # No match found
                 return EvaluationResult(
                     score=0.0,
                     status='failed',
                     details={
-                        'method': 'regex',
+                        'method': 'regex_no_match',
                         'error': 'Pattern not found in response',
                         'pattern': pattern
                     },
-                    reasoning=f'Regex pattern {pattern} did not match response'
+                    reasoning=f'Regex pattern did not match response'
                 )
                 
         except Exception as e:
@@ -125,10 +193,87 @@ class CustomEvaluator:
                 score=0.0,
                 status='failed',
                 details={
-                    'method': 'regex',
+                    'method': 'regex_error',
                     'error': str(e)
                 },
                 reasoning=f'Regex evaluation failed: {str(e)}'
+            )
+    
+    def _evaluate_hybrid(self, response: str, expected: Any, level: int) -> EvaluationResult:
+        """
+        Hybrid mode: LLM generates evaluation text, regex extracts score.
+        
+        Args:
+            response: The LLM response to evaluate
+            expected: Expected result or criteria
+            level: Test level (1-5)
+            
+        Returns:
+            EvaluationResult with score and details
+        """
+        try:
+            # Build evaluation prompt
+            eval_prompt_text = self.eval_prompt
+            eval_prompt_text = eval_prompt_text.replace('{response}', response)
+            
+            if expected:
+                expected_str = json.dumps(expected) if isinstance(expected, (dict, list)) else str(expected)
+                eval_prompt_text = eval_prompt_text.replace('{expected}', expected_str)
+            
+            eval_prompt_text = eval_prompt_text.replace('{level}', str(level))
+            
+            # Send to LLM
+            messages = [{"role": "user", "content": eval_prompt_text}]
+            llm_response = llm_client.chat_completion(messages)
+            llm_output = llm_client.extract_content(llm_response)
+            
+            # Now use regex to extract score from LLM output
+            pattern = self.extraction_regex
+            match = re.search(pattern, llm_output, re.IGNORECASE | re.DOTALL)
+            
+            if match and match.lastindex and match.lastindex >= 1:
+                score_str = match.group(1)
+                score = float(score_str)
+                
+                # Normalize score
+                if score > 1.0:
+                    score = score / 100.0
+                
+                status = 'passed' if score >= 0.7 else 'failed'
+                
+                return EvaluationResult(
+                    score=score,
+                    status=status,
+                    details={
+                        'method': 'hybrid',
+                        'llm_output': llm_output[:500],  # Truncate for storage
+                        'extracted_score': score_str,
+                        'pattern': pattern
+                    },
+                    reasoning=f'LLM evaluated → Regex extracted score {score_str} → {score*100:.0f}%'
+                )
+            else:
+                return EvaluationResult(
+                    score=0.0,
+                    status='failed',
+                    details={
+                        'method': 'hybrid',
+                        'llm_output': llm_output[:500],
+                        'error': 'Regex failed to extract score from LLM output',
+                        'pattern': pattern
+                    },
+                    reasoning='LLM generated evaluation but regex could not extract score'
+                )
+                
+        except Exception as e:
+            return EvaluationResult(
+                score=0.0,
+                status='failed',
+                details={
+                    'method': 'hybrid_error',
+                    'error': str(e)
+                },
+                reasoning=f'Hybrid evaluation failed: {str(e)}'
             )
     
     def _evaluate_with_prompt(self, response: str, expected: Any, level: int) -> EvaluationResult:

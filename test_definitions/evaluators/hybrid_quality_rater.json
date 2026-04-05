@@ -1,0 +1,10 @@
+{
+  "id": "hybrid_quality_rater",
+  "name": "Quality Rater (Hybrid)",
+  "type": "hybrid",
+  "description": "LLM evaluates response quality, regex extracts final score",
+  "eval_prompt": "Evaluate this response quality from 0-100:\n\nResponse: {response}\nExpected: {expected}\n\nConsider:\n- Correctness\n- Completeness\n- Clarity\n\nProvide your evaluation and end with: SCORE: <number>",
+  "extraction_regex": "SCORE:\\s*(\\d+)",
+  "uses_pass2": false,
+  "config": {}
+}

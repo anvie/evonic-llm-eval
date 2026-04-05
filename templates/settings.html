@@ -134,6 +134,11 @@
                     <input type="text" id="test-description" placeholder="Brief description">
                 </div>
                 <div class="form-group">
+                    <label>System Prompt (Optional)</label>
+                    <textarea id="test-system-prompt" rows="3" placeholder="Custom system prompt for this test (overrides domain-level system prompt)"></textarea>
+                    <small>Leave empty to use domain-level system prompt or no system prompt</small>
+                </div>
+                <div class="form-group">
                     <label>Prompt *</label>
                     <textarea id="test-prompt" rows="4" required placeholder="The prompt to send to the LLM"></textarea>
                 </div>
@@ -196,18 +201,25 @@
                 <div class="form-group">
                     <label>Type</label>
                     <select id="evaluator-type" onchange="toggleEvaluatorType()">
-                        <option value="custom">Custom</option>
+                        <option value="custom">LLM-based (Custom Prompt)</option>
+                        <option value="regex">Regex Pattern Matcher</option>
+                        <option value="hybrid">Hybrid (LLM + Regex)</option>
                     </select>
                 </div>
                 <div class="form-group" id="eval-prompt-group">
                     <label>Evaluation Prompt</label>
-                    <textarea id="evaluator-prompt" rows="5" placeholder="Prompt template for LLM evaluation. Use {response} and {expected} as placeholders."></textarea>
+                    <textarea id="evaluator-prompt" rows="5" placeholder="Prompt template for LLM evaluation. Use {response} and {expected} as placeholders.\n\nExample:\nAnalyze this response and rate it from 0-100:\nResponse: {response}\nExpected: {expected}\n\nScore:"></textarea>
                     <small>Use {response}, {expected}, {level} as placeholders</small>
                 </div>
                 <div class="form-group" id="eval-regex-group">
                     <label>Extraction Regex</label>
                     <input type="text" id="evaluator-regex" placeholder="SCORE:\s*(\d+)">
-                    <small>Regex pattern with capture group for score extraction</small>
+                    <small>Regex pattern with capture group for score/answer extraction. Example patterns:<br>
+                        • Extract number: <code>Jawaban:\s*(\d+)</code><br>
+                        • Exact match: <code>^(Expected Answer)$</code><br>
+                        • Extract date: <code>(\d{4}-\d{2}-\d{2})</code><br>
+                        • Multiple choice: <code>Jawaban:\s*([ABCD])</code>
+                    </small>
                 </div>
             </form>
         </div>
@@ -1031,6 +1043,7 @@ async function editTest(testId, domainId) {
         document.getElementById('test-level').value = test.level;
         document.getElementById('test-name').value = test.name;
         document.getElementById('test-description').value = test.description || '';
+        document.getElementById('test-system-prompt').value = test.system_prompt || '';
         document.getElementById('test-prompt').value = test.prompt;
         document.getElementById('test-expected').value = test.expected ? JSON.stringify(test.expected, null, 2) : '';
         document.getElementById('test-evaluator').value = test.evaluator_id || '';
@@ -1064,6 +1077,7 @@ async function saveTest() {
         level: parseInt(document.getElementById('test-level').value),
         name: document.getElementById('test-name').value,
         description: document.getElementById('test-description').value,
+        system_prompt: document.getElementById('test-system-prompt').value || null,
         prompt: document.getElementById('test-prompt').value,
         expected: expected,
         evaluator_id: document.getElementById('test-evaluator').value,
@@ -1174,7 +1188,23 @@ async function deleteEvaluator(evaluatorId) {
 }
 
 function toggleEvaluatorType() {
-    // Future: could show/hide different fields based on evaluator type
+    const type = document.getElementById('evaluator-type').value;
+    const promptGroup = document.getElementById('eval-prompt-group');
+    const regexGroup = document.getElementById('eval-regex-group');
+    
+    if (type === 'regex') {
+        // Regex-only mode
+        promptGroup.style.display = 'none';
+        regexGroup.style.display = 'block';
+    } else if (type === 'custom') {
+        // LLM prompt-only mode
+        promptGroup.style.display = 'block';
+        regexGroup.style.display = 'none';
+    } else if (type === 'hybrid') {
+        // Both LLM prompt and regex extraction
+        promptGroup.style.display = 'block';
+        regexGroup.style.display = 'block';
+    }
 }
 
 // Import/Export Functions
