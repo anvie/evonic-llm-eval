@@ -545,18 +545,46 @@ class EvaluationEngine:
         """
         from evaluator.test_loader import test_loader
         
-        # Load domain
+        # Load domain first (always needed for fallback)
         domain = test_loader.load_domain(domain_name)
         
         # Get test as TestDefinition for consistency
         test_def = test_loader.get_test(test['id'])
         
-        if not test_def:
-            # Fallback: use raw test dict
+        if not test_def and domain:
+            # Test not found as TestDefinition, but we have domain
+            # Create minimal TestDefinition from test dict
+            from evaluator.test_loader import TestDefinition
+            test_def = TestDefinition(
+                id=test.get('id', ''),
+                name=test.get('name', ''),
+                description=test.get('description', ''),
+                prompt=test.get('prompt', ''),
+                expected=test.get('expected', {}),
+                evaluator_id=test.get('evaluator_id', ''),
+                domain_id=domain_name,
+                level=test.get('level', 1),
+                system_prompt=test.get('system_prompt'),
+                system_prompt_mode=test.get('system_prompt_mode', 'overwrite')
+            )
+        elif not test_def:
+            # No test def and no domain - last resort fallback
             return test.get('system_prompt')
         
-        # Use hierarchy resolver
-        return test_loader.resolve_system_prompt(test_def, domain)
+        # Use hierarchy resolver (handles domain fallback automatically)
+        resolved = test_loader.resolve_system_prompt(test_def, domain)
+        
+        # Log for debugging
+        if resolved:
+            self._log(f'[SYSTEM] Resolved system prompt: {len(resolved)} chars')
+            if test_def.system_prompt and domain and domain.system_prompt:
+                self._log(f'[SYSTEM] Mode: {test_def.system_prompt_mode} (test + domain)')
+            elif domain and domain.system_prompt:
+                self._log(f'[SYSTEM] Using domain-level system prompt')
+            elif test_def.system_prompt:
+                self._log(f'[SYSTEM] Using test-level system prompt')
+        
+        return resolved
     
     def _run_single_configurable_test(self, test: Dict[str, Any], domain: str, 
                                        level: int, model_name: str, run_id: str) -> TestResult:
