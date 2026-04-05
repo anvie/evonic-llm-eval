@@ -183,6 +183,12 @@ class Database:
                 )
             """)
             
+            # Add system_prompt column to individual_test_results if it doesn't exist
+            cursor.execute("PRAGMA table_info(individual_test_results)")
+            itr_cols = [row[1] for row in cursor.fetchall()]
+            if 'system_prompt' not in itr_cols:
+                cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt TEXT")
+            
             # Create indexes for faster queries
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tests_domain ON tests(domain_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tests_level ON tests(domain_id, level)")
@@ -645,13 +651,14 @@ class Database:
     # Individual test results operations
     def save_individual_test_result(self, run_id: str, test_id: str, domain: str, level: int,
                                     prompt: str, response: str, expected: str, score: float,
-                                    status: str, details: str, duration_ms: int, model_name: str):
-        """Save individual test result"""
+                                    status: str, details: str, duration_ms: int, model_name: str,
+                                    system_prompt: str = None):
+        """Save individual test result with optional system_prompt"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO individual_test_results 
-                (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name)
+                (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name))
             conn.commit()
@@ -663,10 +670,11 @@ class Database:
             cursor = conn.cursor()
             
             # JOIN with tests and domains tables to get system prompts
+            # But first try to get system_prompt from individual_test_results (what was actually used)
             if domain and level:
                 cursor.execute("""
                     SELECT itr.*, 
-                           t.system_prompt as test_system_prompt, 
+                           COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
                            t.system_prompt_mode as test_system_prompt_mode,
                            d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
@@ -677,7 +685,7 @@ class Database:
             elif domain:
                 cursor.execute("""
                     SELECT itr.*, 
-                           t.system_prompt as test_system_prompt, 
+                           COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
                            t.system_prompt_mode as test_system_prompt_mode,
                            d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
@@ -688,7 +696,7 @@ class Database:
             else:
                 cursor.execute("""
                     SELECT itr.*, 
-                           t.system_prompt as test_system_prompt, 
+                           COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
                            t.system_prompt_mode as test_system_prompt_mode,
                            d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr

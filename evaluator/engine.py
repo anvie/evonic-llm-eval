@@ -776,7 +776,7 @@ class EvaluationEngine:
         status_icon = '✓' if result.status == 'passed' else '✗'
         self._log(f'[RESULT] {status_icon} Status: {result.status.upper()}, Score: {result.score*100:.0f}%')
         
-        # Save individual test result
+        # Save individual test result with resolved system_prompt
         db.save_individual_test_result(
             run_id=run_id,
             test_id=test_id,
@@ -789,7 +789,8 @@ class EvaluationEngine:
             status=result.status,
             details=json.dumps(details) if details else None,
             duration_ms=duration_ms,
-            model_name=model_name
+            model_name=model_name,
+            system_prompt=system_prompt  # Save the resolved system prompt that was actually used
         )
         
         self._log(f'═══════════════════════════════════════════════════════════════')
