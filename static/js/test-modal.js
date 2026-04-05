@@ -135,26 +135,34 @@ function renderTestDetail(test, domain) {
     }
 
     // System Prompt (collapsible, only if present)
-    // Priority 1: Use saved system_prompt from individual_test_results (what was actually used)
-    // Priority 2: Reconstruct from test/domain prompts if not saved
+    // Priority 1: Use resolved_system_prompt (saved from evaluation)
+    // Priority 2: Use saved system_prompt from individual_test_results
+    // Priority 3: Reconstruct from test/domain prompts if not saved
     
+    const resolvedPrompt = test.resolved_system_prompt || details.resolved_system_prompt || null;
+    const resolvedMode = test.resolved_system_prompt_mode || details.resolved_system_prompt_mode || null;
     const savedSystemPrompt = test.system_prompt || details.system_prompt || null;
     const savedMode = test.system_prompt_mode || details.system_prompt_mode || null;
     
     let systemPrompt = null;
-    let systemPromptMode = savedMode || 'overwrite';
+    let systemPromptMode = null;
     
-    if (savedSystemPrompt) {
-        // Use the saved resolved system prompt (highest priority)
+    if (resolvedPrompt) {
+        // Priority 1: Use resolved prompt (what was actually used during evaluation)
+        systemPrompt = resolvedPrompt;
+        systemPromptMode = resolvedMode || 'overwrite';
+    } else if (savedSystemPrompt) {
+        // Priority 2: Use saved prompt without mode
         systemPrompt = savedSystemPrompt;
+        systemPromptMode = savedMode || 'overwrite';
     } else {
-        // Fallback: reconstruct from test and domain prompts
+        // Priority 3: Reconstruct from test and domain prompts
         const testPrompt = test.system_prompt || details.test_system_prompt || null;
         const domainPrompt = test.domain_system_prompt || details.domain_system_prompt || null;
         
         if (testPrompt && domainPrompt) {
             // Both exist - apply mode
-            if (savedMode === 'append') {
+            if (savedMode === 'append' || resolvedMode === 'append') {
                 systemPrompt = domainPrompt + '\n\n' + testPrompt;
                 systemPromptMode = 'append';
             } else {

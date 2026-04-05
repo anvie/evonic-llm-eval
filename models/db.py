@@ -672,13 +672,15 @@ class Database:
             cursor = conn.cursor()
             
             # JOIN with tests and domains tables to get system prompts
-            # But first try to get system_prompt from individual_test_results (what was actually used)
+            # Priority: individual_test_results.system_prompt (saved resolved) > tests.system_prompt > domains.system_prompt
             if domain and level:
                 cursor.execute("""
                     SELECT itr.*, 
                            COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
                            COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
-                           d.system_prompt as domain_system_prompt
+                           d.system_prompt as domain_system_prompt,
+                           itr.system_prompt as resolved_system_prompt,
+                           itr.system_prompt_mode as resolved_system_prompt_mode
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
                     JOIN domains d ON itr.domain = d.id
@@ -689,7 +691,9 @@ class Database:
                     SELECT itr.*, 
                            COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
                            COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
-                           d.system_prompt as domain_system_prompt
+                           d.system_prompt as domain_system_prompt,
+                           itr.system_prompt as resolved_system_prompt,
+                           itr.system_prompt_mode as resolved_system_prompt_mode
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
                     JOIN domains d ON itr.domain = d.id
@@ -700,7 +704,9 @@ class Database:
                     SELECT itr.*, 
                            COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
                            COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
-                           d.system_prompt as domain_system_prompt
+                           d.system_prompt as domain_system_prompt,
+                           itr.system_prompt as resolved_system_prompt,
+                           itr.system_prompt_mode as resolved_system_prompt_mode
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
                     JOIN domains d ON itr.domain = d.id
