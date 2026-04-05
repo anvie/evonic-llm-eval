@@ -183,11 +183,13 @@ class Database:
                 )
             """)
             
-            # Add system_prompt column to individual_test_results if it doesn't exist
+            # Add system_prompt and system_prompt_mode columns to individual_test_results if they don't exist
             cursor.execute("PRAGMA table_info(individual_test_results)")
             itr_cols = [row[1] for row in cursor.fetchall()]
             if 'system_prompt' not in itr_cols:
                 cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt TEXT")
+            if 'system_prompt_mode' not in itr_cols:
+                cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt_mode TEXT")
             
             # Create indexes for faster queries
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tests_domain ON tests(domain_id)")
@@ -652,15 +654,15 @@ class Database:
     def save_individual_test_result(self, run_id: str, test_id: str, domain: str, level: int,
                                     prompt: str, response: str, expected: str, score: float,
                                     status: str, details: str, duration_ms: int, model_name: str,
-                                    system_prompt: str = None):
-        """Save individual test result with optional system_prompt"""
+                                    system_prompt: str = None, system_prompt_mode: str = None):
+        """Save individual test result with optional system_prompt and mode"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO individual_test_results 
-                (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt))
+                (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt, system_prompt_mode)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt, system_prompt_mode))
             conn.commit()
     
     def get_individual_test_results(self, run_id: str, domain: str = None, level: int = None) -> List[Dict[str, Any]]:
@@ -675,7 +677,7 @@ class Database:
                 cursor.execute("""
                     SELECT itr.*, 
                            COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
-                           t.system_prompt_mode as test_system_prompt_mode,
+                           COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
                            d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
@@ -686,7 +688,7 @@ class Database:
                 cursor.execute("""
                     SELECT itr.*, 
                            COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
-                           t.system_prompt_mode as test_system_prompt_mode,
+                           COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
                            d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
@@ -697,7 +699,7 @@ class Database:
                 cursor.execute("""
                     SELECT itr.*, 
                            COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
-                           t.system_prompt_mode as test_system_prompt_mode,
+                           COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
                            d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id

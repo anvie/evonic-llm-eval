@@ -574,6 +574,13 @@ class EvaluationEngine:
         # Use hierarchy resolver (handles domain fallback automatically)
         resolved = test_loader.resolve_system_prompt(test_def, domain)
         
+        # DEBUG: Log what resolver returns
+        self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] test_def.system_prompt exists: {bool(test_def.system_prompt)}')
+        self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] test_def.system_prompt_mode: {test_def.system_prompt_mode}')
+        if resolved:
+            self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] Resolved length: {len(resolved)}')
+            self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] Contains TOOLS: {"## TOOLS" in resolved}')
+        
         # Log for debugging with domain/level context and actual snippet
         if resolved:
             # Create a snippet (first 100 chars, replace newlines)
@@ -776,7 +783,17 @@ class EvaluationEngine:
         status_icon = '✓' if result.status == 'passed' else '✗'
         self._log(f'[RESULT] {status_icon} Status: {result.status.upper()}, Score: {result.score*100:.0f}%')
         
-        # Save individual test result with resolved system_prompt
+        # DEBUG: Log what we're about to save
+        self._log(f'[DEBUG SAVE][TIMESTAMP] About to save...')
+        if system_prompt:
+            self._log(f'[DEBUG SAVE] variable id: {id(system_prompt)}')
+            self._log(f'[DEBUG SAVE] system_prompt length: {len(system_prompt)} chars')
+            self._log(f'[DEBUG SAVE] Contains tools section: {"## TOOLS" in system_prompt}')
+            self._log(f'[DEBUG SAVE] First 80 chars: {system_prompt[:80]}...')
+        else:
+            self._log(f'[DEBUG SAVE] system_prompt is None/Empty!')
+        
+        # Save individual test result with resolved system_prompt and mode
         db.save_individual_test_result(
             run_id=run_id,
             test_id=test_id,
@@ -790,7 +807,8 @@ class EvaluationEngine:
             details=json.dumps(details) if details else None,
             duration_ms=duration_ms,
             model_name=model_name,
-            system_prompt=system_prompt  # Save the resolved system prompt that was actually used
+            system_prompt=system_prompt,  # Save the resolved system prompt that was actually used
+            system_prompt_mode=test.get('system_prompt_mode', 'overwrite')  # Save the mode
         )
         
         self._log(f'═══════════════════════════════════════════════════════════════')
