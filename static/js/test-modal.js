@@ -135,33 +135,42 @@ function renderTestDetail(test, domain) {
     }
 
     // System Prompt (collapsible, only if present)
-    // Get both test-level and domain-level prompts
-    const testPrompt = test.system_prompt || details.test_system_prompt || null;
-    const domainPrompt = test.domain_system_prompt || details.domain_system_prompt || null;
-    const testPromptMode = test.system_prompt_mode || details.test_system_prompt_mode || 'overwrite';
+    // Priority 1: Use saved system_prompt from individual_test_results (what was actually used)
+    // Priority 2: Reconstruct from test/domain prompts if not saved
     
-    // Determine final system prompt and mode
+    const savedSystemPrompt = test.system_prompt || details.system_prompt || null;
+    const savedMode = test.system_prompt_mode || details.system_prompt_mode || null;
+    
     let systemPrompt = null;
-    let systemPromptMode = null;
+    let systemPromptMode = savedMode || 'overwrite';
     
-    if (testPrompt && domainPrompt) {
-        // Both exist - apply mode
-        if (testPromptMode === 'append') {
-            systemPrompt = domainPrompt + '\n\n' + testPrompt;
-            systemPromptMode = 'append';
-        } else {
-            // overwrite mode
+    if (savedSystemPrompt) {
+        // Use the saved resolved system prompt (highest priority)
+        systemPrompt = savedSystemPrompt;
+    } else {
+        // Fallback: reconstruct from test and domain prompts
+        const testPrompt = test.system_prompt || details.test_system_prompt || null;
+        const domainPrompt = test.domain_system_prompt || details.domain_system_prompt || null;
+        
+        if (testPrompt && domainPrompt) {
+            // Both exist - apply mode
+            if (savedMode === 'append') {
+                systemPrompt = domainPrompt + '\n\n' + testPrompt;
+                systemPromptMode = 'append';
+            } else {
+                // overwrite mode
+                systemPrompt = testPrompt;
+                systemPromptMode = 'overwrite';
+            }
+        } else if (testPrompt) {
+            // Only test-level
             systemPrompt = testPrompt;
             systemPromptMode = 'overwrite';
+        } else if (domainPrompt) {
+            // Only domain-level (fallback)
+            systemPrompt = domainPrompt;
+            systemPromptMode = 'overwrite';
         }
-    } else if (testPrompt) {
-        // Only test-level
-        systemPrompt = testPrompt;
-        systemPromptMode = 'overwrite';
-    } else if (domainPrompt) {
-        // Only domain-level (fallback)
-        systemPrompt = domainPrompt;
-        systemPromptMode = 'overwrite';
     }
     if (systemPrompt) {
         const modeBadge = systemPromptMode === 'append' 
