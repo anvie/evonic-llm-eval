@@ -454,6 +454,26 @@ def api_delete_domain(domain_id):
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
+# Level operations
+@app.route('/api/settings/levels/<domain_id>/<int:level>', methods=['GET'])
+def api_get_level(domain_id, level):
+    """Get level configuration"""
+    from evaluator.test_manager import test_manager
+    result = test_manager.get_level(domain_id, level)
+    return jsonify({'success': True, 'level': result})
+
+@app.route('/api/settings/levels/<domain_id>/<int:level>', methods=['PUT'])
+def api_update_level(domain_id, level):
+    """Update level configuration"""
+    from evaluator.test_manager import test_manager
+    data = request.get_json()
+    try:
+        result = test_manager.update_level(domain_id, level, data)
+        return jsonify({'success': True, 'level': result})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
 # Test operations
 @app.route('/api/settings/tests', methods=['GET'])
 def api_list_tests():

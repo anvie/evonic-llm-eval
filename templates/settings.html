@@ -276,6 +276,39 @@
     </div>
 </div>
 
+<!-- Level System Prompt Modal -->
+<div id="level-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="level-modal-title">Level System Prompt</h3>
+            <button onclick="closeModal('level-modal')" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="level-form">
+                <input type="hidden" id="level-domain-id">
+                <input type="hidden" id="level-number">
+                <div class="form-group">
+                    <label>System Prompt (Optional)</label>
+                    <textarea id="level-system-prompt" rows="6" placeholder="System prompt for all tests in this level"></textarea>
+                    <small>Leave empty to inherit from domain. This prompt sits between domain and test-level prompts.</small>
+                </div>
+                <div class="form-group" id="level-mode-group" style="display:none;">
+                    <label>System Prompt Mode</label>
+                    <select id="level-system-prompt-mode">
+                        <option value="overwrite">Overwrite (replace domain prompt)</option>
+                        <option value="append">Append (add to domain prompt)</option>
+                    </select>
+                    <small>How this level's prompt combines with the domain-level prompt</small>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('level-modal')" class="btn-secondary">Cancel</button>
+            <button onclick="saveLevelPrompt()" class="btn-primary">Save</button>
+        </div>
+    </div>
+</div>
+
 <style>
 .settings-container {
     max-width: 1200px;
@@ -455,6 +488,16 @@
     background: #f3f4f6;
     border-radius: 5px;
     margin-bottom: 10px;
+}
+
+.level-prompt-badge {
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+.btn-sm {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
 }
 
 .level-tests {
@@ -847,12 +890,17 @@ function renderDomains() {
 
 function renderLevelGroups(domain) {
     return [1, 2, 3, 4, 5].map(level => {
-        const testCount = domain.levels ? (domain.levels[level] || 0) : 0;
+        const levelData = domain.levels ? domain.levels[level] : null;
+        const testCount = levelData ? (typeof levelData === 'object' ? levelData.test_count : levelData) : 0;
+        const hasPrompt = levelData && typeof levelData === 'object' && levelData.has_system_prompt;
         return `
             <div class="level-group">
                 <div class="level-header">
-                    <span>Level ${level} (${testCount} tests)</span>
-                    <button class="btn-secondary" onclick="showAddTestModal('${domain.id}', ${level})">+ Add Test</button>
+                    <span>Level ${level} (${testCount} tests) ${hasPrompt ? '<span class="level-prompt-badge" title="Has system prompt">📝</span>' : ''}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-secondary btn-sm" onclick="event.stopPropagation(); editLevelPrompt('${domain.id}', ${level})" title="Edit level system prompt">🎭 Prompt</button>
+                        <button class="btn-secondary" onclick="showAddTestModal('${domain.id}', ${level})">+ Add Test</button>
+                    </div>
                 </div>
                 <div class="level-tests" id="level-tests-${domain.id}-${level}">
                     <span class="loading">Loading...</span>
@@ -1041,6 +1089,56 @@ async function loadDomainTests(domainId) {
     }
 }
 
+// Level Functions
+async function editLevelPrompt(domainId, level) {
+    try {
+        const data = await apiGet(`/api/settings/levels/${domainId}/${level}`);
+        const levelData = data.level || {};
+
+        document.getElementById('level-modal-title').textContent = `Level ${level} System Prompt — ${domainId}`;
+        document.getElementById('level-domain-id').value = domainId;
+        document.getElementById('level-number').value = level;
+        document.getElementById('level-system-prompt').value = levelData.system_prompt || '';
+        document.getElementById('level-system-prompt-mode').value = levelData.system_prompt_mode || 'overwrite';
+
+        // Show/hide mode selector based on whether there's a prompt
+        const modeGroup = document.getElementById('level-mode-group');
+        modeGroup.style.display = levelData.system_prompt ? 'block' : 'none';
+
+        // Toggle mode visibility on prompt input
+        document.getElementById('level-system-prompt').oninput = function() {
+            modeGroup.style.display = this.value.trim() ? 'block' : 'none';
+        };
+
+        openModal('level-modal');
+    } catch (error) {
+        console.error('Error loading level:', error);
+        alert('Failed to load level configuration');
+    }
+}
+
+async function saveLevelPrompt() {
+    const domainId = document.getElementById('level-domain-id').value;
+    const level = document.getElementById('level-number').value;
+    const data = {
+        system_prompt: document.getElementById('level-system-prompt').value || null,
+        system_prompt_mode: document.getElementById('level-system-prompt-mode').value,
+    };
+
+    try {
+        const result = await apiPut(`/api/settings/levels/${domainId}/${level}`, data);
+        if (result.success) {
+            closeModal('level-modal');
+            await loadDomains();
+        } else {
+            alert('Error: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error saving level:', error);
+        alert('Failed to save level configuration');
+    }
+}
+
 // Test Functions
 function showAddTestModal(domainId, level) {
     document.getElementById('test-modal-title').textContent = 'Add Test';
@@ -1048,12 +1146,16 @@ function showAddTestModal(domainId, level) {
     document.getElementById('test-id').value = '';
     document.getElementById('test-domain').value = domainId;
     document.getElementById('test-level').value = level;
-    
+
     // Populate domain select
     const domainSelect = document.getElementById('test-domain');
     domainSelect.innerHTML = domains.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
     domainSelect.value = domainId;
-    
+
+    // Set up prompt mode toggle and reset visibility
+    document.getElementById('test-system-prompt').oninput = toggleTestPromptModeVisibility;
+    toggleTestPromptModeVisibility();
+
     openModal('test-modal');
 }
 
@@ -1077,9 +1179,10 @@ async function editTest(testId, domainId) {
         document.getElementById('test-weight').value = test.weight || 1.0;
         document.getElementById('test-enabled').checked = test.enabled !== false;
         
-        // Show/hide mode dropdown based on whether domain has system prompt
+        // Set up prompt mode toggle and show/hide based on current value
+        document.getElementById('test-system-prompt').oninput = toggleTestPromptModeVisibility;
         toggleTestPromptModeVisibility();
-        
+
         openModal('test-modal');
     } catch (error) {
         alert('Error loading test: ' + error);

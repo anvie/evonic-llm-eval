@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from .test_loader import TestLoader, TestDefinition, DomainDefinition, EvaluatorDefinition
+from .test_loader import TestLoader, TestDefinition, DomainDefinition, LevelDefinition, EvaluatorDefinition
 from models.db import db
 
 
@@ -46,17 +46,19 @@ class TestManager:
         result = []
         for domain in domains:
             d = domain.to_dict()
-            # Add test counts
+            # Add test counts and level info
             total_tests = 0
-            for level in range(1, 6):
-                tests = self.loader.load_tests_by_level(domain.id, level)
-                total_tests += len(tests)
-            d['total_tests'] = total_tests
             d['levels'] = {}
             for level in range(1, 6):
                 tests = self.loader.load_tests_by_level(domain.id, level)
-                d['levels'][level] = len(tests)
-            
+                total_tests += len(tests)
+                level_def = self.loader.load_level(domain.id, level)
+                d['levels'][level] = {
+                    'test_count': len(tests),
+                    'has_system_prompt': bool(level_def and level_def.system_prompt)
+                }
+            d['total_tests'] = total_tests
+
             if include_disabled or domain.enabled:
                 result.append(d)
         return result
@@ -66,7 +68,7 @@ class TestManager:
         domain = self.loader.load_domain(domain_id)
         if not domain:
             return None
-        
+
         result = domain.to_dict()
         total_tests = 0
         result['levels'] = {}
@@ -74,9 +76,13 @@ class TestManager:
             tests = self.loader.load_tests_by_level(domain_id, level)
             count = len(tests)
             total_tests += count
-            result['levels'][level] = count
+            level_def = self.loader.load_level(domain_id, level)
+            result['levels'][level] = {
+                'test_count': count,
+                'has_system_prompt': bool(level_def and level_def.system_prompt)
+            }
         result['total_tests'] = total_tests
-        
+
         return result
     
     def create_domain(self, data: Dict[str, Any], is_custom: bool = False) -> Dict[str, Any]:
@@ -188,8 +194,53 @@ class TestManager:
         
         return True
     
+    # ==================== Level Operations ====================
+
+    def get_level(self, domain_id: str, level: int) -> Optional[Dict[str, Any]]:
+        """Get level definition"""
+        level_def = self.loader.load_level(domain_id, level)
+        if level_def:
+            return level_def.to_dict()
+        return {'domain_id': domain_id, 'level': level, 'system_prompt': None, 'system_prompt_mode': 'overwrite'}
+
+    def update_level(self, domain_id: str, level: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update level definition - writes level.json and syncs to DB"""
+        domain = self.loader.load_domain(domain_id)
+        if not domain:
+            raise ValueError(f"Domain '{domain_id}' not found")
+
+        domain_path = Path(domain.path)
+        level_dir = domain_path / f"level_{level}"
+        level_dir.mkdir(parents=True, exist_ok=True)
+
+        level_json_path = level_dir / "level.json"
+
+        # Build level.json content
+        level_data = {
+            'system_prompt': data.get('system_prompt') or None,
+            'system_prompt_mode': data.get('system_prompt_mode', 'overwrite'),
+        }
+
+        # Write to filesystem
+        with open(level_json_path, 'w', encoding='utf-8') as f:
+            json.dump(level_data, f, indent=2, ensure_ascii=False)
+
+        # Sync to DB
+        db.upsert_level({
+            'domain_id': domain_id,
+            'level': level,
+            'system_prompt': level_data['system_prompt'],
+            'system_prompt_mode': level_data['system_prompt_mode'],
+            'path': str(level_json_path),
+        })
+
+        # Clear cache
+        self.loader.clear_cache()
+
+        return {'domain_id': domain_id, 'level': level, **level_data}
+
     # ==================== Test Operations ====================
-    
+
     def list_tests(self, domain_id: str = None, level: int = None) -> List[Dict[str, Any]]:
         """List tests, optionally filtered by domain and level"""
         if domain_id and level:
@@ -469,7 +520,14 @@ class TestManager:
         for domain in self.loader.scan_domains():
             domain_data = domain.to_dict()
             db.upsert_domain(domain_data)
-        
+
+        # Sync levels
+        for domain in self.loader.scan_domains():
+            for level_num in range(1, 6):
+                level_def = self.loader.load_level(domain.id, level_num)
+                if level_def:
+                    db.upsert_level(level_def.to_dict())
+
         # Sync tests
         for test in self.loader.load_all_tests():
             test_data = test.to_dict()

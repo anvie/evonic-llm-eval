@@ -242,6 +242,10 @@ class EvaluationEngine:
             model_name: Model being evaluated
             selected_domains: List of domain names to test (None = all domains)
         """
+        # Clear global test_loader cache to ensure fresh data
+        from evaluator.test_loader import test_loader
+        test_loader.clear_cache()
+
         # Sync tests from files to database
         test_manager.sync_to_db()
         
@@ -533,76 +537,65 @@ class EvaluationEngine:
     
     def _resolve_system_prompt(self, test: Dict[str, Any], domain_name: str) -> Optional[str]:
         """
-        Resolve system prompt using hierarchy:
-        Domain-level → Test-level with mode (overwrite/append)
-        
+        Resolve system prompt using 3-layer hierarchy:
+        Domain-level → Level-level → Test-level with mode (overwrite/append)
+
         Args:
-            test: Test dictionary
+            test: Test dictionary (fresh from test_manager.list_tests)
             domain_name: Domain name to load
-        
+
         Returns:
             Resolved system prompt or None
         """
-        from evaluator.test_loader import test_loader
-        
+        from evaluator.test_loader import test_loader, TestDefinition
+
         # Load domain first (always needed for fallback)
         domain = test_loader.load_domain(domain_name)
-        
-        # Get test as TestDefinition for consistency
-        test_def = test_loader.get_test(test['id'])
-        
-        if not test_def and domain:
-            # Test not found as TestDefinition, but we have domain
-            # Create minimal TestDefinition from test dict
-            from evaluator.test_loader import TestDefinition
-            test_def = TestDefinition(
-                id=test.get('id', ''),
-                name=test.get('name', ''),
-                description=test.get('description', ''),
-                prompt=test.get('prompt', ''),
-                expected=test.get('expected', {}),
-                evaluator_id=test.get('evaluator_id', ''),
-                domain_id=domain_name,
-                level=test.get('level', 1),
-                system_prompt=test.get('system_prompt'),
-                system_prompt_mode=test.get('system_prompt_mode', 'overwrite')
-            )
-        elif not test_def:
-            # No test def and no domain - last resort fallback
-            return test.get('system_prompt')
-        
-        # Use hierarchy resolver (handles domain fallback automatically)
-        resolved = test_loader.resolve_system_prompt(test_def, domain)
-        
-        # DEBUG: Log what resolver returns
-        self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] test_def.system_prompt exists: {bool(test_def.system_prompt)}')
-        self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] test_def.system_prompt_mode: {test_def.system_prompt_mode}')
+
+        # Load level definition
+        level_num = test.get('level', 1)
+        level_def = test_loader.load_level(domain_name, level_num)
+
+        # Always build TestDefinition from the test dict (which is fresh from
+        # test_manager.list_tests). Don't use test_loader.get_test() as it may
+        # return stale cached data from a different TestLoader instance.
+        test_def = TestDefinition(
+            id=test.get('id', ''),
+            name=test.get('name', ''),
+            description=test.get('description', ''),
+            prompt=test.get('prompt', ''),
+            expected=test.get('expected', {}),
+            evaluator_id=test.get('evaluator_id', ''),
+            domain_id=domain_name,
+            level=level_num,
+            system_prompt=test.get('system_prompt'),
+            system_prompt_mode=test.get('system_prompt_mode', 'overwrite')
+        )
+
+        # Use 3-layer hierarchy resolver
+        resolved = test_loader.resolve_system_prompt(test_def, domain, level_def)
+
+        # Determine source for logging
         if resolved:
-            self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] Resolved length: {len(resolved)}')
-            self._log(f'[DEBUG RESOLVE][{domain_name}][L{test.get("level", "?")}] Contains TOOLS: {"## TOOLS" in resolved}')
-        
-        # Log for debugging with domain/level context and actual snippet
-        if resolved:
-            # Create a snippet (first 100 chars, replace newlines)
             snippet = resolved.replace('\n', ' ').strip()[:100]
             if len(resolved) > 100:
                 snippet += '...'
-            
-            # Determine source level
-            if test_def.system_prompt and domain and domain.system_prompt:
-                source = f'TEST+DOMAIN (mode={test_def.system_prompt_mode})'
-            elif domain and domain.system_prompt:
-                source = 'DOMAIN'
-            elif test_def.system_prompt:
-                source = 'TEST'
-            else:
-                source = 'UNKNOWN'
-            
-            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Source: {source}')
-            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Prompt ({len(resolved)} chars): {snippet}')
+
+            sources = []
+            if domain and domain.system_prompt:
+                sources.append('DOMAIN')
+            if level_def and level_def.system_prompt:
+                sources.append(f'LEVEL(mode={level_def.system_prompt_mode})')
+            if test_def.system_prompt:
+                sources.append(f'TEST(mode={test_def.system_prompt_mode})')
+
+            source = '+'.join(sources) if sources else 'UNKNOWN'
+
+            self._log(f'[SYSTEM][{domain_name}][L{level_num}] Source: {source}')
+            self._log(f'[SYSTEM][{domain_name}][L{level_num}] Prompt ({len(resolved)} chars): {snippet}')
         else:
-            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] ⚠️ No system prompt (neither test nor domain has one)')
-        
+            self._log(f'[SYSTEM][{domain_name}][L{level_num}] No system prompt at any level')
+
         return resolved
     
     def _run_single_configurable_test(self, test: Dict[str, Any], domain: str, 
@@ -783,7 +776,7 @@ class EvaluationEngine:
         status_icon = '✓' if result.status == 'passed' else '✗'
         self._log(f'[RESULT] {status_icon} Status: {result.status.upper()}, Score: {result.score*100:.0f}%')
         
-        # DEBUG: Log what we're about to save
+    # DEBUG: Log what we're about to save
         self._log(f'[DEBUG SAVE][TIMESTAMP] About to save...')
         if system_prompt:
             self._log(f'[DEBUG SAVE] variable id: {id(system_prompt)}')
@@ -792,6 +785,11 @@ class EvaluationEngine:
             self._log(f'[DEBUG SAVE] First 80 chars: {system_prompt[:80]}...')
         else:
             self._log(f'[DEBUG SAVE] system_prompt is None/Empty!')
+        
+        # DEBUG: Also log what's in the test dict for reference
+        self._log(f'[DEBUG SAVE] test dict keys: {list(test.keys())}')
+        self._log(f'[DEBUG SAVE] test["system_prompt"]: {test.get("system_prompt")}')
+        self._log(f'[DEBUG SAVE] test["system_prompt_mode"]: {test.get("system_prompt_mode")}')
         
         # Save individual test result with resolved system_prompt and mode
         db.save_individual_test_result(

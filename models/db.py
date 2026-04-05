@@ -106,6 +106,20 @@ class Database:
                 )
             """)
             
+            # Levels table (cache of level.json files)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS levels (
+                    domain_id TEXT NOT NULL,
+                    level INTEGER NOT NULL,
+                    system_prompt TEXT,
+                    system_prompt_mode TEXT DEFAULT 'overwrite',
+                    path TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (domain_id, level),
+                    FOREIGN KEY (domain_id) REFERENCES domains(id)
+                )
+            """)
+
             # Tests table (cache of test JSON files)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS tests (
@@ -459,22 +473,26 @@ class Database:
         """Insert or update a domain"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            system_prompt = domain.get('system_prompt')
+            system_prompt_mode = domain.get('system_prompt_mode', 'overwrite')
             cursor.execute("""
-                INSERT INTO domains (id, name, description, icon, color, evaluator_id, enabled, path, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO domains (id, name, description, icon, color, evaluator_id, system_prompt, system_prompt_mode, enabled, path, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(id) DO UPDATE SET
                     name = excluded.name,
                     description = excluded.description,
                     icon = excluded.icon,
                     color = excluded.color,
                     evaluator_id = excluded.evaluator_id,
+                    system_prompt = excluded.system_prompt,
+                    system_prompt_mode = excluded.system_prompt_mode,
                     enabled = excluded.enabled,
                     path = excluded.path,
                     updated_at = CURRENT_TIMESTAMP
             """, (
                 domain['id'], domain.get('name'), domain.get('description'),
                 domain.get('icon'), domain.get('color'), domain.get('evaluator_id'),
-                domain.get('enabled', True), domain.get('path')
+                system_prompt, system_prompt_mode, domain.get('enabled', True), domain.get('path')
             ))
             conn.commit()
         return domain['id']
@@ -485,11 +503,63 @@ class Database:
             cursor = conn.cursor()
             # First delete all tests in this domain
             cursor.execute("DELETE FROM tests WHERE domain_id = ?", (domain_id,))
+            # Delete level definitions
+            cursor.execute("DELETE FROM levels WHERE domain_id = ?", (domain_id,))
             # Then delete the domain
             cursor.execute("DELETE FROM domains WHERE id = ?", (domain_id,))
             conn.commit()
             return cursor.rowcount > 0
     
+    # Level operations
+    def upsert_level(self, level_data: Dict[str, Any]) -> None:
+        """Insert or update a level definition"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO levels (domain_id, level, system_prompt, system_prompt_mode, path, updated_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(domain_id, level) DO UPDATE SET
+                    system_prompt = excluded.system_prompt,
+                    system_prompt_mode = excluded.system_prompt_mode,
+                    path = excluded.path,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (
+                level_data['domain_id'], level_data['level'],
+                level_data.get('system_prompt'), level_data.get('system_prompt_mode', 'overwrite'),
+                level_data.get('path')
+            ))
+            conn.commit()
+
+    def get_level(self, domain_id: str, level: int) -> Optional[Dict[str, Any]]:
+        """Get a single level definition"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM levels WHERE domain_id = ? AND level = ?",
+                (domain_id, level)
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_levels_for_domain(self, domain_id: str) -> List[Dict[str, Any]]:
+        """Get all level definitions for a domain"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM levels WHERE domain_id = ? ORDER BY level",
+                (domain_id,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def delete_levels_for_domain(self, domain_id: str) -> None:
+        """Delete all level definitions for a domain"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM levels WHERE domain_id = ?", (domain_id,))
+            conn.commit()
+
     # Test operations
     def get_tests(self, domain_id: str = None, level: int = None) -> List[Dict[str, Any]]:
         """Get tests, optionally filtered by domain and level"""
@@ -534,14 +604,18 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             expected_json = json.dumps(test.get('expected')) if test.get('expected') else None
+            system_prompt = test.get('system_prompt')
+            system_prompt_mode = test.get('system_prompt_mode', 'overwrite')
             cursor.execute("""
-                INSERT INTO tests (id, domain_id, level, name, description, prompt, expected, evaluator_id, timeout_ms, weight, enabled, path, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO tests (id, domain_id, level, name, description, system_prompt, system_prompt_mode, prompt, expected, evaluator_id, timeout_ms, weight, enabled, path, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(id) DO UPDATE SET
                     domain_id = excluded.domain_id,
                     level = excluded.level,
                     name = excluded.name,
                     description = excluded.description,
+                    system_prompt = excluded.system_prompt,
+                    system_prompt_mode = excluded.system_prompt_mode,
                     prompt = excluded.prompt,
                     expected = excluded.expected,
                     evaluator_id = excluded.evaluator_id,
@@ -552,7 +626,7 @@ class Database:
                     updated_at = CURRENT_TIMESTAMP
             """, (
                 test['id'], test['domain_id'], test['level'], test.get('name'),
-                test.get('description'), test['prompt'], expected_json,
+                test.get('description'), system_prompt, system_prompt_mode, test['prompt'], expected_json,
                 test.get('evaluator_id'), test.get('timeout_ms', 30000),
                 test.get('weight', 1.0), test.get('enabled', True), test.get('path')
             ))
@@ -666,50 +740,32 @@ class Database:
             conn.commit()
     
     def get_individual_test_results(self, run_id: str, domain: str = None, level: int = None) -> List[Dict[str, Any]]:
-        """Get individual test results for a run with system_prompt from tests table"""
+        """Get individual test results for a run - prioritize saved resolved system_prompt"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # JOIN with tests and domains tables to get system prompts
-            # Priority: individual_test_results.system_prompt (saved resolved) > tests.system_prompt > domains.system_prompt
+            # Select from individual_test_results table directly (has the saved resolved prompt)
+            # JOIN is only needed to get domain name for reference, not for prompt
             if domain and level:
                 cursor.execute("""
-                    SELECT itr.*, 
-                           COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
-                           COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
-                           d.system_prompt as domain_system_prompt,
-                           itr.system_prompt as resolved_system_prompt,
-                           itr.system_prompt_mode as resolved_system_prompt_mode
+                    SELECT itr.*, d.name as domain_name
                     FROM individual_test_results itr
-                    JOIN tests t ON itr.test_id = t.id
-                    JOIN domains d ON itr.domain = d.id
+                    LEFT JOIN domains d ON itr.domain = d.id
                     WHERE itr.run_id = ? AND itr.domain = ? AND itr.level = ?
                 """, (run_id, domain, level))
             elif domain:
                 cursor.execute("""
-                    SELECT itr.*, 
-                           COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
-                           COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
-                           d.system_prompt as domain_system_prompt,
-                           itr.system_prompt as resolved_system_prompt,
-                           itr.system_prompt_mode as resolved_system_prompt_mode
+                    SELECT itr.*, d.name as domain_name
                     FROM individual_test_results itr
-                    JOIN tests t ON itr.test_id = t.id
-                    JOIN domains d ON itr.domain = d.id
+                    LEFT JOIN domains d ON itr.domain = d.id
                     WHERE itr.run_id = ? AND itr.domain = ?
                 """, (run_id, domain))
             else:
                 cursor.execute("""
-                    SELECT itr.*, 
-                           COALESCE(itr.system_prompt, t.system_prompt) as test_system_prompt, 
-                           COALESCE(itr.system_prompt_mode, t.system_prompt_mode) as test_system_prompt_mode,
-                           d.system_prompt as domain_system_prompt,
-                           itr.system_prompt as resolved_system_prompt,
-                           itr.system_prompt_mode as resolved_system_prompt_mode
+                    SELECT itr.*, d.name as domain_name
                     FROM individual_test_results itr
-                    JOIN tests t ON itr.test_id = t.id
-                    JOIN domains d ON itr.domain = d.id
+                    LEFT JOIN domains d ON itr.domain = d.id
                     WHERE itr.run_id = ? ORDER BY itr.domain, itr.level
                 """, (run_id,))
             

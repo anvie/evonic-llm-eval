@@ -122,6 +122,19 @@ class DomainDefinition:
 
 
 @dataclass
+class LevelDefinition:
+    """Represents a level definition within a domain"""
+    domain_id: str
+    level: int
+    system_prompt: Optional[str] = None
+    system_prompt_mode: str = "overwrite"
+    path: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
 class EvaluatorDefinition:
     """Represents an evaluator definition"""
     id: str
@@ -174,6 +187,7 @@ class TestLoader:
         
         # Cache
         self._domains_cache: Dict[str, DomainDefinition] = {}
+        self._levels_cache: Dict[str, LevelDefinition] = {}
         self._tests_cache: Dict[str, List[TestDefinition]] = {}
         self._evaluators_cache: Dict[str, EvaluatorDefinition] = {}
     
@@ -243,6 +257,32 @@ class TestLoader:
         
         return None
     
+    def load_level(self, domain_id: str, level: int) -> Optional[LevelDefinition]:
+        """Load level definition from level.json if it exists"""
+        cache_key = f"{domain_id}:{level}"
+        if cache_key in self._levels_cache:
+            return self._levels_cache[cache_key]
+
+        for base_dir in [self.tests_dir, self.custom_dir]:
+            level_path = base_dir / domain_id / f"level_{level}" / "level.json"
+            if level_path.exists():
+                try:
+                    with open(level_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    level_def = LevelDefinition(
+                        domain_id=domain_id,
+                        level=level,
+                        system_prompt=data.get('system_prompt'),
+                        system_prompt_mode=data.get('system_prompt_mode', 'overwrite'),
+                        path=str(level_path)
+                    )
+                    self._levels_cache[cache_key] = level_def
+                    return level_def
+                except (json.JSONDecodeError, IOError):
+                    pass
+
+        return None
+
     def load_tests_by_level(self, domain_id: str, level: int) -> List[TestDefinition]:
         """Load all tests for a specific domain and level"""
         cache_key = f"{domain_id}:{level}"
@@ -392,50 +432,64 @@ class TestLoader:
     def clear_cache(self):
         """Clear all caches"""
         self._domains_cache.clear()
+        self._levels_cache.clear()
         self._tests_cache.clear()
         self._evaluators_cache.clear()
     
-    def resolve_system_prompt(self, test: TestDefinition, domain: DomainDefinition = None) -> Optional[str]:
+    def resolve_system_prompt(self, test: TestDefinition, domain: DomainDefinition = None, level_def: LevelDefinition = None) -> Optional[str]:
         """
-        Resolve system prompt using hierarchy:
-        Domain-level → Test-level with mode (overwrite/append)
-        
+        Resolve system prompt using 3-layer hierarchy:
+        Domain-level → Level-level → Test-level with mode (overwrite/append)
+
+        Stage 1: Domain + Level → base_prompt
+        Stage 2: base_prompt + Test → final prompt
+
         Args:
             test: Test definition
             domain: Optional domain definition (will load if not provided)
-        
+            level_def: Optional level definition (will load if not provided)
+
         Returns:
             Resolved system prompt or None
         """
         # Load domain if not provided
         if domain is None:
             domain = self.load_domain(test.domain_id)
-            if not domain:
-                return test.system_prompt
-        
-        domain_prompt = domain.system_prompt
+
+        # Load level if not provided
+        if level_def is None:
+            level_def = self.load_level(test.domain_id, test.level)
+
+        # Stage 1: Domain → Level → base_prompt
+        domain_prompt = domain.system_prompt if domain else None
+        base_prompt = domain_prompt
+
+        if level_def and level_def.system_prompt:
+            level_mode = level_def.system_prompt_mode or 'overwrite'
+            if level_mode == 'append' and base_prompt:
+                base_prompt = f"{base_prompt}\n\n{level_def.system_prompt}"
+            else:
+                # overwrite, or no domain prompt to append to
+                base_prompt = level_def.system_prompt
+
+        # Stage 2: base_prompt + Test → final prompt
         test_prompt = test.system_prompt
-        
-        # No system prompts at any level
-        if not domain_prompt and not test_prompt:
+
+        if not base_prompt and not test_prompt:
             return None
-        
-        # Only domain has system prompt
-        if domain_prompt and not test_prompt:
-            return domain_prompt
-        
-        # Only test has system prompt
-        if test_prompt and not domain_prompt:
+
+        if base_prompt and not test_prompt:
+            return base_prompt
+
+        if test_prompt and not base_prompt:
             return test_prompt
-        
-        # Both have system prompts - apply mode
-        mode = test.system_prompt_mode or 'overwrite'
-        
-        if mode == 'append':
-            # Combine: domain + test
-            return f"{domain_prompt}\n\n{test_prompt}"
+
+        # Both exist - apply test mode
+        test_mode = test.system_prompt_mode or 'overwrite'
+
+        if test_mode == 'append':
+            return f"{base_prompt}\n\n{test_prompt}"
         else:
-            # Overwrite: test replaces domain
             return test_prompt
 
 
