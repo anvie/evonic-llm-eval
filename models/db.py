@@ -657,26 +657,33 @@ class Database:
             conn.commit()
     
     def get_individual_test_results(self, run_id: str, domain: str = None, level: int = None) -> List[Dict[str, Any]]:
-        """Get individual test results for a run"""
+        """Get individual test results for a run with system_prompt from tests table"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
+            # JOIN with tests table to get system_prompt and system_prompt_mode
             if domain and level:
-                cursor.execute(
-                    "SELECT * FROM individual_test_results WHERE run_id = ? AND domain = ? AND level = ?",
-                    (run_id, domain, level)
-                )
+                cursor.execute("""
+                    SELECT itr.*, t.system_prompt, t.system_prompt_mode
+                    FROM individual_test_results itr
+                    JOIN tests t ON itr.test_id = t.id
+                    WHERE itr.run_id = ? AND itr.domain = ? AND itr.level = ?
+                """, (run_id, domain, level))
             elif domain:
-                cursor.execute(
-                    "SELECT * FROM individual_test_results WHERE run_id = ? AND domain = ?",
-                    (run_id, domain)
-                )
+                cursor.execute("""
+                    SELECT itr.*, t.system_prompt, t.system_prompt_mode
+                    FROM individual_test_results itr
+                    JOIN tests t ON itr.test_id = t.id
+                    WHERE itr.run_id = ? AND itr.domain = ?
+                """, (run_id, domain))
             else:
-                cursor.execute(
-                    "SELECT * FROM individual_test_results WHERE run_id = ? ORDER BY domain, level",
-                    (run_id,)
-                )
+                cursor.execute("""
+                    SELECT itr.*, t.system_prompt, t.system_prompt_mode
+                    FROM individual_test_results itr
+                    JOIN tests t ON itr.test_id = t.id
+                    WHERE itr.run_id = ? ORDER BY itr.domain, itr.level
+                """, (run_id,))
             
             return [dict(row) for row in cursor.fetchall()]
     
