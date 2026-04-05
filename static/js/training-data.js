@@ -53,17 +53,15 @@ function generateTrainingData(test) {
     const conversationLog = details.conversation_log || [];
     const toolsAvailable = details.tools_available || [];
     
-    // Build system prompt with tools in Gemma 4 format
-    let systemContent = '<|think|>Kamu adalah asisten reservasi untuk Krasan Omah, sebuah penginapan di Temanggung, Jawa Tengah. Bantu tamu dengan pertanyaan tentang ketersediaan kamar, harga, dan booking.\n\n';
-    systemContent += '## PRICING (per malam)\n';
-    systemContent += '| Kamar | Weekday (Sen-Kam) | Weekend (Jum-Min) |\n';
-    systemContent += '| Bismo | Rp 400.000 | Rp 500.000 |\n';
-    systemContent += '| Sindoro | Rp 400.000 | Rp 500.000 |\n';
-    systemContent += '| Sumbing | Rp 450.000 | Rp 550.000 |\n';
-    systemContent += '| Joglo | Rp 550.000 | Rp 700.000 |\n\n';
-    systemContent += '## EXTRAS\n';
-    systemContent += '- Extra bed: Rp 150.000/malam\n';
-    systemContent += '- Extra breakfast: Rp 50.000/orang\n\n';
+    // Use test's system_prompt if available, otherwise empty
+    let systemContent = test.system_prompt || '';
+    
+    // If system_prompt exists, wrap in Gemma 4 think tag
+    if (systemContent && systemContent.trim()) {
+        systemContent = '<|think|>' + systemContent.trim() + '\n\n';
+    } else {
+        systemContent = '<|think|>You are a helpful assistant.\n\n';
+    }
     
     // Add tool definitions in Gemma 4 format
     toolsAvailable.forEach(tool => {

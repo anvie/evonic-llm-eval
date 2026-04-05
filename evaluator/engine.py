@@ -531,6 +531,33 @@ class EvaluationEngine:
                 "duration_ms": 0
             }
     
+    def _resolve_system_prompt(self, test: Dict[str, Any], domain_name: str) -> Optional[str]:
+        """
+        Resolve system prompt using hierarchy:
+        Domain-level → Test-level with mode (overwrite/append)
+        
+        Args:
+            test: Test dictionary
+            domain_name: Domain name to load
+        
+        Returns:
+            Resolved system prompt or None
+        """
+        from evaluator.test_loader import test_loader
+        
+        # Load domain
+        domain = test_loader.load_domain(domain_name)
+        
+        # Get test as TestDefinition for consistency
+        test_def = test_loader.get_test(test['id'])
+        
+        if not test_def:
+            # Fallback: use raw test dict
+            return test.get('system_prompt')
+        
+        # Use hierarchy resolver
+        return test_loader.resolve_system_prompt(test_def, domain)
+    
     def _run_single_configurable_test(self, test: Dict[str, Any], domain: str, 
                                        level: int, model_name: str, run_id: str) -> TestResult:
         """Run a single configurable test"""
@@ -557,8 +584,8 @@ class EvaluationEngine:
             expected_str = str(expected)[:100] + '...' if len(str(expected)) > 100 else str(expected)
             self._log(f'[EXPECTED] {expected_str}')
         
-        # Get optional system prompt
-        system_prompt = test.get('system_prompt')
+        # Resolve system prompt using hierarchy (domain → test with mode)
+        system_prompt = self._resolve_system_prompt(test, domain)
         
         # Check if test has embedded tools OR is tool_calling domain OR uses tool_call evaluator
         test_tools = test.get('tools') or []  # Handle None explicitly

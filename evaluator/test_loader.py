@@ -45,6 +45,7 @@ class TestDefinition:
     domain_id: str
     level: int
     system_prompt: Optional[str] = None
+    system_prompt_mode: str = "overwrite"
     timeout_ms: int = 30000
     weight: float = 1.0
     enabled: bool = True
@@ -65,6 +66,7 @@ class TestDefinition:
             name=data.get('name', ''),
             description=data.get('description', ''),
             system_prompt=data.get('system_prompt', None),
+            system_prompt_mode=data.get('system_prompt_mode', 'overwrite'),
             prompt=data.get('prompt', ''),
             expected=data.get('expected', {}),
             evaluator_id=data.get('evaluator_id', ''),
@@ -89,6 +91,8 @@ class DomainDefinition:
     icon: str = "file"
     color: str = "#3B82F6"
     evaluator_id: str = ""
+    system_prompt: Optional[str] = None
+    system_prompt_mode: str = "overwrite"
     enabled: bool = True
     path: str = ""
     created_at: str = ""
@@ -108,6 +112,8 @@ class DomainDefinition:
             icon=data.get('icon', 'file'),
             color=data.get('color', '#3B82F6'),
             evaluator_id=data.get('evaluator_id', ''),
+            system_prompt=data.get('system_prompt', None),
+            system_prompt_mode=data.get('system_prompt_mode', 'overwrite'),
             enabled=data.get('enabled', True),
             path=path,
             created_at=data.get('created_at', datetime.now().isoformat()),
@@ -388,6 +394,49 @@ class TestLoader:
         self._domains_cache.clear()
         self._tests_cache.clear()
         self._evaluators_cache.clear()
+    
+    def resolve_system_prompt(self, test: TestDefinition, domain: DomainDefinition = None) -> Optional[str]:
+        """
+        Resolve system prompt using hierarchy:
+        Domain-level → Test-level with mode (overwrite/append)
+        
+        Args:
+            test: Test definition
+            domain: Optional domain definition (will load if not provided)
+        
+        Returns:
+            Resolved system prompt or None
+        """
+        # Load domain if not provided
+        if domain is None:
+            domain = self.load_domain(test.domain_id)
+            if not domain:
+                return test.system_prompt
+        
+        domain_prompt = domain.system_prompt
+        test_prompt = test.system_prompt
+        
+        # No system prompts at any level
+        if not domain_prompt and not test_prompt:
+            return None
+        
+        # Only domain has system prompt
+        if domain_prompt and not test_prompt:
+            return domain_prompt
+        
+        # Only test has system prompt
+        if test_prompt and not domain_prompt:
+            return test_prompt
+        
+        # Both have system prompts - apply mode
+        mode = test.system_prompt_mode or 'overwrite'
+        
+        if mode == 'append':
+            # Combine: domain + test
+            return f"{domain_prompt}\n\n{test_prompt}"
+        else:
+            # Overwrite: test replaces domain
+            return test_prompt
 
 
 # Global loader instance

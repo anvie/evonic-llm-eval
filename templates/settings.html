@@ -80,6 +80,19 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Domain System Prompt (Optional)</label>
+                    <textarea id="domain-system-prompt" rows="3" placeholder="Default system prompt for all tests in this domain"></textarea>
+                    <small>This will be used as default for all tests unless overridden</small>
+                </div>
+                <div class="form-group">
+                    <label>System Prompt Mode</label>
+                    <select id="domain-system-prompt-mode">
+                        <option value="overwrite">Overwrite (use as-is)</option>
+                        <option value="append">Append (tests can add to this)</option>
+                    </select>
+                    <small>Default mode for tests (can be overridden per-test)</small>
+                </div>
+                <div class="form-group">
                     <label>
                         <input type="checkbox" id="domain-enabled" checked> Enabled
                     </label>
@@ -135,8 +148,16 @@
                 </div>
                 <div class="form-group">
                     <label>System Prompt (Optional)</label>
-                    <textarea id="test-system-prompt" rows="3" placeholder="Custom system prompt for this test (overrides domain-level system prompt)"></textarea>
-                    <small>Leave empty to use domain-level system prompt or no system prompt</small>
+                    <textarea id="test-system-prompt" rows="3" placeholder="Custom system prompt for this test"></textarea>
+                    <small>Leave empty to use domain-level system prompt</small>
+                </div>
+                <div class="form-group" id="test-system-prompt-mode-group" style="display:none;">
+                    <label>System Prompt Mode</label>
+                    <select id="test-system-prompt-mode">
+                        <option value="overwrite">Overwrite (replace domain prompt)</option>
+                        <option value="append">Append (add to domain prompt)</option>
+                    </select>
+                    <small>How this test's prompt combines with domain-level prompt</small>
                 </div>
                 <div class="form-group">
                     <label>Prompt *</label>
@@ -896,6 +917,8 @@ function editDomain(domainId) {
     document.getElementById('domain-icon').value = domain.icon || 'file';
     document.getElementById('domain-color').value = domain.color || '#3B82F6';
     document.getElementById('domain-evaluator').value = domain.evaluator_id || '';
+    document.getElementById('domain-system-prompt').value = domain.system_prompt || '';
+    document.getElementById('domain-system-prompt-mode').value = domain.system_prompt_mode || 'overwrite';
     document.getElementById('domain-enabled').checked = domain.enabled !== false;
     
     openModal('domain-modal');
@@ -910,6 +933,8 @@ async function saveDomain() {
         icon: document.getElementById('domain-icon').value,
         color: document.getElementById('domain-color').value,
         evaluator_id: document.getElementById('domain-evaluator').value,
+        system_prompt: document.getElementById('domain-system-prompt').value || null,
+        system_prompt_mode: document.getElementById('domain-system-prompt-mode').value,
         enabled: document.getElementById('domain-enabled').checked
     };
     
@@ -1044,12 +1069,16 @@ async function editTest(testId, domainId) {
         document.getElementById('test-name').value = test.name;
         document.getElementById('test-description').value = test.description || '';
         document.getElementById('test-system-prompt').value = test.system_prompt || '';
+        document.getElementById('test-system-prompt-mode').value = test.system_prompt_mode || 'overwrite';
         document.getElementById('test-prompt').value = test.prompt;
         document.getElementById('test-expected').value = test.expected ? JSON.stringify(test.expected, null, 2) : '';
         document.getElementById('test-evaluator').value = test.evaluator_id || '';
         document.getElementById('test-timeout').value = test.timeout_ms || 30000;
         document.getElementById('test-weight').value = test.weight || 1.0;
         document.getElementById('test-enabled').checked = test.enabled !== false;
+        
+        // Show/hide mode dropdown based on whether domain has system prompt
+        toggleTestPromptModeVisibility();
         
         openModal('test-modal');
     } catch (error) {
@@ -1078,6 +1107,7 @@ async function saveTest() {
         name: document.getElementById('test-name').value,
         description: document.getElementById('test-description').value,
         system_prompt: document.getElementById('test-system-prompt').value || null,
+        system_prompt_mode: document.getElementById('test-system-prompt-mode').value,
         prompt: document.getElementById('test-prompt').value,
         expected: expected,
         evaluator_id: document.getElementById('test-evaluator').value,
@@ -1204,6 +1234,18 @@ function toggleEvaluatorType() {
         // Both LLM prompt and regex extraction
         promptGroup.style.display = 'block';
         regexGroup.style.display = 'block';
+    }
+}
+
+function toggleTestPromptModeVisibility() {
+    // Show system prompt mode dropdown only if test has a system prompt
+    const testPrompt = document.getElementById('test-system-prompt').value;
+    const modeGroup = document.getElementById('test-system-prompt-mode-group');
+    
+    if (testPrompt && testPrompt.trim()) {
+        modeGroup.style.display = 'block';
+    } else {
+        modeGroup.style.display = 'none';
     }
 }
 
