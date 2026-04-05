@@ -660,7 +660,7 @@ class Database:
                 INSERT INTO individual_test_results 
                 (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name))
+            """, (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt))
             conn.commit()
     
     def get_individual_test_results(self, run_id: str, domain: str = None, level: int = None) -> List[Dict[str, Any]]:
