@@ -97,11 +97,41 @@ class CustomEvaluator:
         """
         Evaluate using regex pattern.
         
-        Supports two modes:
-        1. Score extraction: Regex captures a number (0-100 or 0-1)
-        2. Exact match: Regex matches the entire expected answer
+        Supports three modes:
+        1. Regex Matcher: Use expected value as the regex pattern (config: use_expected_as_pattern=True)
+        2. Score extraction: Regex captures a number (0-100 or 0-1)
+        3. Exact match: Regex matches the entire expected answer
         """
         try:
+            # Check if we should use expected value as the pattern
+            if self.evaluator_config.get('use_expected_as_pattern') and expected:
+                pattern = str(expected)
+                match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
+                
+                if match:
+                    return EvaluationResult(
+                        score=1.0,
+                        status='passed',
+                        details={
+                            'method': 'regex_matcher',
+                            'matched_text': match.group(0),
+                            'pattern': pattern
+                        },
+                        reasoning=f'Pattern matched: {match.group(0)}'
+                    )
+                else:
+                    return EvaluationResult(
+                        score=0.0,
+                        status='failed',
+                        details={
+                            'method': 'regex_matcher',
+                            'error': 'Pattern not found in response',
+                            'pattern': pattern
+                        },
+                        reasoning=f'Regex pattern did not match response'
+                    )
+            
+            # Standard regex evaluation
             pattern = self.extraction_regex
             match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
             

@@ -1,0 +1,11 @@
+{
+  "id": "regex_matcher",
+  "name": "Regex Matcher",
+  "type": "regex",
+  "description": "Match response against regex pattern. Put your regex pattern in the Expected field.",
+  "extraction_regex": "^(.+)$",
+  "uses_pass2": false,
+  "config": {
+    "use_expected_as_pattern": true
+  }
+}
