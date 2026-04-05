@@ -574,17 +574,27 @@ class EvaluationEngine:
         # Use hierarchy resolver (handles domain fallback automatically)
         resolved = test_loader.resolve_system_prompt(test_def, domain)
         
-        # Log for debugging with domain/level context
+        # Log for debugging with domain/level context and actual snippet
         if resolved:
-            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Resolved system prompt: {len(resolved)} chars')
+            # Create a snippet (first 100 chars, replace newlines)
+            snippet = resolved.replace('\n', ' ').strip()[:100]
+            if len(resolved) > 100:
+                snippet += '...'
+            
+            # Determine source level
             if test_def.system_prompt and domain and domain.system_prompt:
-                self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Mode: {test_def.system_prompt_mode} (test + domain)')
+                source = f'TEST+DOMAIN (mode={test_def.system_prompt_mode})'
             elif domain and domain.system_prompt:
-                self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Using domain-level system prompt')
+                source = 'DOMAIN'
             elif test_def.system_prompt:
-                self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Using test-level system prompt')
+                source = 'TEST'
+            else:
+                source = 'UNKNOWN'
+            
+            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Source: {source}')
+            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Prompt ({len(resolved)} chars): {snippet}')
         else:
-            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] No system prompt (neither test nor domain has one)')
+            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] ⚠️ No system prompt (neither test nor domain has one)')
         
         return resolved
     
