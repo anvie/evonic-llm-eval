@@ -177,6 +177,18 @@ function renderTestDetail(test, domain) {
         `;
     }
     
+    // Final Response (for non-multi-turn tests)
+    if (test.response && !details.conversation_log) {
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">📤 FINAL RESPONSE</div>
+                <div class="section-content" style="background: #fefce8; padding: 1rem; border-radius: 6px;">
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(test.response)}</pre>
+                </div>
+            </div>
+        `;
+    }
+    
     // Evaluation Details
     if (details.evaluator || details.called_tools || details.missing_tools) {
         html += `
