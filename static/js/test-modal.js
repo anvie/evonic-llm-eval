@@ -135,13 +135,35 @@ function renderTestDetail(test, domain) {
     }
 
     // System Prompt (collapsible, only if present)
-    // Check test-level first, then domain-level fallback
-    const systemPrompt = test.system_prompt || details.test_system_prompt || 
-                         test.domain_system_prompt || details.domain_system_prompt || null;
-    const systemPromptMode = test.system_prompt_mode || details.test_system_prompt_mode || 
-                             test.domain_system_prompt ? 'overwrite' : null;
+    // Get both test-level and domain-level prompts
+    const testPrompt = test.system_prompt || details.test_system_prompt || null;
+    const domainPrompt = test.domain_system_prompt || details.domain_system_prompt || null;
+    const testPromptMode = test.system_prompt_mode || details.test_system_prompt_mode || 'overwrite';
+    
+    // Determine final system prompt and mode
+    let systemPrompt = null;
+    let systemPromptMode = null;
+    
+    if (testPrompt && domainPrompt) {
+        // Both exist - apply mode
+        if (testPromptMode === 'append') {
+            systemPrompt = domainPrompt + '\n\n' + testPrompt;
+            systemPromptMode = 'append';
+        } else {
+            // overwrite mode
+            systemPrompt = testPrompt;
+            systemPromptMode = 'overwrite';
+        }
+    } else if (testPrompt) {
+        // Only test-level
+        systemPrompt = testPrompt;
+        systemPromptMode = 'overwrite';
+    } else if (domainPrompt) {
+        // Only domain-level (fallback)
+        systemPrompt = domainPrompt;
+        systemPromptMode = 'overwrite';
+    }
     if (systemPrompt) {
-        const systemPromptMode = test.system_prompt_mode || details.system_prompt_mode || 'overwrite';
         const modeBadge = systemPromptMode === 'append' 
             ? '<span class="mode-badge mode-append">APPEND</span>' 
             : '<span class="mode-badge mode-overwrite">OVERWRITE</span>';
