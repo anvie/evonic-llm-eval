@@ -23,6 +23,25 @@ function showModalWithTests(domain, level, tests, summaryData) {
     currentModalTests = tests;
     currentSelectedTestIndex = 0;
     
+    // DEBUG: Log system prompt fields
+    console.log(`[MODAL DEBUG][${domain}][L${level}] Received ${tests.length} tests`);
+    tests.forEach((t, i) => {
+        if (t.system_prompt || t.test_system_prompt || t.domain_system_prompt || 
+            t.details?.system_prompt || t.details?.test_system_prompt || t.details?.domain_system_prompt) {
+            console.log(`[MODAL DEBUG][${domain}][L${level}][#${i}] ${t.test_id || t.name}: system_prompt=`, {
+                test_sp: !!t.system_prompt,
+                test_sp_mode: t.system_prompt_mode,
+                test_backend_sp: !!t.test_system_prompt,
+                domain_sp: !!t.domain_system_prompt,
+                details_sp: !!t.details?.system_prompt,
+                details_test_sp: !!t.details?.test_system_prompt,
+                details_domain_sp: !!t.details?.domain_system_prompt
+            });
+        } else {
+            console.log(`[MODAL DEBUG][${domain}][L${level}][#${i}] ${t.test_id || t.name}: NO SYSTEM PROMPT FIELDS`);
+        }
+    });
+    
     // Calculate summary stats
     const passed = tests.filter(t => t.status === 'passed').length;
     const total = tests.length;

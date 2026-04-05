@@ -202,10 +202,14 @@ def api_run_cell_tests(run_id, domain, level):
     
     individual_results = db.get_individual_test_results(run_id, domain, level)
     
-    # Parse JSON fields
+    # Parse JSON fields and log what we're getting
     tests = []
     for result in individual_results:
         test = dict(result)
+        # DEBUG: Log system prompt fields
+        if test.get('test_system_prompt') or test.get('domain_system_prompt'):
+            print(f"[API DEBUG][{domain}][L{level}] {test.get('test_id')}: test_sp={test.get('test_system_prompt') is not None}, domain_sp={test.get('domain_system_prompt') is not None}")
+        
         # Parse JSON fields
         if test.get('details'):
             try:
@@ -218,6 +222,11 @@ def api_run_cell_tests(run_id, domain, level):
             except (json.JSONDecodeError, TypeError):
                 pass
         tests.append(test)
+    
+    # DEBUG: Log summary
+    if tests:
+        has_sp = any(t.get('test_system_prompt') or t.get('domain_system_prompt') for t in tests)
+        print(f"[API DEBUG][{domain}][L{level}] Returning {len(tests)} tests, has_system_prompt={has_sp}")
     
     return jsonify({
         "run_id": run_id,
