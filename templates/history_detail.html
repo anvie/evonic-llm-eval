@@ -315,9 +315,13 @@ function showCellDetail(domain, level) {
         });
 }
 
-// onGenerateTrainingDataClick is now in /static/js/training-data.js (global)
-// Legacy wrapper removed:
-// function onGenerateTrainingDataClick(testIndex) { ... }
+// Bridge function for training data modal (uses shared component)
+function onGenerateTrainingDataClick(testIndex) {
+    // For multi-test view (from showModalWithTests)
+    if (typeof testIndex === 'number' && currentModalTests && currentModalTests[testIndex]) {
+        showTrainingDataModal(currentModalTests[testIndex]);
+    }
+}
 
 // Legacy showModalWithData is no longer used - tests now fetched from API
 // and displayed using shared showModalWithTests from test-modal.js
@@ -488,138 +492,8 @@ function formatDetails(details) {
     modal.style.display = 'flex';
 }
 
-// onGenerateTrainingDataClick is now in /static/js/training-data.js (global)
-// Legacy function removed: onGenerateTrainingDataClick(domain, level)
-
-// closeModal is now in /static/js/test-modal.js
-function _legacyCloseModal() {
-
-function closeModal() {
-    document.getElementById('test-modal').style.display = 'none';
-}
-
-function formatExpected(expected) {
-    if (!expected) {
-        return '<em style="color: #999;">No expected output defined</em>';
-    }
-    
-    try {
-        const parsed = typeof expected === 'string' ? JSON.parse(expected) : expected;
-        
-        if (typeof parsed === 'object') {
-            // SQL expected format
-            if (parsed.description && parsed.required_columns) {
-                let html = `<strong>Description:</strong> ${escapeHtml(parsed.description)}<br><br>`;
-                
-                if (parsed.required_columns) {
-                    html += '<strong>Required Columns:</strong><br>';
-                    html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-                    parsed.required_columns.forEach(col => {
-                        html += `<span style="background: #d1fae5; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">${escapeHtml(col)}</span>`;
-                    });
-                    html += '</div>';
-                }
-                
-                if (parsed.min_rows) {
-                    html += `<br><strong>Minimum Rows:</strong> ${parsed.min_rows}`;
-                }
-                if (parsed.max_rows) {
-                    html += `<br><strong>Maximum Rows:</strong> ${parsed.max_rows}`;
-                }
-                if (parsed.forbidden_columns) {
-                    html += `<br><strong>Forbidden Columns:</strong> <span style="color: #ef4444;">${parsed.forbidden_columns.join(', ')}</span>`;
-                }
-                
-                return html;
-            }
-            
-            // Keywords format
-            if (parsed.keywords) {
-                let html = '<strong>Expected Keywords:</strong><br>';
-                html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-                parsed.keywords.forEach(kw => {
-                    html += `<span style="background: #d1fae5; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">${escapeHtml(kw)}</span>`;
-                });
-                html += '</div>';
-                
-                if (parsed.relevance_weight || parsed.correctness_weight || parsed.fluency_weight) {
-                    html += '<br><strong>Scoring Weights:</strong><br>';
-                    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem;">';
-                    if (parsed.relevance_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Relevance</strong><br>${(parsed.relevance_weight * 100)}%</div>`;
-                    if (parsed.correctness_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Correctness</strong><br>${(parsed.correctness_weight * 100)}%</div>`;
-                    if (parsed.fluency_weight) html += `<div style="background: #f3f4f6; padding: 0.5rem; border-radius: 4px; text-align: center;"><strong>Fluency</strong><br>${(parsed.fluency_weight * 100)}%</div>`;
-                    html += '</div>';
-                }
-                return html;
-            }
-            
-            // Tool calling format
-            if (parsed.tool) {
-                let html = `<strong>Expected Tool:</strong> <code style="background: #e0e7ff; padding: 0.25rem 0.5rem; border-radius: 4px;">${escapeHtml(parsed.tool)}</code>`;
-                if (parsed.result !== undefined) {
-                    html += `<br><strong>Expected Result:</strong> ${escapeHtml(String(parsed.result))}`;
-                }
-                return html;
-            }
-            
-            // Default: show as JSON
-            return `<pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
-        }
-        
-        return escapeHtml(String(parsed));
-    } catch (e) {
-        return escapeHtml(String(expected));
-    }
-}
-
-function formatDetails(details) {
-    if (!details) return 'No details available';
-    
-    try {
-        const parsed = typeof details === 'string' ? JSON.parse(details) : details;
-        
-        if (typeof parsed === 'object') {
-            let html = '';
-            
-            if (parsed.details) {
-                html += `<p><strong>Reason:</strong> ${escapeHtml(parsed.details)}</p>`;
-            }
-            if (parsed.error) {
-                html += `<p><strong>Error:</strong> <span style="color: #ef4444;">${escapeHtml(parsed.error)}</span></p>`;
-            }
-            if (parsed.sql_query) {
-                html += `<p><strong>SQL Query:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(parsed.sql_query)}</pre>`;
-            }
-            if (parsed.row_count !== undefined) {
-                html += `<p><strong>Row Count:</strong> ${parsed.row_count}</p>`;
-            }
-            if (parsed.actual_result) {
-                html += `<p><strong>Actual Result:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto; max-height: 200px;">${escapeHtml(JSON.stringify(parsed.actual_result, null, 2))}</pre>`;
-            }
-            if (parsed.expected_result) {
-                html += `<p><strong>Expected Result:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto; max-height: 200px;">${escapeHtml(JSON.stringify(parsed.expected_result, null, 2))}</pre>`;
-            }
-            
-            // Show any other fields (exclude pass2, thinking, llm_error as they're handled separately)
-            const shownKeys = ['details', 'error', 'sql_query', 'row_count', 'actual_result', 'expected_result', 'pass2', 'thinking', 'llm_error'];
-            const otherKeys = Object.keys(parsed).filter(k => !shownKeys.includes(k));
-            if (otherKeys.length > 0) {
-                // Show only non-excluded fields
-                const filteredParsed = {};
-                for (const key of otherKeys) {
-                    filteredParsed[key] = parsed[key];
-                }
-                html += `<p><strong>Additional Info:</strong></p><pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto;">${escapeHtml(JSON.stringify(filteredParsed, null, 2))}</pre>`;
-            }
-            
-            return html || `<pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
-        }
-        
-        return escapeHtml(String(details));
-    } catch (e) {
-        return escapeHtml(String(details));
-    }
-}
+// All modal functions (closeModal, formatExpected, formatDetails, onGenerateTrainingDataClick)
+// are now in shared /static/js/test-modal.js and /static/js/training-data.js
 
 // Close test modal on outside click (training modal handled by shared JS)
 window.onclick = function(event) {
@@ -824,8 +698,92 @@ document.addEventListener('keydown', function(event) {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-/* Modal styles - now in shared /templates/partials/test-modal.html */
-/* Only keep page-specific styles here */
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 1.25rem 1.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header-success {
+    background: #d1fae5 !important;
+    border-bottom: 1px solid #6ee7b7 !important;
+}
+
+.modal-header-error {
+    background: #fef2f2 !important;
+    border-bottom: 1px solid #fecaca !important;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.modal-close {
+    font-size: 1.75rem;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+
+.detail-header {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detail-content {
+    color: #4b5563;
+    line-height: 1.6;
+}
 
 .cell-duration {
     font-size: 0.7rem;
