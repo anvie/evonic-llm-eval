@@ -662,26 +662,38 @@ class Database:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # JOIN with tests table to get system_prompt and system_prompt_mode
+            # JOIN with tests and domains tables to get system prompts
             if domain and level:
                 cursor.execute("""
-                    SELECT itr.*, t.system_prompt, t.system_prompt_mode
+                    SELECT itr.*, 
+                           t.system_prompt as test_system_prompt, 
+                           t.system_prompt_mode as test_system_prompt_mode,
+                           d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
+                    JOIN domains d ON itr.domain = d.id
                     WHERE itr.run_id = ? AND itr.domain = ? AND itr.level = ?
                 """, (run_id, domain, level))
             elif domain:
                 cursor.execute("""
-                    SELECT itr.*, t.system_prompt, t.system_prompt_mode
+                    SELECT itr.*, 
+                           t.system_prompt as test_system_prompt, 
+                           t.system_prompt_mode as test_system_prompt_mode,
+                           d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
+                    JOIN domains d ON itr.domain = d.id
                     WHERE itr.run_id = ? AND itr.domain = ?
                 """, (run_id, domain))
             else:
                 cursor.execute("""
-                    SELECT itr.*, t.system_prompt, t.system_prompt_mode
+                    SELECT itr.*, 
+                           t.system_prompt as test_system_prompt, 
+                           t.system_prompt_mode as test_system_prompt_mode,
+                           d.system_prompt as domain_system_prompt
                     FROM individual_test_results itr
                     JOIN tests t ON itr.test_id = t.id
+                    JOIN domains d ON itr.domain = d.id
                     WHERE itr.run_id = ? ORDER BY itr.domain, itr.level
                 """, (run_id,))
             

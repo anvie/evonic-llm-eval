@@ -116,7 +116,11 @@ function renderTestDetail(test, domain) {
     }
 
     // System Prompt (collapsible, only if present)
-    const systemPrompt = test.system_prompt || details.system_prompt || null;
+    // Check test-level first, then domain-level fallback
+    const systemPrompt = test.system_prompt || details.test_system_prompt || 
+                         test.domain_system_prompt || details.domain_system_prompt || null;
+    const systemPromptMode = test.system_prompt_mode || details.test_system_prompt_mode || 
+                             test.domain_system_prompt ? 'overwrite' : null;
     if (systemPrompt) {
         const systemPromptMode = test.system_prompt_mode || details.system_prompt_mode || 'overwrite';
         const modeBadge = systemPromptMode === 'append' 
