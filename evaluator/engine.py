@@ -574,15 +574,17 @@ class EvaluationEngine:
         # Use hierarchy resolver (handles domain fallback automatically)
         resolved = test_loader.resolve_system_prompt(test_def, domain)
         
-        # Log for debugging
+        # Log for debugging with domain/level context
         if resolved:
-            self._log(f'[SYSTEM] Resolved system prompt: {len(resolved)} chars')
+            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Resolved system prompt: {len(resolved)} chars')
             if test_def.system_prompt and domain and domain.system_prompt:
-                self._log(f'[SYSTEM] Mode: {test_def.system_prompt_mode} (test + domain)')
+                self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Mode: {test_def.system_prompt_mode} (test + domain)')
             elif domain and domain.system_prompt:
-                self._log(f'[SYSTEM] Using domain-level system prompt')
+                self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Using domain-level system prompt')
             elif test_def.system_prompt:
-                self._log(f'[SYSTEM] Using test-level system prompt')
+                self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] Using test-level system prompt')
+        else:
+            self._log(f'[SYSTEM][{domain_name}][L{test.get("level", "?")}] No system prompt (neither test nor domain has one)')
         
         return resolved
     
@@ -600,7 +602,7 @@ class EvaluationEngine:
         
         self._log(f'')
         self._log(f'═══════════════════════════════════════════════════════════════')
-        self._log(f'[TEST] {test.get("name", test_id)} ({domain} L{level})')
+        self._log(f'[TEST][{domain.upper()}][L{level}] {test.get("name", test_id)}')
         self._log(f'───────────────────────────────────────────────────────────────')
         
         # Truncate prompt for display
