@@ -38,12 +38,6 @@ nav a:hover {
     background-color: rgba(255,255,255,0.2);
 }
 
-main {
-    max-width: 1200px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-}
-
 footer {
     text-align: center;
     padding: 2rem;
@@ -51,32 +45,7 @@ footer {
     margin-top: 2rem;
 }
 
-/* Dashboard Styles */
-.dashboard {
-    background: white;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.controls {
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.controls h2 {
-    margin-bottom: 1rem;
-    color: #333;
-}
-
-.button-group {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
+/* Shared Button Styles (used across multiple pages) */
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
@@ -109,47 +78,79 @@ footer {
     cursor: not-allowed;
 }
 
-.status-indicator {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.status-running {
+/* Status classes (toggled by JS) */
+.status-indicator.status-running {
     background: #fef3c7;
     color: #92400e;
 }
 
-.status-completed {
+.status-indicator.status-completed {
     background: #d1fae5;
     color: #065f46;
 }
 
-.status-idle {
+.status-indicator.status-idle {
     background: #e5e7eb;
     color: #374151;
 }
 
-.status-interrupted {
+.status-indicator.status-interrupted {
     background: #fef3c7;
     color: #92400e;
 }
 
-.status-error {
+.status-indicator.status-error {
     background: #fee2e2;
     color: #991b1b;
 }
 
-/* Test Matrix */
+/* Cell status dots (toggled by JS) */
+.status-passed { background: #10b981; }
+.status-failed { background: #ef4444; }
+.status-running {
+    background: #f59e0b;
+    animation: pulse 1.5s infinite;
+}
+.status-pending { background: #9ca3af; }
+.status-skipped { background: #d1d5db; }
+.status-partial {
+    background: #f59e0b;
+    opacity: 0.8;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Dashboard shared styles (used by history_detail.html) */
+.dashboard {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.controls {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.controls h2 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+/* Test Matrix shared styles (used by history_detail.html) */
 .test-matrix {
     margin-top: 2rem;
 }
 
 .matrix-header {
     display: grid;
-    grid-template-columns: 40px 160px repeat(5, 1fr) 120px;
+    grid-template-columns: 160px repeat(5, 1fr) 120px;
     gap: 0.5rem;
     padding: 1rem;
     background: #f8f9fa;
@@ -159,7 +160,7 @@ footer {
 
 .matrix-row {
     display: grid;
-    grid-template-columns: 40px 160px repeat(5, 1fr) 120px;
+    grid-template-columns: 160px repeat(5, 1fr) 120px;
     gap: 0.5rem;
     padding: 1rem;
     border-bottom: 1px solid #e5e7eb;
@@ -195,24 +196,6 @@ footer {
     flex-shrink: 0;
 }
 
-.status-passed { background: #10b981; }
-.status-failed { background: #ef4444; }
-.status-running { 
-    background: #f59e0b;
-    animation: pulse 1.5s infinite;
-}
-.status-pending { background: #9ca3af; }
-.status-skipped { background: #d1d5db; }
-.status-partial { 
-    background: #f59e0b;
-    opacity: 0.8;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
 .cell-score {
     font-size: 0.9rem;
     color: #6b7280;
@@ -225,7 +208,6 @@ footer {
     min-height: 1em;
 }
 
-/* Domain Total Cell */
 .domain-total {
     display: flex;
     flex-direction: column;
@@ -243,23 +225,6 @@ footer {
     color: #1f2937;
 }
 
-.domain-total-bar {
-    display: flex;
-    gap: 2px;
-    margin-top: 0.25rem;
-}
-
-.domain-total-bar span {
-    width: 6px;
-    height: 12px;
-    border-radius: 2px;
-    background: #e5e7eb;
-}
-
-.domain-total-bar span.filled {
-    background: #667eea;
-}
-
 .domain-total-passed {
     font-size: 0.75rem;
     color: #6b7280;
@@ -272,31 +237,39 @@ footer {
     margin-top: 0.15rem;
 }
 
-/* Progress Bar */
-.progress-container {
-    margin: 1rem 0;
+.clickable-cell {
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
 }
 
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    overflow: hidden;
+.clickable-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    transition: width 0.3s;
-    border-radius: 4px;
+/* Log Container (used by history_detail.html) */
+.log-container {
+    margin-top: 2rem;
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
 }
 
-.progress-text {
-    text-align: center;
-    color: #6b7280;
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
+.log-container h3 {
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #475569;
+    padding-bottom: 0.5rem;
+    color: #94a3b8;
+}
+
+.log-content {
+    min-height: 100px;
+    max-height: 500px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+    line-height: 1.6;
 }
 
 /* History Page */
@@ -336,31 +309,7 @@ footer {
 .score-medium { background: #fef3c7; color: #92400e; }
 .score-low { background: #fee2e2; color: #dc2626; }
 
-/* Log Container */
-.log-container {
-    margin-top: 2rem;
-    background: #1e293b;
-    color: #e2e8f0;
-    padding: 1.5rem;
-    border-radius: 8px;
-    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-}
-
-.log-container h3 {
-    margin-bottom: 1rem;
-    border-bottom: 1px solid #475569;
-    padding-bottom: 0.5rem;
-    color: #94a3b8;
-}
-
-.log-content {
-    min-height: 100px;
-    max-height: 500px;
-    overflow-y: auto;
-    font-size: 0.8rem;
-    line-height: 1.6;
-}
-
+/* Log entry styles (generated by JS) */
 .log-entry {
     padding: 0.25rem 0;
     border-bottom: 1px solid #334155;
@@ -376,12 +325,11 @@ footer {
     padding: 0.5rem;
 }
 
-/* Log color coding */
 .log-entry:has([style*="RESULT"]) {
     color: #4ade80;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling for log content */
 .log-content::-webkit-scrollbar {
     width: 8px;
 }
@@ -401,21 +349,17 @@ footer {
 
 /* Responsive */
 @media (max-width: 768px) {
+    header {
+        padding: 1rem;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
     .matrix-header,
     .matrix-row {
         grid-template-columns: 1fr;
         gap: 0.5rem;
-    }
-    
-    .button-group {
-        flex-direction: column;
-    }
-    
-    header {
-        padding: 1rem;
-    }
-    
-    header h1 {
-        font-size: 1.5rem;
     }
 }

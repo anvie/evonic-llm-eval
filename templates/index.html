@@ -1,98 +1,122 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="dashboard">
-    <div class="controls">
-        <h2>LLM Evaluation Dashboard</h2>
-        
-        <div class="button-group">
-            <button id="toggle-btn" class="btn {{ 'btn-danger' if status.status == 'running' else 'btn-primary' }}" 
+<div class="bg-white p-6 shadow-lg">
+    <!-- Controls -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h2 class="mb-4 text-gray-800 text-xl font-bold">LLM Evaluation Dashboard</h2>
+
+        <div class="flex flex-col md:flex-row gap-3 mb-4">
+            <button id="toggle-btn" class="btn {{ 'btn-danger' if status.status == 'running' else 'btn-primary' }}"
                     onclick="toggleEvaluation()">
                 {{ 'Stop Evaluation' if status.status == 'running' else 'Start Evaluation' }}
             </button>
             <button id="clear-btn" class="btn btn-secondary" onclick="clearState()" style="display: none;">
                 Clear
             </button>
-
         </div>
-        
-        <div class="status-indicator status-{{ status.status }}" id="status-indicator">
+
+        <div class="inline-block px-4 py-2 rounded-full text-sm font-medium status-indicator status-{{ status.status }}" id="status-indicator">
             Status: <span id="status-text">{{ status.status|upper }}</span>
         </div>
-        
+
         {% if status.run_id %}
-        <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
-            <span style="margin-right: 1.5rem;">Run ID: <code style="background: #f3f4f6; padding: 0.1rem 0.4rem; border-radius: 4px;">{{ status.run_id[:8] }}</code></span>
+        <div class="mt-2 text-gray-500 text-sm">
+            <span class="mr-6">Run ID: <code id="run-id-code" class="bg-gray-100 px-1.5 py-0.5 rounded">{{ status.run_id[:8] }}</code></span>
             {% if status.run_info and status.run_info.model_name %}
-            <span id="server-model-display">Model: <strong style="color: #667eea;">{{ status.run_info.model_name }}</strong></span>
+            <span id="server-model-display">Model: <strong class="text-indigo-500">{{ status.run_info.model_name }}</strong></span>
             {% endif %}
         </div>
         {% endif %}
-        
-        <div id="model-display" style="margin-top: 0.5rem; color: #666; font-size: 0.9rem; display: none;">
-            Model: <strong id="model-name-text" style="color: #667eea;"></strong>
+
+        <div id="model-display" class="mt-2 text-gray-500 text-sm hidden">
+            Model: <strong id="model-name-text" class="text-indigo-500"></strong>
         </div>
-        
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+
+        <div class="my-4">
+            <div class="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300 rounded" id="progress-fill" style="width: 0%"></div>
             </div>
-            <div class="progress-text" id="progress-text">0/25 tests completed</div>
+            <div class="text-center text-gray-500 text-sm mt-2" id="progress-text">0/25 tests completed</div>
         </div>
     </div>
 
-    <div class="test-matrix">
-        <div class="matrix-header">
-            <div class="select-col"><input type="checkbox" id="select-all" checked onclick="toggleAllDomains(this.checked)" title="Select/Deselect All"></div>
-            <div>Domain</div>
-            <div>Level 1</div>
-            <div>Level 2</div>
-            <div>Level 3</div>
-            <div>Level 4</div>
-            <div>Level 5</div>
-            <div class="font-semibold text-center">Total</div>
-        </div>
-        
-        {% for domain in domains %}
-        <div class="matrix-row" id="row-{{ domain }}">
-            <div class="select-col"><input type="checkbox" class="domain-checkbox" data-domain="{{ domain }}" checked onclick="updateSelectAllState()"></div>
-            <div style="font-weight: 600; text-transform: capitalize;">{{ domain.replace('_', ' ') }}</div>
-            {% for level in range(1, 6) %}
-            <div class="matrix-cell clickable-cell" id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
-                <div class="cell-main">
-                    <div class="cell-status status-pending"></div>
-                    <span class="cell-score">-</span>
+    <!-- Side-by-side: Matrix (left) + Logs (right) -->
+    <div class="flex flex-col lg:flex-row gap-6 mt-6">
+        <!-- LEFT: Matrix + Summary -->
+        <div class="flex-1 min-w-0">
+            <!-- Matrix Header (desktop only) -->
+            <div class="hidden md:grid md:grid-cols-[40px_160px_repeat(5,1fr)_120px] gap-2 p-4 bg-gray-50 font-semibold rounded-t-lg text-sm">
+                <div class="flex items-center justify-center"><input type="checkbox" id="select-all" checked onclick="toggleAllDomains(this.checked)" title="Select/Deselect All"></div>
+                <div class="flex items-center">Domain</div>
+                <div class="text-center">Level 1</div>
+                <div class="text-center">Level 2</div>
+                <div class="text-center">Level 3</div>
+                <div class="text-center">Level 4</div>
+                <div class="text-center">Level 5</div>
+                <div class="text-center">Total</div>
+            </div>
+
+            {% for domain in domains %}
+            <!-- Matrix Row: card on mobile, grid row on desktop -->
+            <div class="grid grid-cols-5 gap-1 p-3 mb-3 border border-gray-200 rounded-lg bg-white
+                        md:grid-cols-[40px_160px_repeat(5,1fr)_120px] md:gap-2 md:p-4 md:mb-0 md:border-x-0 md:border-t-0 md:border-b md:border-gray-200 md:rounded-none md:bg-transparent md:hover:bg-gray-50 transition-colors"
+                 id="row-{{ domain }}">
+                <!-- Checkbox + Domain name (mobile: full-width header row) -->
+                <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0 md:justify-center">
+                    <input type="checkbox" class="domain-checkbox" data-domain="{{ domain }}" checked onclick="updateSelectAllState()">
+                    <span class="font-semibold capitalize text-sm md:hidden">{{ domain.replace('_', ' ') }}</span>
                 </div>
-                <div class="cell-duration" id="duration-{{ domain }}-{{ level }}"></div>
+                <!-- Domain name (desktop only) -->
+                <div class="hidden md:flex md:items-center font-semibold capitalize text-sm">{{ domain.replace('_', ' ') }}</div>
+
+                <!-- Level cells (5 columns on both mobile and desktop) -->
+                {% for level in range(1, 6) %}
+                <div class="flex flex-col items-center justify-center min-h-[50px] md:min-h-[70px] p-1 md:p-2 rounded-md font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                     id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
+                    <span class="text-[0.6rem] font-semibold text-gray-400 uppercase md:hidden">L{{ level }}</span>
+                    <div class="flex items-center justify-center gap-1 md:gap-2">
+                        <div class="status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-pending"></div>
+                        <span class="cell-score text-xs md:text-sm text-gray-500">-</span>
+                    </div>
+                    <div class="text-[0.6rem] md:text-[0.7rem] text-gray-500 mt-0.5 min-h-[1em]" id="duration-{{ domain }}-{{ level }}"></div>
+                </div>
+                {% endfor %}
+
+                <!-- Domain total (mobile: full-width footer, desktop: column) -->
+                <div class="col-span-5 flex flex-row items-center justify-center gap-3 p-2 bg-gray-50 rounded-md mt-1
+                            md:col-span-1 md:flex-col md:gap-0 md:mt-0 md:min-h-[60px]"
+                     id="total-{{ domain }}">
+                    <div class="text-base md:text-lg font-bold text-gray-800" id="total-score-{{ domain }}">-</div>
+                    <span class="text-xs text-gray-500" id="total-passed-{{ domain }}">0/5</span>
+                    <div class="text-[0.7rem] text-gray-400" id="total-duration-{{ domain }}"></div>
+                </div>
             </div>
             {% endfor %}
-            <div class="domain-total" id="total-{{ domain }}">
-                <div class="domain-total-score" id="total-score-{{ domain }}">-</div>
-                <span class="domain-total-passed" id="total-passed-{{ domain }}">0/5</span>
-                <div class="domain-total-duration" id="total-duration-{{ domain }}"></div>
+
+            {% if status.run_info and status.run_info.summary and status.status == 'completed' %}
+            <div id="summary-box" class="mt-6 p-5 bg-sky-50 rounded-lg border-l-4 border-sky-700">
+                <h3 class="font-semibold mb-2">Summary</h3>
+                <p class="text-blue-800 italic">"{{ status.run_info.summary }}"</p>
+                <div class="mt-2 text-gray-500">
+                    Overall Score: <strong>{{ "%.2f"|format(status.run_info.overall_score * 100) }}%</strong>
+                </div>
+            </div>
+            {% elif status.run_info and status.status == 'interrupted' %}
+            <div id="interrupted-box" class="mt-6 p-5 bg-orange-50 rounded-lg border-l-4 border-amber-500">
+                <h3 class="font-semibold text-amber-800 mb-2">Evaluation Interrupted</h3>
+                <p class="text-amber-900">The evaluation was stopped before completion. Partial results are shown in the matrix above.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- RIGHT: Logs sidebar -->
+        <div class="w-full lg:w-[40%] lg:shrink-0">
+            <div class="lg:sticky lg:top-4 bg-slate-800 text-slate-200 p-4 rounded-lg font-mono">
+                <h3 class="mb-3 pb-2 border-b border-slate-600 text-slate-400 text-sm font-semibold">Real-Time Logs</h3>
+                <div id="log-box" class="log-content min-h-[100px] max-h-[400px] lg:max-h-[calc(100vh-8rem)] overflow-y-auto text-xs leading-relaxed"></div>
             </div>
         </div>
-        {% endfor %}
-    </div>
-    
-    {% if status.run_info and status.run_info.summary and status.status == 'completed' %}
-    <div id="summary-box" style="margin-top: 2rem; padding: 1.5rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0369a1;">
-        <h3>Summary</h3>
-        <p style="color: #1e40af; font-style: italic;">"{{ status.run_info.summary }}"</p>
-        <div style="margin-top: 0.5rem; color: #666;">
-            Overall Score: <strong>{{ "%.2f"|format(status.run_info.overall_score * 100) }}%</strong>
-        </div>
-    </div>
-    {% elif status.run_info and status.status == 'interrupted' %}
-    <div id="interrupted-box" style="margin-top: 2rem; padding: 1.5rem; background: #fff7ed; border-radius: 8px; border-left: 4px solid #f59e0b;">
-        <h3 style="color: #92400e;">Evaluation Interrupted</h3>
-        <p style="color: #78350f;">The evaluation was stopped before completion. Partial results are shown in the matrix above.</p>
-    </div>
-    {% endif %}
-    
-    <div class="log-container">
-        <h3>Real-Time Logs</h3>
-        <div id="log-box" class="log-content"></div>
     </div>
 </div>
 
@@ -192,9 +216,9 @@ function updateRowState(domain, enabled) {
     const row = document.getElementById(`row-${domain}`);
     if (row) {
         if (enabled) {
-            row.classList.remove('disabled');
+            row.classList.remove('opacity-50', 'pointer-events-none');
         } else {
-            row.classList.add('disabled');
+            row.classList.add('opacity-50', 'pointer-events-none');
         }
     }
 }
@@ -227,8 +251,8 @@ function clearMatrixState() {
         for (let level = 1; level <= 5; level++) {
             const cell = document.getElementById(`cell-${domain}-${level}`);
             if (cell) {
-                const statusEl = cell.querySelector('.cell-status');
-                if (statusEl) statusEl.className = 'cell-status status-pending';
+                const statusEl = cell.querySelector('.status-dot');
+                if (statusEl) statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-pending';
                 
                 const scoreEl = cell.querySelector('.cell-score');
                 if (scoreEl) scoreEl.textContent = '-';
@@ -305,12 +329,12 @@ function loadSavedState() {
                 const serverModelDisplay = document.getElementById('server-model-display');
                 if (serverModelDisplay) serverModelDisplay.style.display = 'none';
                 
-                document.getElementById('model-display').style.display = 'block';
+                document.getElementById('model-display').classList.remove('hidden');
                 document.getElementById('model-name-text').textContent = state.model_name;
             }
             if (state.run_id) {
                 // Show run ID
-                const runIdEl = document.querySelector('.controls code');
+                const runIdEl = document.querySelector('#run-id-code');
                 if (runIdEl) {
                     runIdEl.textContent = state.run_id.substring(0, 8);
                 }
@@ -395,9 +419,9 @@ function updateStatusIndicator(status) {
     const indicator = document.getElementById('status-indicator');
     const text = document.getElementById('status-text');
     
-    // Remove all status classes
-    indicator.className = 'status-indicator';
-    
+    // Remove all status classes, preserve Tailwind base classes
+    indicator.className = 'inline-block px-4 py-2 rounded-full text-sm font-medium status-indicator';
+
     // Add new status class and text
     indicator.classList.add('status-' + status);
     text.textContent = status.toUpperCase();
@@ -450,7 +474,7 @@ function updateStatus() {
             const modelDisplay = document.getElementById('model-display');
             const modelNameText = document.getElementById('model-name-text');
             modelNameText.textContent = data.model_name;
-            modelDisplay.style.display = 'block';
+            modelDisplay.classList.remove('hidden');
         }
         
         // Save state for persistence
@@ -505,8 +529,8 @@ function updateMatrix(matrix) {
                 testResultsData[domain][level] = data;
                 
                 // Update status indicator
-                const statusEl = cell.querySelector('.cell-status');
-                statusEl.className = 'cell-status status-' + data.status;
+                const statusEl = cell.querySelector('.status-dot');
+                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + data.status;
                 
                 // Update score
                 const scoreEl = cell.querySelector('.cell-score');
@@ -1194,42 +1218,10 @@ document.addEventListener('keydown', function(event) {
 </script>
 
 <style>
-/* Domain selection checkboxes */
-.select-col {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;
-    max-width: 40px;
-}
-
-.select-col input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
+/* Checkbox accent color */
+input[type="checkbox"] {
     accent-color: #667eea;
 }
-
-.matrix-row.disabled {
-    opacity: 0.5;
-}
-
-.matrix-row.disabled .clickable-cell {
-    pointer-events: none;
-}
-
-/* Clickable cells */
-.clickable-cell {
-    cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.clickable-cell:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* cell-duration styles are in style.css */
 
 /* Modal styles */
 .modal {
