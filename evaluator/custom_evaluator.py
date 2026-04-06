@@ -264,11 +264,14 @@ class CustomEvaluator:
             if match and match.lastindex and match.lastindex >= 1:
                 score_str = match.group(1)
                 score = float(score_str)
-                
-                # Normalize score
-                if score > 1.0:
+
+                # Normalize score to 0-1 range
+                max_score = self.evaluator_config.get('max_score')
+                if max_score:
+                    score = score / float(max_score)
+                elif score > 1.0:
                     score = score / 100.0
-                
+
                 status = 'passed' if score >= 0.7 else 'failed'
                 
                 return EvaluationResult(
@@ -336,15 +339,17 @@ class CustomEvaluator:
                     score = float(result_json.get('score', 0))
                     reasoning = result_json.get('reasoning', '')
                     
-                    # Normalize score
-                    # If score is > 1 and <= 5, assume 0-5 scale
-                    if score > 5.0:
+                    # Normalize score to 0-1 range
+                    max_score = self.evaluator_config.get('max_score')
+                    if max_score:
+                        score = score / float(max_score)
+                    elif score > 5.0:
                         score = score / 100.0  # Assume percentage (0-100)
                     elif score > 1.0:
                         score = score / 5.0    # Assume 0-5 rating scale
-                    
+
                     status = 'passed' if score >= 0.7 else 'failed'
-                    
+
                     return EvaluationResult(
                         score=score,
                         status=status,
@@ -362,8 +367,11 @@ class CustomEvaluator:
             score_match = re.search(r'score[^\d]*(\d+(?:\.\d+)?)', eval_response, re.IGNORECASE)
             if score_match:
                 score = float(score_match.group(1))
-                # Normalize: if > 5 assume percentage, if > 1 assume 0-5 scale
-                if score > 5.0:
+                # Normalize score to 0-1 range
+                max_score = self.evaluator_config.get('max_score')
+                if max_score:
+                    score = score / float(max_score)
+                elif score > 5.0:
                     score = score / 100.0
                 elif score > 1.0:
                     score = score / 5.0

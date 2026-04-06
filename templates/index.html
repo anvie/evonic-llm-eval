@@ -712,8 +712,16 @@ function showCellDetail(domain, level) {
                 if (apiData.tests && apiData.tests.length > 0) {
                     showModalWithTests(domain, level, apiData.tests, data);
                 } else {
-                    // Fall back to legacy single-test view
-                    showModalWithData(domain, level, data);
+                    // Try v1 history API as fallback (works for completed runs)
+                    return fetch(`/api/v1/history/${runId}/${domain}/${level}`)
+                        .then(r => r.json())
+                        .then(histData => {
+                            if (histData.tests && histData.tests.length > 0) {
+                                showModalWithTests(domain, level, histData.tests, data);
+                            } else {
+                                showModalWithData(domain, level, data);
+                            }
+                        });
                 }
             })
             .catch(err => {

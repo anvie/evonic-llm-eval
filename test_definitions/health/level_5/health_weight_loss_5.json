@@ -8,7 +8,7 @@
     "type": "text",
     "keywords": ["35", "642", "1358"]
   },
-  "evaluator_id": "two_pass",
+  "evaluator_id": "natural_text_compare",
   "timeout_ms": 30000,
   "weight": 1.0,
   "enabled": true,

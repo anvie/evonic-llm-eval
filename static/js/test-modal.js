@@ -6,6 +6,9 @@
 // Global state for modal
 let currentModalTests = [];
 let currentSelectedTestIndex = 0;
+let currentModalDomain = '';
+let currentModalLevel = 0;
+let currentModalRunId = '';
 
 /**
  * Show modal with multiple tests (two-column layout)
@@ -19,14 +22,17 @@ function showModalWithTests(domain, level, tests, summaryData) {
     const header = document.getElementById('modal-header');
     const title = document.getElementById('modal-title');
     const body = document.getElementById('modal-body');
-    
+
     currentModalTests = tests;
     currentSelectedTestIndex = 0;
-    
+    currentModalDomain = domain;
+    currentModalLevel = level;
+    currentModalRunId = (typeof currentRunId !== 'undefined' && currentRunId) || (typeof RUN_ID !== 'undefined' && RUN_ID) || '';
+
     // DEBUG: Log system prompt fields
     console.log(`[MODAL DEBUG][${domain}][L${level}] Received ${tests.length} tests`);
     tests.forEach((t, i) => {
-        if (t.system_prompt || t.test_system_prompt || t.domain_system_prompt || 
+        if (t.system_prompt || t.test_system_prompt || t.domain_system_prompt ||
             t.details?.system_prompt || t.details?.test_system_prompt || t.details?.domain_system_prompt) {
             console.log(`[MODAL DEBUG][${domain}][L${level}][#${i}] ${t.test_id || t.name}: system_prompt=`, {
                 test_sp: !!t.system_prompt,
@@ -41,16 +47,16 @@ function showModalWithTests(domain, level, tests, summaryData) {
             console.log(`[MODAL DEBUG][${domain}][L${level}][#${i}] ${t.test_id || t.name}: NO SYSTEM PROMPT FIELDS`);
         }
     });
-    
+
     // Calculate summary stats
     const passed = tests.filter(t => t.status === 'passed').length;
     const total = tests.length;
     const overallStatus = summaryData?.status || (passed === total ? 'passed' : 'failed');
-    
+
     const headerClass = overallStatus === 'passed' ? 'modal-header-success' : 'modal-header-error';
     header.className = 'modal-header ' + headerClass;
     title.innerHTML = `${domain.replace(/_/g, ' ').toUpperCase()} Level ${level} — ${passed}/${total} Passed`;
-    
+
     // Two-column layout with mobile dropdown
     body.innerHTML = `
         <select class="modal-test-select-mobile" id="modal-test-select-mobile" onchange="selectTest(parseInt(this.value))">
@@ -63,7 +69,7 @@ function showModalWithTests(domain, level, tests, summaryData) {
                 <div class="test-list-header">Tests <span class="pass-count">${passed}/${total}</span></div>
                 <div class="test-list-items" id="test-list-items">
                     ${tests.map((t, i) => `
-                        <div class="test-list-item ${i === 0 ? 'active' : ''} ${t.status}" 
+                        <div class="test-list-item ${i === 0 ? 'active' : ''} ${t.status}"
                              data-index="${i}" onclick="selectTest(${i})">
                             <span class="test-status-icon">${t.status === 'passed' ? '✓' : '✗'}</span>
                             <span class="test-name">${escapeHtml(t.test_id || t.name || 'Test ' + (i+1))}</span>
@@ -76,7 +82,7 @@ function showModalWithTests(domain, level, tests, summaryData) {
             </div>
         </div>
     `;
-    
+
     modal.style.display = 'flex';
 }
 
@@ -110,7 +116,7 @@ function selectTest(index) {
  */
 function renderTestDetail(test, domain) {
     if (!test) return '<div class="no-test">No test data</div>';
-    
+
     const details = test.details || {};
     const scoreDisplay = test.score !== null ? (test.score * 100).toFixed(1) + '%' : 'N/A';
     const scoreClass = test.status === 'passed' ? 'score-passed' : 'score-failed';
@@ -125,16 +131,16 @@ function renderTestDetail(test, domain) {
             </div>
         </div>
     `;
-    
+
     // Tools Available section - compact inline format
     if (details.tools_available && details.tools_available.length > 0) {
         const toolsText = details.tools_available.map(t => {
-            const params = t.parameters?.properties 
+            const params = t.parameters?.properties
                 ? Object.keys(t.parameters.properties).join(', ')
                 : '';
             return `<span class="tool-name">${escapeHtml(t.name)}</span>(<span class="tool-params-inline">${params}</span>)`;
         }).join(' • ');
-        
+
         html += `
             <div class="test-detail-section">
                 <div class="section-header">🔧 AVAILABLE TOOLS (${details.tools_available.length})</div>
@@ -149,10 +155,10 @@ function renderTestDetail(test, domain) {
     const systemPrompt = test.system_prompt || details.system_prompt || null;
     const systemPromptMode = test.system_prompt_mode || details.system_prompt_mode || null;
     if (systemPrompt) {
-        const modeBadge = systemPromptMode === 'append' 
-            ? '<span class="mode-badge mode-append">APPEND</span>' 
+        const modeBadge = systemPromptMode === 'append'
+            ? '<span class="mode-badge mode-append">APPEND</span>'
             : '<span class="mode-badge mode-overwrite">OVERWRITE</span>';
-        
+
         html += `
             <div class="test-detail-section">
                 <div class="section-header" style="cursor: pointer; user-select: none;" onclick="toggleSystemPrompt()">
@@ -165,13 +171,13 @@ function renderTestDetail(test, domain) {
             </div>
         `;
     }
-    
+
     html += `
         <div class="test-detail-section">
             <div class="section-header">📥 PROMPT</div>
             <div class="section-content prompt-box">${escapeHtml(test.prompt || '')}</div>
         </div>
-        
+
         <div class="test-detail-section">
             <div class="section-header">🎯 EXPECTED</div>
             <div class="section-content expected-box">${formatExpected(test.expected)}</div>
@@ -227,7 +233,7 @@ function renderTestDetail(test, domain) {
             </div>
         `;
     }
-    
+
     // Final Response (for non-multi-turn tests)
     if (test.response && !details.conversation_log) {
         html += `
@@ -239,7 +245,7 @@ function renderTestDetail(test, domain) {
             </div>
         `;
     }
-    
+
     // Evaluation Details
     if (details.evaluator || details.called_tools || details.missing_tools) {
         html += `
@@ -247,18 +253,20 @@ function renderTestDetail(test, domain) {
                 <div class="section-header">🔍 EVALUATION</div>
                 <div class="section-content eval-box">
                     ${details.evaluator ? `<div><strong>Evaluator:</strong> ${escapeHtml(details.evaluator)}</div>` : ''}
+                    ${details.method ? `<div><strong>Method:</strong> ${escapeHtml(details.method)}</div>` : ''}
                     ${details.called_tools ? `<div><strong>Called:</strong> ${details.called_tools.map(t => `<code>${escapeHtml(t)}</code>`).join(', ')}</div>` : ''}
                     ${details.missing_tools && details.missing_tools.length > 0 ? `<div style="color: #dc2626;"><strong>Missing:</strong> ${details.missing_tools.map(t => `<code>${escapeHtml(t)}</code>`).join(', ')}</div>` : ''}
+                    ${renderEvalProcessDetails(details)}
                 </div>
             </div>
         `;
     }
-    
-    // Generate Training Data button (always visible)
+
+    // Action buttons (always visible)
     html += `
-        <div class="test-detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
+        <div class="test-detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb; display: flex; gap: 0.5rem;">
             <button onclick="console.log('[TEST-MODAL] Button clicked, idx=', currentSelectedTestIndex); onGenerateTrainingDataClick(currentSelectedTestIndex)"
-                    style="width: 100%; padding: 0.6rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    style="flex: 1; padding: 0.6rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                            color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600;
                            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
                            transition: transform 0.2s, box-shadow 0.2s;"
@@ -266,9 +274,19 @@ function renderTestDetail(test, domain) {
                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                 📋 Generate Training Data
             </button>
+            <button onclick="copyTestResultLink()"
+                    id="btn-copy-link"
+                    style="padding: 0.6rem 1rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                           color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600;
+                           cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+                           transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap;"
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                🔗 Copy Link
+            </button>
         </div>
     `;
-    
+
     return html;
 }
 
@@ -282,10 +300,10 @@ function showModalNoData(domain, level) {
     const header = document.getElementById('modal-header');
     const title = document.getElementById('modal-title');
     const body = document.getElementById('modal-body');
-    
+
     header.className = 'modal-header';
     title.innerHTML = `${domain.toUpperCase()} Level ${level}`;
-    
+
     body.innerHTML = `
         <div style="text-align: center; padding: 2rem; color: #666;">
             <div style="font-size: 3rem; margin-bottom: 1rem;">⏳</div>
@@ -293,7 +311,7 @@ function showModalNoData(domain, level) {
             <p style="font-size: 0.9rem;">This test has not been executed or is still pending.</p>
         </div>
     `;
-    
+
     modal.style.display = 'flex';
 }
 
@@ -317,6 +335,64 @@ function escapeHtml(text) {
 }
 
 /**
+ * Render collapsible evaluator process details
+ */
+function renderEvalProcessDetails(details) {
+    if (!details) return '';
+    try {
+        var skipKeys = ['evaluator', 'method', 'called_tools', 'missing_tools',
+            'tools_available', 'conversation_log', 'thinking', 'response',
+            'duration_ms', 'system_prompt', 'system_prompt_mode', 'uses_pass2'];
+
+        var evalFields = {};
+        var keys = Object.keys(details);
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            var value = details[key];
+            if (skipKeys.indexOf(key) === -1 && value !== null && value !== undefined && value !== '') {
+                evalFields[key] = value;
+            }
+        }
+
+        if (details.pass2 && typeof details.pass2 === 'object') {
+            evalFields['pass2'] = details.pass2;
+        }
+
+        var fieldKeys = Object.keys(evalFields);
+        if (fieldKeys.length === 0) return '';
+
+        var detailId = 'eval-process-' + Math.random().toString(36).substr(2, 9);
+
+        var contentHtml = '';
+        for (var j = 0; j < fieldKeys.length; j++) {
+            var fkey = fieldKeys[j];
+            var fvalue = evalFields[fkey];
+            var label = fkey.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+            var valueHtml;
+
+            if (typeof fvalue === 'object') {
+                valueHtml = '<pre style="background:#f1f5f9;padding:0.5rem;border-radius:4px;font-size:0.8rem;white-space:pre-wrap;word-break:break-word;overflow-x:auto;margin:0.25rem 0 0 0;">' + escapeHtml(JSON.stringify(fvalue, null, 2)) + '</pre>';
+            } else if (typeof fvalue === 'string' && fvalue.length > 100) {
+                valueHtml = '<pre style="background:#f1f5f9;padding:0.5rem;border-radius:4px;font-size:0.8rem;white-space:pre-wrap;word-break:break-word;overflow-x:auto;margin:0.25rem 0 0 0;">' + escapeHtml(fvalue) + '</pre>';
+            } else {
+                valueHtml = '<code style="background:#f1f5f9;padding:0.15rem 0.4rem;border-radius:3px;font-size:0.85rem;">' + escapeHtml(String(fvalue)) + '</code>';
+            }
+
+            contentHtml += '<div style="margin-bottom:0.5rem;"><strong style="font-size:0.8rem;color:#6b7280;">' + escapeHtml(label) + ':</strong><br>' + valueHtml + '</div>';
+        }
+
+        return '<div style="margin-top:0.75rem;border-top:1px solid #e5e7eb;padding-top:0.5rem;">' +
+            '<div style="cursor:pointer;user-select:none;font-size:0.85rem;color:#6b7280;font-weight:600;" onclick="var el=document.getElementById(\'' + detailId + '\');var icon=this.querySelector(\'.toggle-icon\');if(el.style.display===\'none\'){el.style.display=\'block\';icon.textContent=\'▼\';}else{el.style.display=\'none\';icon.textContent=\'▶\';}">' +
+            '<span class="toggle-icon">▶</span> Evaluator Process Details</div>' +
+            '<div id="' + detailId + '" style="display:none;margin-top:0.5rem;padding:0.75rem;background:#fafafa;border-radius:6px;border:1px solid #e5e7eb;">' +
+            contentHtml + '</div></div>';
+    } catch(e) {
+        console.error('renderEvalProcessDetails error:', e);
+        return '';
+    }
+}
+
+/**
  * Format expected output for display
  * @param {*} expected - Expected value (can be string, object, etc.)
  * @returns {string} HTML string
@@ -325,38 +401,28 @@ function formatExpected(expected) {
     if (!expected) {
         return '<em style="color: #999;">No expected output defined</em>';
     }
-    
+
     try {
-        const parsed = typeof expected === 'string' ? JSON.parse(expected) : expected;
-        
+        var parsed = typeof expected === 'string' ? JSON.parse(expected) : expected;
+
         if (typeof parsed === 'object') {
             // Tool calling format
             if (parsed.tools && Array.isArray(parsed.tools)) {
-                return `<strong>Expected Tools:</strong> ${parsed.tools.map(t => `<code style="background: #e0e7ff; padding: 0.25rem 0.5rem; border-radius: 4px;">${escapeHtml(t)}</code>`).join(' → ')}`;
+                return '<strong>Expected Tools:</strong> ' + parsed.tools.map(function(t) { return '<code style="background:#e0e7ff;padding:0.25rem 0.5rem;border-radius:4px;">' + escapeHtml(t) + '</code>'; }).join(' → ');
             }
-            
+
             if (parsed.tool) {
-                let html = `<strong>Expected Tool:</strong> <code style="background: #e0e7ff; padding: 0.25rem 0.5rem; border-radius: 4px;">${escapeHtml(parsed.tool)}</code>`;
+                var html = '<strong>Expected Tool:</strong> <code style="background:#e0e7ff;padding:0.25rem 0.5rem;border-radius:4px;">' + escapeHtml(parsed.tool) + '</code>';
                 if (parsed.result !== undefined) {
-                    html += `<br><strong>Expected Result:</strong> ${escapeHtml(String(parsed.result))}`;
+                    html += '<br><strong>Expected Result:</strong> ' + escapeHtml(String(parsed.result));
                 }
                 return html;
             }
-            
-            if (parsed.keywords) {
-                let html = '<strong>Expected Keywords:</strong><br>';
-                html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-                parsed.keywords.forEach(kw => {
-                    html += `<span style="background: #d1fae5; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">${escapeHtml(kw)}</span>`;
-                });
-                html += '</div>';
-                return html;
-            }
-            
-            // Default: show as JSON
-            return `<pre style="background: #f1f5f9; padding: 0.75rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+
+            // Show raw JSON for all types
+            return '<pre style="background:#f1f5f9;padding:0.75rem;border-radius:4px;overflow-x:auto;font-size:0.85rem;white-space:pre-wrap;word-break:break-word;margin:0;">' + escapeHtml(JSON.stringify(parsed, null, 2)) + '</pre>';
         }
-        
+
         return escapeHtml(String(parsed));
     } catch (e) {
         return escapeHtml(String(expected));
@@ -376,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
             closeModal();
         }
     });
-    
+
     window.addEventListener('click', function(event) {
         const testModal = document.getElementById('test-modal');
         if (event.target === testModal) {
@@ -391,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleSystemPrompt() {
     const content = document.getElementById('system-prompt-content');
     const toggle = document.getElementById('system-prompt-toggle');
-    
+
     if (content && toggle) {
         if (content.style.display === 'none') {
             content.style.display = 'block';
@@ -401,4 +467,27 @@ function toggleSystemPrompt() {
             toggle.textContent = '▶';
         }
     }
+}
+
+/**
+ * Copy the API link for the current test result detail to clipboard
+ */
+function copyTestResultLink() {
+    var url = window.location.origin + '/api/v1/history/' + currentModalRunId + '/' + currentModalDomain + '/' + currentModalLevel;
+    var btn = document.getElementById('btn-copy-link');
+    navigator.clipboard.writeText(url).then(function() {
+        var original = btn.innerHTML;
+        btn.innerHTML = '✅ Copied!';
+        setTimeout(function() { btn.innerHTML = original; }, 2000);
+    }).catch(function() {
+        var textarea = document.createElement('textarea');
+        textarea.value = url;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        var original = btn.innerHTML;
+        btn.innerHTML = '✅ Copied!';
+        setTimeout(function() { btn.innerHTML = original; }, 2000);
+    });
 }

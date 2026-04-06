@@ -1,0 +1,12 @@
+{
+  "id": "natural_text_compare",
+  "name": "Natural Text Comparison",
+  "type": "custom",
+  "description": "LLM judge yang membandingkan jawaban yang diharapkan (teks natural) dengan respons aktual, memberikan skor 1-3",
+  "eval_prompt": "Kamu adalah evaluator yang bertugas membandingkan jawaban yang diharapkan dengan respons aktual dari sebuah AI.\n\n---JAWABAN YANG DIHARAPKAN---\n{expected}\n---AKHIR JAWABAN YANG DIHARAPKAN---\n\n---RESPONS AKTUAL---\n{response}\n---AKHIR RESPONS AKTUAL---\n\nInstruksi evaluasi:\n1. Bandingkan MAKNA dan ISI dari kedua teks, BUKAN kata per kata\n2. Perbedaan pembulatan angka yang wajar (misal 641.67 vs 642) dianggap BENAR\n3. Jika respons mencakup semua poin penting dari jawaban yang diharapkan meskipun dengan kata-kata berbeda atau lebih detail, itu tetap BENAR\n4. Fokus pada kebenaran faktual dan kelengkapan informasi kunci\n\nSkala penilaian:\n1 = SALAH - Respons salah secara faktual atau sangat berbeda dari jawaban yang diharapkan\n2 = SEBAGIAN BENAR - Respons mencakup beberapa poin kunci tetapi ada informasi penting yang kurang atau salah\n3 = BENAR DAN LENGKAP - Respons mencakup semua poin penting dari jawaban yang diharapkan dengan benar\n\nBerikan analisis singkat (maksimal 2 kalimat) lalu akhiri dengan:\nSKOR: <angka 1-3>",
+  "extraction_regex": "SKOR:\\s*([1-3])",
+  "uses_pass2": false,
+  "config": {
+    "max_score": 3
+  }
+}
