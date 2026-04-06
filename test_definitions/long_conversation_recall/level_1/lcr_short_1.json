@@ -1,0 +1,14 @@
+{
+  "id": "lcr_short_1",
+  "name": "Recall Percakapan Pendek",
+  "description": "Mengingat detail dari percakapan ~5 giliran",
+  "prompt": "Berikut adalah transkrip percakapan sebelumnya. Baca dengan seksama lalu jawab pertanyaan di akhir.\n\n---\n\nPengguna: Halo, saya mau tanya soal rekomendasi tempat makan di Bandung. Ngomong-ngomong, nama saya Rina dan saya alergi kacang tanah.\n\nAsisten: Halo Rina! Senang bisa membantu. Bandung punya banyak pilihan kuliner yang luar biasa. Apakah ada jenis makanan tertentu yang Anda cari? Saya akan memastikan rekomendasi saya aman dari kacang tanah.\n\nPengguna: Saya suka makanan Sunda. Rencana saya makan malam hari Sabtu tanggal 18 Oktober dengan 6 orang teman dari kantor. Budget-nya sekitar Rp150.000 per orang.\n\nAsisten: Untuk makan malam Sunda dengan budget Rp150.000 per orang untuk 7 orang termasuk Anda, saya rekomendasikan beberapa tempat. Pertama, Rumah Makan Nasi Timbel Garut di Jalan Riau yang terkenal dengan nasi timbelnya. Kedua, Kampung Daun Culture Gallery yang menawarkan suasana alam. Ketiga, Sindang Reret di Jalan Sumatera yang punya menu lengkap masakan Sunda.\n\nPengguna: Wah bagus, saya pilih Kampung Daun deh. Bisa tolong carikan info nomor teleponnya supaya saya bisa reservasi?\n\nAsisten: Tentu, Rina. Untuk reservasi di Kampung Daun Culture Gallery, Anda bisa menghubungi mereka di nomor (022) 2700-681. Saya sarankan untuk menginformasikan alergi kacang tanah Anda saat reservasi agar dapur bisa menyesuaikan. Jangan lupa sebutkan bahwa rombongan Anda 7 orang untuk hari Sabtu, 18 Oktober.\n\n---\n\nPertanyaan: Berapa budget per orang yang disebutkan Rina untuk makan malam, dan ia alergi terhadap apa?",
+  "expected": {
+    "keywords": ["150.000", "Rp150.000", "kacang", "alergi", "kacang tanah"],
+    "type": "factual_retrieval"
+  },
+  "evaluator_id": "keyword",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

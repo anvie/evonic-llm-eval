@@ -1,0 +1,10 @@
+{
+  "id": "long_conversation_recall",
+  "name": "Long Conversation Recall",
+  "description": "Menguji kemampuan model untuk mengingat detail spesifik dari percakapan multi-giliran yang panjang",
+  "icon": "history",
+  "color": "#8B5CF6",
+  "evaluator_id": "keyword",
+  "enabled": false,
+  "updated_at": "2026-04-06T22:50:25.496672"
+}

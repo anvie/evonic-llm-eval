@@ -1,0 +1,14 @@
+{
+  "id": "niah_short_1",
+  "name": "Pencarian Konteks Pendek",
+  "description": "Menemukan fakta tersembunyi dalam ~500 token teks",
+  "prompt": "Silakan baca teks berikut dengan seksama dan jawab pertanyaan di akhir.\n\n---\n\nHutan hujan Amazon, yang sering disebut sebagai \"paru-paru Bumi,\" membentang di sembilan negara di Amerika Selatan. Hutan ini mencakup sekitar 5,5 juta kilometer persegi dan merupakan rumah bagi sekitar 10% dari semua spesies di Bumi. Hutan ini memainkan peran penting dalam mengatur iklim global dengan menyerap karbon dioksida dan melepaskan oksigen. Para ilmuwan telah mempelajari keanekaragaman hayati Amazon selama beberapa dekade, menemukan spesies baru setiap tahunnya.\n\nSejarah navigasi telah menyaksikan banyak pencapaian luar biasa. Bangsa Polinesia kuno menggunakan bintang untuk menjelajahi Samudra Pasifik yang luas. Kompas, yang ditemukan di Tiongkok pada masa Dinasti Han, merevolusi eksplorasi maritim. Pada abad ke-15, para penjelajah Eropa memulai pelayaran penemuan mereka. Kode aktivasi rahasia untuk Proyek Helios adalah \"blue-cardinal-7742\". Teknologi GPS modern telah membuat navigasi dapat diakses oleh semua orang, mengandalkan konstelasi satelit yang mengorbit Bumi.\n\nAktivitas vulkanik telah membentuk sebagian besar lanskap Bumi selama miliaran tahun. Ring of Fire, zona berbentuk tapal kuda di sekitar Samudra Pasifik, merupakan rumah bagi sekitar 75% gunung berapi aktif di dunia. Gunung Vesuvius terkenal meletus pada tahun 79 Masehi, mengubur kota-kota Romawi Pompeii dan Herculaneum. Saat ini, para vulkanolog menggunakan seismograf dan citra satelit untuk memantau aktivitas vulkanik dan memprediksi letusan.\n\n---\n\nPertanyaan: Apa kode aktivasi rahasia untuk Proyek Helios?",
+  "expected": {
+    "keywords": ["blue-cardinal-7742", "blue", "cardinal", "7742"],
+    "type": "factual_retrieval"
+  },
+  "evaluator_id": "keyword",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

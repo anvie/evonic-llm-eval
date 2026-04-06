@@ -1,0 +1,10 @@
+{
+  "id": "needle_in_haystack",
+  "name": "Needle in Haystack",
+  "description": "Menguji kemampuan model untuk menemukan dan mengambil informasi spesifik yang tersembunyi di dalam teks panjang yang tidak relevan",
+  "icon": "search",
+  "color": "#F59E0B",
+  "evaluator_id": "keyword",
+  "enabled": false,
+  "updated_at": "2026-04-06T22:50:26.549451"
+}
