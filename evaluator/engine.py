@@ -597,8 +597,72 @@ class EvaluationEngine:
             self._log(f'[SYSTEM][{domain_name}][L{level_num}] No system prompt at any level')
 
         return resolved
-    
-    def _run_single_configurable_test(self, test: Dict[str, Any], domain: str, 
+
+    def _resolve_registry_tools(self, test: Dict[str, Any], domain_name: str, level_num: int):
+        """
+        Resolve tools from the registry using 3-layer hierarchy (always append, deduplicated).
+
+        Returns:
+            (tools_list, mock_responses_dict, mock_response_types_dict)
+        """
+        from evaluator.test_loader import test_loader, TestDefinition
+
+        domain = test_loader.load_domain(domain_name)
+        level_def = test_loader.load_level(domain_name, level_num)
+
+        test_def = TestDefinition(
+            id=test.get('id', ''),
+            name=test.get('name', ''),
+            description=test.get('description', ''),
+            prompt=test.get('prompt', ''),
+            expected=test.get('expected', {}),
+            evaluator_id=test.get('evaluator_id', ''),
+            domain_id=domain_name,
+            level=level_num,
+            tool_ids=test.get('tool_ids')
+        )
+
+        resolved = test_loader.resolve_tools(test_def, domain, level_def)
+
+        tools_list = []
+        mock_responses = {}
+        mock_response_types = {}
+
+        for rt in resolved:
+            tool_def = {"type": rt.get("type", "function"), "function": rt["function"]}
+            tools_list.append(tool_def)
+
+            func_name = rt["function"]["name"]
+            if rt.get("mock_response") is not None:
+                mock_responses[func_name] = rt["mock_response"]
+                mock_response_types[func_name] = rt.get("mock_response_type", "json")
+
+        return tools_list, mock_responses, mock_response_types
+
+    def _execute_js_mock(self, js_code: str, args: dict):
+        """Execute JavaScript mock response via Node.js subprocess"""
+        import subprocess
+        wrapper = f'const ARGS = {json.dumps(json.dumps(args))};\n{js_code}'
+        try:
+            result = subprocess.run(
+                ["node", "-e", wrapper],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode != 0:
+                self._log(f'[JS-MOCK] Error: {result.stderr[:200]}')
+                return {"error": f"JS execution failed: {result.stderr[:200]}"}
+            output = result.stdout.strip()
+            if output:
+                return json.loads(output)
+            return {"result": "no output"}
+        except subprocess.TimeoutExpired:
+            self._log(f'[JS-MOCK] Timeout after 5s')
+            return {"error": "JS mock execution timed out"}
+        except Exception as e:
+            self._log(f'[JS-MOCK] Exception: {str(e)}')
+            return {"error": str(e)}
+
+    def _run_single_configurable_test(self, test: Dict[str, Any], domain: str,
                                        level: int, model_name: str, run_id: str) -> TestResult:
         """Run a single configurable test"""
         test_id = test['id']
@@ -626,41 +690,57 @@ class EvaluationEngine:
         
         # Resolve system prompt using hierarchy (domain → test with mode)
         system_prompt = self._resolve_system_prompt(test, domain)
-        
+
+        # Resolve registry tools (domain → level → test, append + dedup)
+        registry_tools, registry_mocks, registry_mock_types = self._resolve_registry_tools(test, domain, level)
+
         # Check if test has embedded tools OR is tool_calling domain OR uses tool_call evaluator
         test_tools = test.get('tools') or []  # Handle None explicitly
         has_embedded_tools = len(test_tools) > 0
         evaluator_id = test.get('evaluator_id', '')
         uses_tool_evaluator = evaluator_id == 'tool_call'
-        
-        if domain == "tool_calling" or has_embedded_tools or uses_tool_evaluator:
-            # Use embedded tools if available, otherwise use tool_framework
+        has_registry_tools = len(registry_tools) > 0
+
+        if domain == "tool_calling" or has_embedded_tools or uses_tool_evaluator or has_registry_tools:
+            # Start with registry tools (if any)
+            tools = list(registry_tools)
+            mock_responses = dict(registry_mocks)
+            mock_response_types = dict(registry_mock_types)
+
             if has_embedded_tools:
-                # Extract tools and mock responses from test definition
-                tools = []
-                mock_responses = {}
+                # Merge embedded tools (override registry tools with same function name)
+                embedded_func_names = set()
                 for t in test_tools:
-                    # Build OpenAI-compatible tool definition
                     tool_def = {
                         "type": "function",
-                        "function": t.get("function", t)  # Support both formats
+                        "function": t.get("function", t)
                     }
-                    tools.append(tool_def)
-                    
-                    # Extract mock response if provided
                     func_name = t.get("function", {}).get("name") or t.get("name")
+                    embedded_func_names.add(func_name)
+
+                    # Replace or append
+                    existing_idx = next((i for i, rt in enumerate(tools) if rt.get("function", {}).get("name") == func_name), None)
+                    if existing_idx is not None:
+                        tools[existing_idx] = tool_def
+                    else:
+                        tools.append(tool_def)
+
                     if "mock_response" in t:
                         mock_responses[func_name] = t["mock_response"]
-                
-                self._log(f'[TOOLS] Using embedded tools: {[t["function"]["name"] for t in tools]}')
-            else:
+                        mock_response_types[func_name] = "json"  # embedded are always JSON
+
+                self._log(f'[TOOLS] Merged: registry({len(registry_tools)}) + embedded({len(test_tools)}) = {len(tools)} tools')
+            elif has_registry_tools:
+                self._log(f'[TOOLS] Using registry tools: {[t["function"]["name"] for t in tools]}')
+            elif not tools:
                 from evaluator.tools import tool_framework
                 tools = tool_framework.tools
                 mock_responses = None
+                mock_response_types = {}
                 self._log(f'[TOOLS] Available: {[t["function"]["name"] for t in tools]}')
             
             # Run tool calling loop
-            loop_result = self._run_tool_calling_loop(prompt, tools, mock_responses, system_prompt=system_prompt)
+            loop_result = self._run_tool_calling_loop(prompt, tools, mock_responses, system_prompt=system_prompt, mock_response_types=mock_response_types)
             
             duration_ms = loop_result["total_duration_ms"]
             total_tokens = loop_result["total_tokens"]
@@ -864,7 +944,7 @@ class EvaluationEngine:
             total_duration_ms=self.total_duration_ms
         )
     
-    def _run_tool_calling_loop(self, prompt: str, tools: list, mock_responses: Dict[str, Any] = None, system_prompt: str = None) -> Dict[str, Any]:
+    def _run_tool_calling_loop(self, prompt: str, tools: list, mock_responses: Dict[str, Any] = None, system_prompt: str = None, mock_response_types: Dict[str, str] = None) -> Dict[str, Any]:
         """
         Run multi-turn tool calling loop with mock execution.
         
@@ -981,16 +1061,25 @@ class EvaluationEngine:
                 }
                 all_tool_calls.append(tool_call_info)
                 
-                # Execute mock tool - check embedded mock_responses first
+                # Execute mock tool - check mock_responses first (registry + embedded)
                 if mock_responses and func_name in mock_responses:
-                    # Use embedded mock response from test definition
+                    mock_value = mock_responses[func_name]
+                    mock_type = (mock_response_types or {}).get(func_name, 'json')
+
+                    if mock_type == 'javascript' and isinstance(mock_value, str):
+                        # Execute JavaScript mock via Node.js
+                        mock_result_data = self._execute_js_mock(mock_value, func_args)
+                        self._log(f'[MOCK] Executed JS mock for {func_name}')
+                    else:
+                        mock_result_data = mock_value
+                        self._log(f'[MOCK] Using mock response for {func_name}')
+
                     mock_result = {
                         "tool_call_id": tc_id,
                         "function_name": func_name,
-                        "result": mock_responses[func_name],
+                        "result": mock_result_data,
                         "success": True
                     }
-                    self._log(f'[MOCK] Using embedded mock response for {func_name}')
                 else:
                     # Fall back to tool_framework
                     mock_result = tool_framework.execute_tool({

@@ -796,9 +796,9 @@ function renderTestDetailLegacy(test) {
                                 </div>
                             ` : ''}
                             ${turn.response ? `
-                                <div class="px-2 py-1 bg-amber-50 font-semibold text-md md:text-lg">
+                                <div class="px-2 py-1 bg-amber-50 font-semibold text-md">
                                     <p class="text-amber-600">💬 [response]</p>
-                                    <p class="text-gray-700 ml-1">${escapeHtml(turn.response)}</p>
+                                    <pre class="text-gray-700 ml-1">${escapeHtml(turn.response)}</pre>
                                 </div>
                             ` : ''}
                         </div>

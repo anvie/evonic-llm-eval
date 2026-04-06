@@ -14,6 +14,7 @@
     <div class="settings-tabs">
         <button class="tab-btn active" onclick="showTab('domains')">Domains</button>
         <button class="tab-btn" onclick="showTab('evaluators')">Evaluators</button>
+        <button class="tab-btn" onclick="showTab('tools')">Tools</button>
     </div>
 
     <!-- Domains Tab -->
@@ -30,6 +31,14 @@
             <!-- Evaluators will be loaded here -->
         </div>
         <button onclick="showAddEvaluatorModal()" class="btn-add">+ Add Custom Evaluator</button>
+    </div>
+
+    <!-- Tools Tab -->
+    <div id="tools-tab" class="tab-content">
+        <div id="tools-list">
+            <!-- Tools will be loaded here -->
+        </div>
+        <button onclick="showAddToolModal()" class="mt-5 bg-emerald-500 hover:bg-emerald-600 text-white border-none px-6 py-3 rounded-md cursor-pointer text-sm">+ Add Tool</button>
     </div>
 </div>
 
@@ -91,6 +100,13 @@
                         <option value="append">Append (tests can add to this)</option>
                     </select>
                     <small>Default mode for tests (can be overridden per-test)</small>
+                </div>
+                <div class="form-group">
+                    <label>Attached Tools</label>
+                    <div id="domain-tool-select" class="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white text-sm">
+                        <span class="text-gray-400">Loading tools...</span>
+                    </div>
+                    <small>Tools available to all tests in this domain (append mode)</small>
                 </div>
                 <div class="form-group">
                     <label>
@@ -158,6 +174,13 @@
                         <option value="append">Append (add to domain prompt)</option>
                     </select>
                     <small>How this test's prompt combines with domain-level prompt</small>
+                </div>
+                <div class="form-group">
+                    <label>Attached Tools</label>
+                    <div id="test-tool-select" class="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white text-sm">
+                        <span class="text-gray-400">Loading tools...</span>
+                    </div>
+                    <small>Tools for this test (appended to domain/level tools)</small>
                 </div>
                 <div class="form-group">
                     <label>Prompt *</label>
@@ -300,11 +323,76 @@
                     </select>
                     <small>How this level's prompt combines with the domain-level prompt</small>
                 </div>
+                <div class="form-group">
+                    <label>Attached Tools</label>
+                    <div id="level-tool-select" class="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white text-sm">
+                        <span class="text-gray-400">Loading tools...</span>
+                    </div>
+                    <small>Tools available to all tests in this level (appended to domain tools)</small>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
             <button onclick="closeModal('level-modal')" class="btn-secondary">Cancel</button>
             <button onclick="saveLevelPrompt()" class="btn-primary">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Tool Modal -->
+<div id="tool-modal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="tool-modal-title">Add Tool</h3>
+            <button onclick="closeModal('tool-modal')" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="tool-form">
+                <input type="hidden" id="tool-edit-id">
+                <div class="form-group">
+                    <label>ID</label>
+                    <input type="text" id="tool-id-input" placeholder="Auto-generated from name if empty">
+                </div>
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="tool-name" required placeholder="e.g., Get Weather">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="tool-description" placeholder="Brief description of the tool">
+                </div>
+                <div class="form-group">
+                    <label>Function Name *</label>
+                    <input type="text" id="tool-func-name" required placeholder="e.g., get_weather">
+                    <small>The function name used in OpenAI tool calling format</small>
+                </div>
+                <div class="form-group">
+                    <label>Function Description</label>
+                    <textarea id="tool-func-description" rows="2" placeholder="Description shown to the LLM"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Parameters (JSON)</label>
+                    <textarea id="tool-parameters" rows="6" placeholder='{"type": "object", "properties": {"location": {"type": "string", "description": "City name"}}, "required": ["location"]}'></textarea>
+                    <small>OpenAI function parameters schema (JSON object)</small>
+                </div>
+                <div class="form-group">
+                    <label>Mock Response Type</label>
+                    <select id="tool-mock-type" onchange="toggleMockResponseHelp()">
+                        <option value="json">JSON Object</option>
+                        <option value="javascript">JavaScript</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Mock Response</label>
+                    <textarea id="tool-mock-response" rows="6" placeholder='{"result": "sample data"}'></textarea>
+                    <small id="tool-mock-help-json">JSON object that will be returned when this tool is called during evaluation</small>
+                    <small id="tool-mock-help-js" class="hidden">JavaScript code. Use <code>ARGS</code> variable to access tool call arguments (JSON string). Output via <code>console.log(JSON.stringify(result))</code>.</small>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal('tool-modal')" class="btn-secondary">Cancel</button>
+            <button onclick="saveTool()" class="btn-primary">Save Tool</button>
         </div>
     </div>
 </div>
@@ -758,17 +846,23 @@
     padding: 40px;
     color: #6b7280;
 }
+
+.hidden {
+    display: none !important;
+}
 </style>
 
 <script>
 // State
 let domains = [];
 let evaluators = [];
+let tools = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadDomains();
     loadEvaluators();
+    loadTools();
 });
 
 // Tab Management
@@ -837,6 +931,16 @@ async function loadEvaluators() {
         updateEvaluatorSelects();
     } catch (error) {
         console.error('Error loading evaluators:', error);
+    }
+}
+
+async function loadTools() {
+    try {
+        const data = await apiGet('/api/settings/tools');
+        tools = data.tools || [];
+        renderTools();
+    } catch (error) {
+        console.error('Error loading tools:', error);
     }
 }
 
@@ -950,6 +1054,7 @@ function showAddDomainModal() {
     document.getElementById('domain-modal-title').textContent = 'Add Domain';
     document.getElementById('domain-form').reset();
     document.getElementById('domain-id').value = '';
+    renderToolCheckboxes('domain-tool-select', []);
     openModal('domain-modal');
 }
 
@@ -968,7 +1073,8 @@ function editDomain(domainId) {
     document.getElementById('domain-system-prompt').value = domain.system_prompt || '';
     document.getElementById('domain-system-prompt-mode').value = domain.system_prompt_mode || 'overwrite';
     document.getElementById('domain-enabled').checked = domain.enabled !== false;
-    
+    renderToolCheckboxes('domain-tool-select', domain.tool_ids || []);
+
     openModal('domain-modal');
 }
 
@@ -983,7 +1089,8 @@ async function saveDomain() {
         evaluator_id: document.getElementById('domain-evaluator').value,
         system_prompt: document.getElementById('domain-system-prompt').value || null,
         system_prompt_mode: document.getElementById('domain-system-prompt-mode').value,
-        enabled: document.getElementById('domain-enabled').checked
+        enabled: document.getElementById('domain-enabled').checked,
+        tool_ids: getSelectedToolIds('domain-tool-select')
     };
     
     try {
@@ -1110,6 +1217,8 @@ async function editLevelPrompt(domainId, level) {
             modeGroup.style.display = this.value.trim() ? 'block' : 'none';
         };
 
+        renderToolCheckboxes('level-tool-select', levelData.tool_ids || []);
+
         openModal('level-modal');
     } catch (error) {
         console.error('Error loading level:', error);
@@ -1123,6 +1232,7 @@ async function saveLevelPrompt() {
     const data = {
         system_prompt: document.getElementById('level-system-prompt').value || null,
         system_prompt_mode: document.getElementById('level-system-prompt-mode').value,
+        tool_ids: getSelectedToolIds('level-tool-select'),
     };
 
     try {
@@ -1155,6 +1265,7 @@ function showAddTestModal(domainId, level) {
     // Set up prompt mode toggle and reset visibility
     document.getElementById('test-system-prompt').oninput = toggleTestPromptModeVisibility;
     toggleTestPromptModeVisibility();
+    renderToolCheckboxes('test-tool-select', []);
 
     openModal('test-modal');
 }
@@ -1182,6 +1293,7 @@ async function editTest(testId, domainId) {
         // Set up prompt mode toggle and show/hide based on current value
         document.getElementById('test-system-prompt').oninput = toggleTestPromptModeVisibility;
         toggleTestPromptModeVisibility();
+        renderToolCheckboxes('test-tool-select', test.tool_ids || []);
 
         openModal('test-modal');
     } catch (error) {
@@ -1216,7 +1328,8 @@ async function saveTest() {
         evaluator_id: document.getElementById('test-evaluator').value,
         timeout_ms: parseInt(document.getElementById('test-timeout').value),
         weight: parseFloat(document.getElementById('test-weight').value),
-        enabled: document.getElementById('test-enabled').checked
+        enabled: document.getElementById('test-enabled').checked,
+        tool_ids: getSelectedToolIds('test-tool-select')
     };
     
     try {
@@ -1350,6 +1463,195 @@ function toggleTestPromptModeVisibility() {
     } else {
         modeGroup.style.display = 'none';
     }
+}
+
+// ==================== Tool Functions ====================
+
+function renderTools() {
+    const container = document.getElementById('tools-list');
+
+    if (tools.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-500">No tools found. Click "+ Add Tool" to create one.</div>';
+        return;
+    }
+
+    container.innerHTML = tools.map(tool => `
+        <div class="bg-white rounded-lg p-5 mb-3 shadow-sm border border-gray-200 flex justify-between items-center">
+            <div class="flex-1">
+                <h4 class="m-0 text-gray-800 text-base">
+                    ${tool.name}
+                    <span class="inline-block px-2 py-0.5 rounded text-xs ml-2 ${tool.mock_response_type === 'javascript' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">
+                        ${tool.mock_response_type === 'javascript' ? 'JS' : 'JSON'}
+                    </span>
+                </h4>
+                <p class="mt-1 mb-0 text-gray-500 text-sm">${tool.description || 'No description'}</p>
+                <code class="text-xs text-gray-400 mt-1 block">${tool.function ? tool.function.name : tool.id}</code>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn-icon" onclick="editTool('${tool.id}')">✏️ Edit</button>
+                <button class="btn-icon delete" onclick="deleteTool('${tool.id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showAddToolModal() {
+    document.getElementById('tool-modal-title').textContent = 'Add Tool';
+    document.getElementById('tool-form').reset();
+    document.getElementById('tool-edit-id').value = '';
+    document.getElementById('tool-mock-type').value = 'json';
+    toggleMockResponseHelp();
+    openModal('tool-modal');
+}
+
+async function editTool(toolId) {
+    try {
+        const tool = await apiGet(`/api/settings/tools/${toolId}`);
+
+        document.getElementById('tool-modal-title').textContent = 'Edit Tool';
+        document.getElementById('tool-edit-id').value = tool.id;
+        document.getElementById('tool-id-input').value = tool.id;
+        document.getElementById('tool-name').value = tool.name || '';
+        document.getElementById('tool-description').value = tool.description || '';
+        document.getElementById('tool-func-name').value = tool.function ? tool.function.name : '';
+        document.getElementById('tool-func-description').value = tool.function ? (tool.function.description || '') : '';
+        document.getElementById('tool-parameters').value = tool.function && tool.function.parameters
+            ? JSON.stringify(tool.function.parameters, null, 2) : '';
+        document.getElementById('tool-mock-type').value = tool.mock_response_type || 'json';
+
+        // Mock response
+        if (tool.mock_response_type === 'javascript') {
+            document.getElementById('tool-mock-response').value = tool.mock_response || '';
+        } else {
+            document.getElementById('tool-mock-response').value = typeof tool.mock_response === 'object'
+                ? JSON.stringify(tool.mock_response, null, 2) : (tool.mock_response || '');
+        }
+
+        toggleMockResponseHelp();
+        openModal('tool-modal');
+    } catch (error) {
+        alert('Error loading tool: ' + error);
+    }
+}
+
+async function saveTool() {
+    const toolId = document.getElementById('tool-edit-id').value || null;
+
+    // Build function definition
+    let parameters = null;
+    const paramsText = document.getElementById('tool-parameters').value.trim();
+    if (paramsText) {
+        try {
+            parameters = JSON.parse(paramsText);
+        } catch (e) {
+            alert('Invalid JSON in Parameters field');
+            return;
+        }
+    }
+
+    const mockType = document.getElementById('tool-mock-type').value;
+    let mockResponse = document.getElementById('tool-mock-response').value.trim();
+
+    if (mockType === 'json' && mockResponse) {
+        try {
+            mockResponse = JSON.parse(mockResponse);
+        } catch (e) {
+            alert('Invalid JSON in Mock Response field');
+            return;
+        }
+    }
+
+    const funcDef = {
+        name: document.getElementById('tool-func-name').value,
+        description: document.getElementById('tool-func-description').value || '',
+        parameters: parameters || { type: 'object', properties: {}, required: [] }
+    };
+
+    const data = {
+        id: document.getElementById('tool-id-input').value || undefined,
+        name: document.getElementById('tool-name').value,
+        description: document.getElementById('tool-description').value,
+        function: funcDef,
+        mock_response: mockResponse || null,
+        mock_response_type: mockType
+    };
+
+    try {
+        let result;
+        if (toolId) {
+            result = await apiPut(`/api/settings/tools/${toolId}`, data);
+        } else {
+            result = await apiPost('/api/settings/tools', data);
+        }
+
+        if (result.success) {
+            closeModal('tool-modal');
+            loadTools();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error saving tool: ' + error);
+    }
+}
+
+async function deleteTool(toolId) {
+    if (!confirm('Are you sure you want to delete this tool?')) return;
+
+    try {
+        const result = await apiDelete(`/api/settings/tools/${toolId}`);
+        if (result.success) {
+            loadTools();
+        }
+    } catch (error) {
+        alert('Error deleting tool: ' + error);
+    }
+}
+
+function toggleMockResponseHelp() {
+    const type = document.getElementById('tool-mock-type').value;
+    const jsonHelp = document.getElementById('tool-mock-help-json');
+    const jsHelp = document.getElementById('tool-mock-help-js');
+
+    if (type === 'javascript') {
+        jsonHelp.classList.add('hidden');
+        jsHelp.classList.remove('hidden');
+        document.getElementById('tool-mock-response').placeholder = 'const args = JSON.parse(ARGS);\n// process args\nconsole.log(JSON.stringify({result: "value"}));';
+    } else {
+        jsonHelp.classList.remove('hidden');
+        jsHelp.classList.add('hidden');
+        document.getElementById('tool-mock-response').placeholder = '{"result": "sample data"}';
+    }
+}
+
+// ==================== Tool Multi-Select Helpers ====================
+
+function renderToolCheckboxes(containerId, selectedIds) {
+    const container = document.getElementById(containerId);
+    selectedIds = selectedIds || [];
+
+    if (tools.length === 0) {
+        container.innerHTML = '<span class="text-gray-400 text-xs">No tools available. Create tools in the Tools tab first.</span>';
+        return;
+    }
+
+    container.innerHTML = tools.map(tool => {
+        const checked = selectedIds.includes(tool.id) ? 'checked' : '';
+        const funcName = tool.function ? tool.function.name : tool.id;
+        return `
+            <label class="flex items-center gap-2 py-1 px-1 hover:bg-gray-50 rounded cursor-pointer">
+                <input type="checkbox" value="${tool.id}" ${checked} class="accent-blue-500 w-4 h-4">
+                <span class="text-gray-700">${tool.name}</span>
+                <code class="text-xs text-gray-400 ml-auto">${funcName}</code>
+            </label>
+        `;
+    }).join('');
+}
+
+function getSelectedToolIds(containerId) {
+    const container = document.getElementById(containerId);
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
 }
 
 // Import/Export Functions

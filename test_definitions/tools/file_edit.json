@@ -1,0 +1,36 @@
+{
+  "id": "file_edit",
+  "name": "File Edit",
+  "description": "Edit an existing file",
+  "function": {
+    "name": "file_edit",
+    "description": "Edit an existing file",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "filename": {
+          "type": "string",
+          "description": "Name of the file to edit"
+        },
+        "operation": {
+          "type": "string",
+          "enum": ["append", "prepend", "replace"],
+          "description": "Edit operation"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content to add or replace"
+        }
+      },
+      "required": ["filename", "operation", "content"]
+    }
+  },
+  "mock_response": {
+    "filepath": "/tmp/llm_eval_files/example.txt",
+    "operation": "append",
+    "status": "success"
+  },
+  "mock_response_type": "json",
+  "created_at": "2026-04-06T00:00:00.000000",
+  "updated_at": "2026-04-06T00:00:00.000000"
+}

@@ -608,6 +608,60 @@ def api_delete_evaluator(evaluator_id):
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
+# Tool operations
+@app.route('/api/settings/tools', methods=['GET'])
+def api_list_tools():
+    """List all tools from registry"""
+    from evaluator.test_manager import test_manager
+    tools = test_manager.list_tools()
+    return jsonify({'tools': tools})
+
+
+@app.route('/api/settings/tools/<tool_id>', methods=['GET'])
+def api_get_tool(tool_id):
+    """Get a single tool"""
+    from evaluator.test_manager import test_manager
+    tool = test_manager.get_tool(tool_id)
+    if not tool:
+        return jsonify({'error': 'Tool not found'}), 404
+    return jsonify(tool)
+
+
+@app.route('/api/settings/tools', methods=['POST'])
+def api_create_tool():
+    """Create a new tool"""
+    from evaluator.test_manager import test_manager
+    data = request.get_json()
+    try:
+        tool = test_manager.create_tool(data)
+        return jsonify({'success': True, 'tool': tool})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/settings/tools/<tool_id>', methods=['PUT'])
+def api_update_tool(tool_id):
+    """Update a tool"""
+    from evaluator.test_manager import test_manager
+    data = request.get_json()
+    try:
+        tool = test_manager.update_tool(tool_id, data)
+        return jsonify({'success': True, 'tool': tool})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/api/settings/tools/<tool_id>', methods=['DELETE'])
+def api_delete_tool(tool_id):
+    """Delete a tool"""
+    from evaluator.test_manager import test_manager
+    try:
+        success = test_manager.delete_tool(tool_id)
+        return jsonify({'success': success})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
 # Import/Export operations
 @app.route('/api/settings/export', methods=['GET'])
 def api_export_tests():

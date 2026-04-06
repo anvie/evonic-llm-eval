@@ -1,0 +1,35 @@
+{
+  "id": "api_call",
+  "name": "API Call",
+  "description": "Make HTTP API call",
+  "function": {
+    "name": "api_call",
+    "description": "Make HTTP API call",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "API endpoint URL"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "DELETE"],
+          "description": "HTTP method"
+        },
+        "data": {
+          "type": "object",
+          "description": "Request data (for POST/PUT)"
+        }
+      },
+      "required": ["url", "method"]
+    }
+  },
+  "mock_response": {
+    "response": {"users": [{"id": 1, "name": "John Doe"}]},
+    "status": "success"
+  },
+  "mock_response_type": "json",
+  "created_at": "2026-04-06T00:00:00.000000",
+  "updated_at": "2026-04-06T00:00:00.000000"
+}

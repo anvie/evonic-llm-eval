@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from .test_loader import TestLoader, TestDefinition, DomainDefinition, LevelDefinition, EvaluatorDefinition
+from .test_loader import TestLoader, TestDefinition, DomainDefinition, LevelDefinition, EvaluatorDefinition, ToolDefinition
 from models.db import db
 
 
@@ -32,11 +32,16 @@ class TestManager:
         self.evaluators_dir = base_dir / evaluators_dir
         self.custom_evaluators_dir = base_dir / custom_evaluators_dir
         
+        self.tools_dir = base_dir / tests_dir / "tools"
+        self.custom_tools_dir = base_dir / custom_dir / "tools"
+
         # Ensure directories exist
         self.tests_dir.mkdir(parents=True, exist_ok=True)
         self.custom_dir.mkdir(parents=True, exist_ok=True)
         self.evaluators_dir.mkdir(parents=True, exist_ok=True)
         self.custom_evaluators_dir.mkdir(parents=True, exist_ok=True)
+        self.tools_dir.mkdir(parents=True, exist_ok=True)
+        self.custom_tools_dir.mkdir(parents=True, exist_ok=True)
     
     # ==================== Domain Operations ====================
     
@@ -219,6 +224,7 @@ class TestManager:
         level_data = {
             'system_prompt': data.get('system_prompt') or None,
             'system_prompt_mode': data.get('system_prompt_mode', 'overwrite'),
+            'tool_ids': data.get('tool_ids') or None,
         }
 
         # Write to filesystem
@@ -512,6 +518,88 @@ class TestManager:
         
         return True
     
+    # ==================== Tool Operations ====================
+
+    def list_tools(self) -> List[Dict[str, Any]]:
+        """List all tools from registry"""
+        tools = self.loader.scan_tools()
+        return [t.to_dict() for t in tools]
+
+    def get_tool(self, tool_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single tool by ID"""
+        tool = self.loader.get_tool(tool_id)
+        return tool.to_dict() if tool else None
+
+    def create_tool(self, data: Dict[str, Any], is_custom: bool = False) -> Dict[str, Any]:
+        """Create a new tool in the registry"""
+        if 'id' not in data or not data['id']:
+            data['id'] = self._generate_id(data.get('name', 'new_tool'))
+
+        tool_id = data['id']
+
+        if self.loader.get_tool(tool_id):
+            raise ValueError(f"Tool '{tool_id}' already exists")
+
+        base_dir = self.custom_tools_dir if is_custom else self.tools_dir
+        base_dir.mkdir(parents=True, exist_ok=True)
+
+        now = datetime.now().isoformat()
+        data.setdefault('created_at', now)
+        data['updated_at'] = now
+
+        tool_file = base_dir / f"{tool_id}.json"
+        with open(tool_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # Sync to database
+        db_data = data.copy()
+        db_data['function_def'] = data.get('function')
+        db_data['path'] = str(tool_file)
+        db.upsert_tool(db_data)
+
+        self.loader.clear_cache()
+        return self.get_tool(tool_id)
+
+    def update_tool(self, tool_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an existing tool"""
+        tool = self.loader.get_tool(tool_id)
+        if not tool:
+            raise ValueError(f"Tool '{tool_id}' not found")
+
+        tool_file = Path(tool.path)
+
+        with open(tool_file, 'r', encoding='utf-8') as f:
+            existing = json.load(f)
+
+        data.pop('id', None)
+        existing.update(data)
+        existing['updated_at'] = datetime.now().isoformat()
+
+        with open(tool_file, 'w', encoding='utf-8') as f:
+            json.dump(existing, f, indent=2, ensure_ascii=False)
+
+        db_data = existing.copy()
+        db_data['function_def'] = existing.get('function')
+        db_data['path'] = str(tool_file)
+        db.upsert_tool(db_data)
+
+        self.loader.clear_cache()
+        return self.get_tool(tool_id)
+
+    def delete_tool(self, tool_id: str) -> bool:
+        """Delete a tool from the registry"""
+        tool = self.loader.get_tool(tool_id)
+        if not tool:
+            return False
+
+        tool_file = Path(tool.path)
+        if tool_file.exists():
+            tool_file.unlink()
+
+        db.delete_tool(tool_id)
+        self.loader.clear_cache()
+        return True
+
     # ==================== Sync Operations ====================
     
     def sync_to_db(self):
@@ -537,6 +625,12 @@ class TestManager:
         for evaluator in self.loader.load_evaluators():
             eval_data = evaluator.to_dict()
             db.upsert_evaluator(eval_data)
+
+        # Sync tools
+        for tool in self.loader.scan_tools():
+            tool_data = tool.to_dict()
+            tool_data['function_def'] = tool_data.pop('function', None)
+            db.upsert_tool(tool_data)
     
     def sync_from_db(self):
         """Sync database cache to files (for import)"""
@@ -567,6 +661,7 @@ class TestManager:
         result = {
             'domains': [],
             'evaluators': [],
+            'tools': [],
             'exported_at': datetime.now().isoformat(),
             'version': '1.0'
         }
@@ -585,7 +680,11 @@ class TestManager:
         # Export evaluators
         for evaluator in self.loader.load_evaluators():
             result['evaluators'].append(evaluator.to_dict())
-        
+
+        # Export tools
+        for tool in self.loader.scan_tools():
+            result['tools'].append(tool.to_dict())
+
         return result
     
     def import_all(self, data: Dict[str, Any], merge: bool = True) -> Dict[str, Any]:
@@ -602,10 +701,22 @@ class TestManager:
             'domains_imported': 0,
             'tests_imported': 0,
             'evaluators_imported': 0,
+            'tools_imported': 0,
             'errors': []
         }
-        
-        # Import evaluators first
+
+        # Import tools first
+        for tool_data in data.get('tools', []):
+            try:
+                if merge and self.loader.get_tool(tool_data['id']):
+                    self.update_tool(tool_data['id'], tool_data)
+                else:
+                    self.create_tool(tool_data, is_custom=True)
+                result['tools_imported'] += 1
+            except Exception as e:
+                result['errors'].append(f"Tool {tool_data.get('id')}: {str(e)}")
+
+        # Import evaluators
         for eval_data in data.get('evaluators', []):
             try:
                 if merge and self.loader.get_evaluator(eval_data['id']):

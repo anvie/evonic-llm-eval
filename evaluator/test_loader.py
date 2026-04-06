@@ -53,11 +53,12 @@ class TestDefinition:
     created_at: str = ""
     updated_at: str = ""
     tools: List[Dict[str, Any]] = None  # Embedded tool definitions with mock responses
-    
+    tool_ids: Optional[List[str]] = None  # Registry tool IDs attached to this test
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any], domain_id: str, level: int, path: str) -> 'TestDefinition':
         """Create from dictionary"""
@@ -78,7 +79,8 @@ class TestDefinition:
             path=path,
             created_at=data.get('created_at', datetime.now().isoformat()),
             updated_at=data.get('updated_at', datetime.now().isoformat()),
-            tools=data.get('tools', None)
+            tools=data.get('tools', None),
+            tool_ids=data.get('tool_ids', None)
         )
 
 
@@ -97,11 +99,12 @@ class DomainDefinition:
     path: str = ""
     created_at: str = ""
     updated_at: str = ""
-    
+    tool_ids: Optional[List[str]] = None  # Registry tool IDs attached to this domain
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any], path: str) -> 'DomainDefinition':
         """Create from dictionary"""
@@ -117,7 +120,8 @@ class DomainDefinition:
             enabled=data.get('enabled', True),
             path=path,
             created_at=data.get('created_at', datetime.now().isoformat()),
-            updated_at=data.get('updated_at', datetime.now().isoformat())
+            updated_at=data.get('updated_at', datetime.now().isoformat()),
+            tool_ids=data.get('tool_ids', None)
         )
 
 
@@ -129,6 +133,7 @@ class LevelDefinition:
     system_prompt: Optional[str] = None
     system_prompt_mode: str = "overwrite"
     path: str = ""
+    tool_ids: Optional[List[str]] = None  # Registry tool IDs attached to this level
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -170,6 +175,39 @@ class EvaluatorDefinition:
         )
 
 
+@dataclass
+class ToolDefinition:
+    """Represents a tool definition in the registry"""
+    id: str
+    name: str
+    description: str = ""
+    function: Dict[str, Any] = None  # OpenAI function schema
+    mock_response: Any = None  # JSON object or JS code string
+    mock_response_type: str = "json"  # 'json' or 'javascript'
+    path: str = ""
+    created_at: str = ""
+    updated_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], path: str = "") -> 'ToolDefinition':
+        """Create from dictionary"""
+        return cls(
+            id=data.get('id', ''),
+            name=data.get('name', ''),
+            description=data.get('description', ''),
+            function=data.get('function'),
+            mock_response=data.get('mock_response'),
+            mock_response_type=data.get('mock_response_type', 'json'),
+            path=path,
+            created_at=data.get('created_at', ''),
+            updated_at=data.get('updated_at', '')
+        )
+
+
 class TestLoader:
     """Load test definitions from directory structure"""
     
@@ -185,11 +223,16 @@ class TestLoader:
         self.evaluators_dir = base_dir / evaluators_dir
         self.custom_evaluators_dir = base_dir / custom_evaluators_dir
         
+        # Tools directories
+        self.tools_dir = base_dir / tests_dir / "tools"
+        self.custom_tools_dir = base_dir / custom_dir / "tools"
+
         # Cache
         self._domains_cache: Dict[str, DomainDefinition] = {}
         self._levels_cache: Dict[str, LevelDefinition] = {}
         self._tests_cache: Dict[str, List[TestDefinition]] = {}
         self._evaluators_cache: Dict[str, EvaluatorDefinition] = {}
+        self._tools_cache: Dict[str, ToolDefinition] = {}
     
     def scan_domains(self) -> List[DomainDefinition]:
         """Scan all domain directories and return list of domains"""
@@ -274,7 +317,8 @@ class TestLoader:
                         level=level,
                         system_prompt=data.get('system_prompt'),
                         system_prompt_mode=data.get('system_prompt_mode', 'overwrite'),
-                        path=str(level_path)
+                        path=str(level_path),
+                        tool_ids=data.get('tool_ids')
                     )
                     self._levels_cache[cache_key] = level_def
                     return level_def
@@ -435,7 +479,82 @@ class TestLoader:
         self._levels_cache.clear()
         self._tests_cache.clear()
         self._evaluators_cache.clear()
+        self._tools_cache.clear()
     
+    # ==================== Tool Operations ====================
+
+    def scan_tools(self) -> List[ToolDefinition]:
+        """Scan all tool JSON files and return list of tools"""
+        for tools_dir in [self.tools_dir, self.custom_tools_dir]:
+            if tools_dir.exists():
+                for tool_file in tools_dir.glob("*.json"):
+                    tool = self._load_tool(tool_file)
+                    if tool and tool.id not in self._tools_cache:
+                        self._tools_cache[tool.id] = tool
+
+        tools = list(self._tools_cache.values())
+        tools.sort(key=lambda t: t.name)
+        return tools
+
+    def _load_tool(self, tool_file: Path) -> Optional[ToolDefinition]:
+        """Load a single tool from JSON file"""
+        try:
+            with open(tool_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return ToolDefinition.from_dict(data, str(tool_file))
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error loading tool {tool_file}: {e}")
+            return None
+
+    def get_tool(self, tool_id: str) -> Optional[ToolDefinition]:
+        """Get a single tool by ID"""
+        if tool_id in self._tools_cache:
+            return self._tools_cache[tool_id]
+
+        # Load all tools if not cached
+        self.scan_tools()
+        return self._tools_cache.get(tool_id)
+
+    def resolve_tools(self, test: TestDefinition, domain: DomainDefinition = None,
+                      level_def: LevelDefinition = None) -> List[Dict[str, Any]]:
+        """
+        Resolve tools using 3-layer hierarchy (always append, deduplicate by function name).
+        Domain tool_ids + Level tool_ids + Test tool_ids
+
+        Returns list of dicts: [{"type": "function", "function": {...}, "mock_response": ..., "mock_response_type": ...}, ...]
+        """
+        if domain is None:
+            domain = self.load_domain(test.domain_id)
+        if level_def is None:
+            level_def = self.load_level(test.domain_id, test.level)
+
+        # Collect tool_ids in order: domain -> level -> test
+        all_tool_ids = []
+        if domain and domain.tool_ids:
+            all_tool_ids.extend(domain.tool_ids)
+        if level_def and level_def.tool_ids:
+            all_tool_ids.extend(level_def.tool_ids)
+        if test.tool_ids:
+            all_tool_ids.extend(test.tool_ids)
+
+        if not all_tool_ids:
+            return []
+
+        # Load tools and deduplicate by function name (last wins)
+        tools_by_func_name = {}
+        for tool_id in all_tool_ids:
+            tool_def = self.get_tool(tool_id)
+            if tool_def and tool_def.function:
+                func_name = tool_def.function.get('name', tool_def.id)
+                tools_by_func_name[func_name] = {
+                    "type": "function",
+                    "function": tool_def.function,
+                    "mock_response": tool_def.mock_response,
+                    "mock_response_type": tool_def.mock_response_type
+                }
+
+        return list(tools_by_func_name.values())
+
     def resolve_system_prompt(self, test: TestDefinition, domain: DomainDefinition = None, level_def: LevelDefinition = None) -> Optional[str]:
         """
         Resolve system prompt using 3-layer hierarchy:

@@ -197,6 +197,21 @@ class Database:
                 )
             """)
             
+            # Tools registry table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS tools (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    function_def TEXT NOT NULL,
+                    mock_response TEXT,
+                    mock_response_type TEXT DEFAULT 'json',
+                    path TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Add system_prompt and system_prompt_mode columns to individual_test_results if they don't exist
             cursor.execute("PRAGMA table_info(individual_test_results)")
             itr_cols = [row[1] for row in cursor.fetchall()]
@@ -204,6 +219,13 @@ class Database:
                 cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt TEXT")
             if 'system_prompt_mode' not in itr_cols:
                 cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt_mode TEXT")
+
+            # Add tool_ids column to domains, levels, tests if they don't exist
+            for table in ('domains', 'levels', 'tests'):
+                cursor.execute(f"PRAGMA table_info({table})")
+                cols = [row[1] for row in cursor.fetchall()]
+                if 'tool_ids' not in cols:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN tool_ids TEXT")
             
             # Create indexes for faster queries
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_tests_domain ON tests(domain_id)")
@@ -701,6 +723,80 @@ class Database:
             conn.commit()
             return cursor.rowcount > 0
     
+    # Tool operations
+    def get_tools(self) -> List[Dict[str, Any]]:
+        """Get all tools"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM tools ORDER BY name")
+            results = []
+            for row in cursor.fetchall():
+                d = dict(row)
+                if d.get('function_def'):
+                    d['function_def'] = json.loads(d['function_def'])
+                if d.get('mock_response') and d.get('mock_response_type', 'json') == 'json':
+                    try:
+                        d['mock_response'] = json.loads(d['mock_response'])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                results.append(d)
+            return results
+
+    def get_tool(self, tool_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single tool by ID"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM tools WHERE id = ?", (tool_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            d = dict(row)
+            if d.get('function_def'):
+                d['function_def'] = json.loads(d['function_def'])
+            if d.get('mock_response') and d.get('mock_response_type', 'json') == 'json':
+                try:
+                    d['mock_response'] = json.loads(d['mock_response'])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            return d
+
+    def upsert_tool(self, tool: Dict[str, Any]) -> str:
+        """Insert or update a tool"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            function_def = json.dumps(tool['function_def']) if isinstance(tool.get('function_def'), dict) else tool.get('function_def')
+            mock_response = tool.get('mock_response')
+            if isinstance(mock_response, (dict, list)):
+                mock_response = json.dumps(mock_response)
+            cursor.execute("""
+                INSERT INTO tools (id, name, description, function_def, mock_response, mock_response_type, path, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description,
+                    function_def = excluded.function_def,
+                    mock_response = excluded.mock_response,
+                    mock_response_type = excluded.mock_response_type,
+                    path = excluded.path,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (
+                tool['id'], tool.get('name'), tool.get('description'),
+                function_def, mock_response,
+                tool.get('mock_response_type', 'json'), tool.get('path')
+            ))
+            conn.commit()
+        return tool['id']
+
+    def delete_tool(self, tool_id: str) -> bool:
+        """Delete a tool"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM tools WHERE id = ?", (tool_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
     # Level scores operations
     def save_level_score(self, run_id: str, domain: str, level: int, 
                          average_score: float, total_tests: int, passed_tests: int):

@@ -1,0 +1,40 @@
+{
+  "id": "search_hotels",
+  "name": "Search Hotels",
+  "description": "Search for hotels in a location",
+  "function": {
+    "name": "search_hotels",
+    "description": "Search for hotels in a location",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "City or area"
+        },
+        "check_in": {
+          "type": "string",
+          "description": "Check-in date (YYYY-MM-DD)"
+        },
+        "check_out": {
+          "type": "string",
+          "description": "Check-out date (YYYY-MM-DD)"
+        }
+      },
+      "required": ["location"]
+    }
+  },
+  "mock_response": {
+    "hotels": [
+      {"name": "Grand Hyatt", "location": "Bali", "rating": 4.8, "price_per_night": 2500000},
+      {"name": "Ayana Resort", "location": "Bali", "rating": 4.9, "price_per_night": 3000000},
+      {"name": "Alila Villas", "location": "Bali", "rating": 4.7, "price_per_night": 2800000}
+    ],
+    "location": "Bali",
+    "count": 3,
+    "status": "success"
+  },
+  "mock_response_type": "json",
+  "created_at": "2026-04-06T00:00:00.000000",
+  "updated_at": "2026-04-06T00:00:00.000000"
+}

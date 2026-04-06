@@ -1,0 +1,31 @@
+{
+  "id": "get_weather",
+  "name": "Get Weather",
+  "description": "Get current weather information for a location",
+  "function": {
+    "name": "get_weather",
+    "description": "Get current weather information for a location",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "City name or location"
+        }
+      },
+      "required": ["location"]
+    }
+  },
+  "mock_response": {
+    "location": "Jakarta",
+    "weather": {
+      "temp": 32,
+      "condition": "Cerah berawan",
+      "humidity": 75
+    },
+    "status": "success"
+  },
+  "mock_response_type": "json",
+  "created_at": "2026-04-06T00:00:00.000000",
+  "updated_at": "2026-04-06T00:00:00.000000"
+}
