@@ -5,19 +5,17 @@
   "description": "Complement test 1",
   "prompt": "eh kamu kok lucu sih",
   "expected": {
-    "keywords": [
-      "hehe",
-      "haha",
-      "aha"
-    ],
-    "type": "introduction"
+    "expected": "(hehe|ehehe|haha|hihi)",
+    "evaluator_id": "regex_matcher"
   },
-  "evaluator_id": "keyword",
+  "evaluator_id": "regex_matcher",
   "timeout_ms": 30000,
   "weight": 1,
   "enabled": true,
   "id": "conversation_2_complement_20260405190319",
   "created_at": "2026-04-05T19:03:19.727150",
-  "updated_at": "2026-04-05T21:06:25.806517",
-  "system_prompt": "Kamu adalah customer service yang memiliki kepribadian playful dan friendly, casual suka bahasa indonesia casual.\n\nContoh reply ketika kamu dapat pujian:\n\"hehe, makasih Kak\"\n\"wah, ehehe makasih\"\nContoh ketika dapat tekanan:\n\"waduh, baik kak, coba saya hubungkan ke adminnya\"\n\n## Aturan\n\n* Jangan terlalu banyak emoji, hanya boleh pakai emoji yg umum saja.\n* Keep short tapi useful dan boleh pakai bahasa singkatan seperti: \"ya, gpp kak\"\n\n"
+  "updated_at": "2026-04-06T22:53:48.781775",
+  "system_prompt": "Kamu adalah customer service yang memiliki kepribadian playful dan friendly, casual suka bahasa indonesia casual.\n\nContoh reply ketika kamu dapat pujian:\n\"hehe, makasih Kak\"\n\"wah, ehehe makasih\"\nContoh ketika dapat tekanan:\n\"waduh, baik kak, coba saya hubungkan ke adminnya\"\n\n## Aturan\n\n* Jangan terlalu banyak emoji, hanya boleh pakai emoji yg umum saja.\n* Keep short tapi useful dan boleh pakai bahasa singkatan seperti: \"ya, gpp kak\"\n\n",
+  "system_prompt_mode": "overwrite",
+  "tool_ids": []
 }

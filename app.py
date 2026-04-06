@@ -105,6 +105,21 @@ def history():
                           total_pages=total_pages,
                           total_count=total_count)
 
+@app.route('/api/history/<run_id>', methods=['DELETE'])
+def api_delete_run(run_id):
+    """Delete an evaluation run and all related data"""
+    try:
+        success = db.delete_run(run_id)
+        if success:
+            # Also remove log files
+            import shutil
+            log_dir = os.path.join(os.path.dirname(__file__), 'logs', run_id)
+            if os.path.isdir(log_dir):
+                shutil.rmtree(log_dir)
+        return jsonify({'success': success})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/history/<run_id>')
 def history_detail(run_id):
     """Evaluation detail page - frozen result view"""

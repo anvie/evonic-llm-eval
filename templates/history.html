@@ -14,6 +14,7 @@
                 <th>Score</th>
                 <th>Tests</th>
                 <th>Summary</th>
+                <th style="width: 50px;"></th>
             </tr>
         </thead>
         <tbody>
@@ -67,6 +68,11 @@
                     {% else %}
                     -
                     {% endif %}
+                </td>
+                <td style="text-align: center;">
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteRun('{{ run.run_id }}')" title="Delete run">
+                        &times;
+                    </button>
                 </td>
             </tr>
             {% endfor %}
@@ -196,5 +202,39 @@
     font-size: 0.85rem;
     margin-top: 0.5rem;
 }
+
+.delete-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: #9ca3af;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    color: #dc2626;
+    background: #fee2e2;
+    border-color: #fecaca;
+}
 </style>
+
+<script>
+function deleteRun(runId) {
+    if (!confirm('Delete this evaluation run? This cannot be undone.')) return;
+    fetch('/api/history/' + runId, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(err => alert('Error: ' + err));
+}
+</script>
 {% endblock %}

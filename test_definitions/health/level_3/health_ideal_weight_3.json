@@ -4,14 +4,17 @@
   "description": "Test ideal body weight calculation using Devine formula",
   "prompt": "Hitung berat badan ideal pria tinggi 175 cm menggunakan rumus Devine: 50 + 2.3 * (tinggi_cm - 152.4) / 2.54. Jawab dengan angka dalam kg (pembulatan 1 desimal).",
   "expected": {
-    "answer": 68.4,
-    "type": "numeric",
-    "tolerance": 1.0
+    "answer": 70.5,
+    "tolerance": 1,
+    "type": "numeric"
   },
   "evaluator_id": "two_pass",
   "timeout_ms": 30000,
-  "weight": 1.0,
+  "weight": 1,
   "enabled": true,
   "created_at": "2026-04-03T07:51:00.000000",
-  "updated_at": "2026-04-03T07:51:00.000000"
+  "updated_at": "2026-04-06T21:37:14.156326",
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite",
+  "tool_ids": []
 }

@@ -347,6 +347,26 @@ class Database:
             )
             return [dict(row) for row in cursor.fetchall()]
     
+    def delete_run(self, run_id: str) -> bool:
+        """Delete an evaluation run and all related data"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            # Delete in dependency order
+            cursor.execute("""
+                DELETE FROM generated_training_data WHERE cycle_id IN
+                (SELECT cycle_id FROM improvement_cycles
+                 WHERE base_run_id = ? OR improved_run_id = ?)
+            """, (run_id, run_id))
+            cursor.execute(
+                "DELETE FROM improvement_cycles WHERE base_run_id = ? OR improved_run_id = ?",
+                (run_id, run_id))
+            cursor.execute("DELETE FROM individual_test_results WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM level_scores WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM test_results WHERE run_id = ?", (run_id,))
+            cursor.execute("DELETE FROM evaluation_runs WHERE run_id = ?", (run_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
     def get_runs_count(self) -> int:
         """Get total count of evaluation runs"""
         with sqlite3.connect(self.db_path) as conn:
