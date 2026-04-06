@@ -199,9 +199,10 @@
                 <div class="flex gap-4">
                     <div class="mb-4 flex-1">
                         <label class="block mb-1 text-gray-700 text-sm font-medium">Evaluator</label>
-                        <select id="test-evaluator" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
+                        <select id="test-evaluator" onchange="onTestEvaluatorChange()" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                             <!-- Evaluators will be loaded here -->
                         </select>
+                        <div id="evaluator-hint" class="mt-1 text-xs text-blue-600 bg-blue-50 rounded px-2 py-1.5 border border-blue-100" style="display:none;"></div>
                     </div>
                     <div class="mb-4 flex-1">
                         <label class="block mb-1 text-gray-700 text-sm font-medium">Timeout (ms)</label>
@@ -270,6 +271,11 @@
                         &bull; Extract date: <code>(\d{4}-\d{2}-\d{2})</code><br>
                         &bull; Multiple choice: <code>Jawaban:\s*([ABCD])</code>
                     </small>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Config (JSON, optional)</label>
+                    <textarea id="evaluator-config" rows="2" placeholder='{"max_score": 3, "use_expected_as_pattern": true}' class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm font-mono focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
+                    <small class="text-gray-500 text-xs">Optional settings: <code>max_score</code> (normalize score), <code>use_expected_as_pattern</code> (use expected as regex)</small>
                 </div>
             </form>
         </div>
@@ -938,8 +944,8 @@ function renderEvaluators() {
                 <p>${evaluator.description || 'No description'}</p>
             </div>
             <div class="evaluator-actions">
+                <button class="btn-icon" onclick="editEvaluator('${evaluator.id}')">✏️ Edit</button>
                 ${evaluator.type === 'custom' ? `
-                    <button class="btn-icon" onclick="editEvaluator('${evaluator.id}')">✏️ Edit</button>
                     <button class="btn-icon delete" onclick="deleteEvaluator('${evaluator.id}')">🗑️</button>
                 ` : ''}
             </div>
@@ -953,7 +959,7 @@ function updateEvaluatorSelects() {
         const select = document.getElementById(selectId);
         if (select) {
             select.innerHTML = '<option value="">-- Select Evaluator --</option>' +
-                evaluators.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+                evaluators.map(e => `<option value="${e.id}">${e.name} [${e.type}]</option>`).join('');
         }
     });
 }
@@ -1317,35 +1323,51 @@ function showAddEvaluatorModal() {
     document.getElementById('evaluator-modal-title').textContent = 'Add Custom Evaluator';
     document.getElementById('evaluator-form').reset();
     document.getElementById('evaluator-id').value = '';
+    document.getElementById('evaluator-config').value = '';
+    toggleEvaluatorType();
     openModal('evaluator-modal');
 }
 
 function editEvaluator(evaluatorId) {
     const evaluator = evaluators.find(e => e.id === evaluatorId);
     if (!evaluator) return;
-    
+
     document.getElementById('evaluator-modal-title').textContent = 'Edit Evaluator';
     document.getElementById('evaluator-id').value = evaluator.id;
     document.getElementById('evaluator-id-input').value = evaluator.id;
     document.getElementById('evaluator-name').value = evaluator.name;
     document.getElementById('evaluator-description').value = evaluator.description || '';
-    document.getElementById('evaluator-type').value = evaluator.type;
+    document.getElementById('evaluator-type').value = evaluator.type || 'custom';
     document.getElementById('evaluator-prompt').value = evaluator.eval_prompt || '';
     document.getElementById('evaluator-regex').value = evaluator.extraction_regex || '';
-    
+    document.getElementById('evaluator-config').value = evaluator.config ? JSON.stringify(evaluator.config, null, 2) : '';
+    toggleEvaluatorType();
+
     openModal('evaluator-modal');
 }
 
 async function saveEvaluator() {
     const evaluatorId = document.getElementById('evaluator-id').value || null;
-    
+
+    var configValue = null;
+    var configStr = document.getElementById('evaluator-config').value.trim();
+    if (configStr) {
+        try {
+            configValue = JSON.parse(configStr);
+        } catch (e) {
+            alert('Invalid JSON in Config field: ' + e.message);
+            return;
+        }
+    }
+
     const data = {
         id: document.getElementById('evaluator-id-input').value || undefined,
         name: document.getElementById('evaluator-name').value,
         description: document.getElementById('evaluator-description').value,
-        type: 'custom',
+        type: document.getElementById('evaluator-type').value,
         eval_prompt: document.getElementById('evaluator-prompt').value || null,
-        extraction_regex: document.getElementById('evaluator-regex').value || null
+        extraction_regex: document.getElementById('evaluator-regex').value || null,
+        config: configValue
     };
     
     try {
@@ -1398,6 +1420,45 @@ function toggleEvaluatorType() {
         promptGroup.style.display = 'block';
         regexGroup.style.display = 'block';
     }
+}
+
+function onTestEvaluatorChange() {
+    var select = document.getElementById('test-evaluator');
+    var hint = document.getElementById('evaluator-hint');
+    var expected = document.getElementById('test-expected');
+    var evalId = select.value;
+
+    if (!evalId) {
+        hint.style.display = 'none';
+        expected.placeholder = '{"answer": 42, "type": "numeric"}';
+        return;
+    }
+
+    var ev = evaluators.find(function(e) { return e.id === evalId; });
+    if (!ev) {
+        hint.style.display = 'none';
+        return;
+    }
+
+    // Show description hint
+    var hintText = '<strong>' + ev.name + '</strong>';
+    if (ev.description) hintText += ' — ' + ev.description;
+    hint.innerHTML = hintText;
+    hint.style.display = 'block';
+
+    // Update expected placeholder based on evaluator
+    var placeholders = {
+        'regex_matcher': '(pattern1|pattern2|pattern3)',
+        'regex_exact_match': 'exact expected answer',
+        'regex_number_extractor': '{"answer": 42}',
+        'regex_multiple_choice': '{"answer": "A"}',
+        'keyword': '{"keywords": ["word1", "word2"], "type": "greeting"}',
+        'two_pass': '{"answer": 42, "type": "numeric", "tolerance": 0.1}',
+        'natural_text_compare': '{"answer": "Jawaban dalam teks natural yang diharapkan"}',
+        'tool_call': '{"tools": ["tool_name"], "result": "expected result"}'
+    };
+
+    expected.placeholder = placeholders[evalId] || '{"answer": "expected value"}';
 }
 
 function toggleTestPromptModeVisibility() {

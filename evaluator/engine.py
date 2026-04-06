@@ -828,9 +828,9 @@ class EvaluationEngine:
         # Check if we need to use a custom evaluator from test_definitions/evaluators/
         evaluator_config = test_loader.get_evaluator(evaluator_id) if evaluator_id else None
         
-        if evaluator_config and evaluator_config.type == 'custom':
+        if evaluator_config and evaluator_config.type in ('custom', 'regex', 'hybrid'):
             custom_eval = CustomEvaluator(evaluator_config.to_dict())
-            self._log(f'[EVAL] Using custom evaluator: {evaluator_config.name}')
+            self._log(f'[EVAL] Using custom evaluator: {evaluator_config.name} (type: {evaluator_config.type})')
             result = custom_eval.evaluate(response_content, expected, level)
         elif evaluator_id:
             # Use built-in evaluator type (tool_call, keyword, two_pass, sql_executor)
@@ -851,9 +851,11 @@ class EvaluationEngine:
         # Add evaluator info
         if evaluator_config and evaluator_config.type == 'custom':
             details["evaluator"] = f"custom:{evaluator_config.name}"
+        elif evaluator_config:
+            details["evaluator"] = evaluator_config.name
+            details["uses_pass2"] = evaluator_config.uses_pass2
         else:
-            details["evaluator"] = evaluator.name
-            details["uses_pass2"] = evaluator.uses_pass2
+            details["evaluator"] = "unknown"
         
         # Include response in details for modal display
         details['response'] = response_content

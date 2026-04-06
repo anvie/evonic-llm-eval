@@ -105,7 +105,11 @@ class CustomEvaluator:
         try:
             # Check if we should use expected value as the pattern
             if self.evaluator_config.get('use_expected_as_pattern') and expected:
-                pattern = str(expected)
+                # Extract pattern from expected - support both string and dict formats
+                if isinstance(expected, dict):
+                    pattern = str(expected.get('expected', expected.get('answer', '')))
+                else:
+                    pattern = str(expected)
                 match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
                 
                 if match:
