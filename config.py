@@ -51,3 +51,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8080"))
 DEBUG = os.getenv("DEBUG", "1") == "1"
+
+# Real-time log verbosity
+LOG_FULL_THINKING = os.getenv("LOG_FULL_THINKING", "0") == "1"
+LOG_FULL_RESPONSE = os.getenv("LOG_FULL_RESPONSE", "0") == "1"

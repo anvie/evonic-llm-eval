@@ -275,4 +275,56 @@
 .score-failed {
     color: #ef4444;
 }
+
+/* Mobile test selector dropdown */
+.modal-test-select-mobile {
+    display: none;
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+/* Mobile responsive modal */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 98%;
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 8px;
+    }
+
+    .modal-body {
+        padding: 0.75rem;
+    }
+
+    .modal-two-col {
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .modal-test-list {
+        display: none;
+    }
+
+    .modal-test-select-mobile {
+        display: block;
+    }
+
+    .modal-test-detail {
+        max-height: none;
+    }
+
+    .test-detail-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .prompt-box, .response-box {
+        max-height: none;
+    }
+}
 </style>

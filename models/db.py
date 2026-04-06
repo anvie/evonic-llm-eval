@@ -338,7 +338,11 @@ class Database:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM evaluation_runs ORDER BY started_at DESC LIMIT ? OFFSET ?",
+                """SELECT e.*,
+                    (SELECT COUNT(*) FROM individual_test_results WHERE run_id = e.run_id) as test_count,
+                    (SELECT COUNT(*) FROM individual_test_results WHERE run_id = e.run_id AND status = 'passed') as passed_count
+                FROM evaluation_runs e
+                ORDER BY e.started_at DESC LIMIT ? OFFSET ?""",
                 (limit, offset)
             )
             return [dict(row) for row in cursor.fetchall()]

@@ -88,6 +88,14 @@ class TwoPassEvaluator(BaseEvaluator):
         if test_class:
             test_instance = test_class(level)
             score_result = test_instance.score_response(extracted, expected_value)
+
+            # If extraction picked wrong answer, retry with raw PASS1 response
+            # This leverages multi-number matching in score_response
+            if score_result.get("score", 0) < 1.0 and response != extracted:
+                raw_result = test_instance.score_response(response, expected_value)
+                if raw_result.get("score", 0) > score_result.get("score", 0):
+                    score_result = raw_result
+                    score_result["extraction_note"] = "Matched from raw PASS1 response"
         else:
             score_result = {"score": 0.0, "details": f"Unknown domain: {self.domain}"}
         

@@ -12,6 +12,7 @@
                 <th>Model</th>
                 <th>Time</th>
                 <th>Score</th>
+                <th>Tests</th>
                 <th>Summary</th>
             </tr>
         </thead>
@@ -44,6 +45,15 @@
                         {% else %}score-low
                         {% endif %}">
                         {{ "%.1f"|format(run.overall_score * 100) }}%
+                    </span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">
+                    {% if run.test_count %}
+                    <span style="font-size: 0.85rem; font-weight: 500;">
+                        <span style="color: #059669;">{{ run.passed_count or 0 }}</span>/<span style="color: #374151;">{{ run.test_count }}</span>
                     </span>
                     {% else %}
                     -

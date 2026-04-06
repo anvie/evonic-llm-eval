@@ -5,6 +5,7 @@ Two-pass extraction + SQL execution and result validation.
 Used for SQL domain.
 """
 
+import re
 from typing import Any, Dict
 from .base import BaseEvaluator, EvaluationResult
 from evaluator.answer_extractor import answer_extractor
@@ -54,7 +55,10 @@ class SQLExecutorEvaluator(BaseEvaluator):
             )
         
         sql_query = extraction["extracted"]
-        
+
+        # Normalize SQL dialect (PostgreSQL/MySQL → SQLite)
+        sql_query = self._normalize_sql(sql_query)
+
         # Execute SQL
         execution_result = sql_executor.execute_safe_query(sql_query)
         
@@ -106,7 +110,39 @@ class SQLExecutorEvaluator(BaseEvaluator):
             pass2_used=True
         )
     
-    def _score_results(self, sql_query: str, actual_result: list, columns: list, 
+    def _normalize_sql(self, sql: str) -> str:
+        """Translate common PostgreSQL/MySQL functions to SQLite equivalents."""
+        # DATE_TRUNC('month', col) → strftime('%Y-%m', col)
+        sql = re.sub(
+            r"DATE_TRUNC\s*\(\s*'month'\s*,\s*([^)]+)\)",
+            r"strftime('%Y-%m', \1)",
+            sql, flags=re.IGNORECASE
+        )
+        # DATE_TRUNC('year', col) → strftime('%Y', col)
+        sql = re.sub(
+            r"DATE_TRUNC\s*\(\s*'year'\s*,\s*([^)]+)\)",
+            r"strftime('%Y', \1)",
+            sql, flags=re.IGNORECASE
+        )
+        # DATE_TRUNC('day', col) → date(col)
+        sql = re.sub(
+            r"DATE_TRUNC\s*\(\s*'day'\s*,\s*([^)]+)\)",
+            r"date(\1)",
+            sql, flags=re.IGNORECASE
+        )
+        # DATE_FORMAT(col, '%Y-%m') → strftime('%Y-%m', col)
+        sql = re.sub(
+            r"DATE_FORMAT\s*\(\s*([^,]+),\s*'([^']+)'\s*\)",
+            r"strftime('\2', \1)",
+            sql, flags=re.IGNORECASE
+        )
+        # NOW() → datetime('now')
+        sql = re.sub(r"\bNOW\s*\(\s*\)", "datetime('now')", sql, flags=re.IGNORECASE)
+        # ILIKE → LIKE (SQLite LIKE is case-insensitive for ASCII)
+        sql = re.sub(r"\bILIKE\b", "LIKE", sql, flags=re.IGNORECASE)
+        return sql
+
+    def _score_results(self, sql_query: str, actual_result: list, columns: list,
                        expected: Dict, level: int) -> Dict:
         """Score SQL execution results"""
         
@@ -132,28 +168,34 @@ class SQLExecutorEvaluator(BaseEvaluator):
             required_cols = expected.get("required_columns", [])
             forbidden_cols = expected.get("forbidden_columns", [])
             actual_cols = set(columns)
-            
-            col_score = 0.0
-            if required_cols:
-                required_found = sum(1 for c in required_cols 
-                                    if c.lower() in [col.lower() for col in actual_cols])
-                col_score = required_found / len(required_cols)
-                
-                if col_score >= 1.0:
-                    details_parts.append(f"✓ All required columns present: {required_cols}")
-                elif col_score > 0:
-                    details_parts.append(f"⚠ Partial columns: {required_found}/{len(required_cols)} found")
+
+            if not required_cols and not forbidden_cols:
+                # No column constraints = automatic pass
+                col_score = 1.0
+            else:
+                col_score = 0.0
+                if required_cols:
+                    required_found = sum(1 for c in required_cols
+                                        if c.lower() in [col.lower() for col in actual_cols])
+                    col_score = required_found / len(required_cols)
+
+                    if col_score >= 1.0:
+                        details_parts.append(f"✓ All required columns present: {required_cols}")
+                    elif col_score > 0:
+                        details_parts.append(f"⚠ Partial columns: {required_found}/{len(required_cols)} found")
+                    else:
+                        details_parts.append(f"✗ Missing required columns: {required_cols}")
                 else:
-                    details_parts.append(f"✗ Missing required columns: {required_cols}")
-            
-            # Check forbidden columns
-            if forbidden_cols:
-                forbidden_found = [c for c in forbidden_cols 
-                                  if c.lower() in [col.lower() for col in actual_cols]]
-                if forbidden_found:
-                    col_score *= 0.7  # Penalty
-                    details_parts.append(f"⚠ Unwanted columns selected: {forbidden_found}")
-            
+                    col_score = 1.0
+
+                # Check forbidden columns
+                if forbidden_cols:
+                    forbidden_found = [c for c in forbidden_cols
+                                      if c.lower() in [col.lower() for col in actual_cols]]
+                    if forbidden_found:
+                        col_score *= 0.7  # Penalty
+                        details_parts.append(f"⚠ Unwanted columns selected: {forbidden_found}")
+
             breakdown["columns"] = col_score
         
         # 4. Row Count Validation

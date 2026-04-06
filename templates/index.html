@@ -72,7 +72,7 @@
 
                 <!-- Level cells (5 columns on both mobile and desktop) -->
                 {% for level in range(1, 6) %}
-                <div class="flex flex-col items-center justify-center min-h-[50px] md:min-h-[70px] p-1 md:p-2 rounded-md font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                <div class="level-cell flex flex-col items-center justify-center min-h-[50px] md:min-h-[70px] p-1 md:p-2 rounded-md font-medium cursor-pointer hover:bg-gray-100 transition-colors"
                      id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
                     <span class="text-[0.6rem] font-semibold text-gray-400 uppercase md:hidden">L{{ level }}</span>
                     <div class="flex items-center justify-center gap-1 md:gap-2">
@@ -216,10 +216,18 @@ function updateRowState(domain, enabled) {
     const row = document.getElementById(`row-${domain}`);
     if (row) {
         if (enabled) {
-            row.classList.remove('opacity-50', 'pointer-events-none');
+            row.classList.remove('opacity-50');
         } else {
-            row.classList.add('opacity-50', 'pointer-events-none');
+            row.classList.add('opacity-50');
         }
+        // Only disable pointer events on level cells, not the checkbox container
+        row.querySelectorAll('.level-cell').forEach(cell => {
+            if (enabled) {
+                cell.classList.remove('pointer-events-none');
+            } else {
+                cell.classList.add('pointer-events-none');
+            }
+        });
     }
 }
 

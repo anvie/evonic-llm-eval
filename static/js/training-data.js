@@ -78,6 +78,18 @@ function generateTrainingData(test) {
         { role: 'user', content: test.prompt || '' }
     ];
     
+    // Handle single-turn tests (no conversation_log)
+    if (conversationLog.length === 0) {
+        let assistantContent = '';
+        if (details.thinking) {
+            assistantContent += '<|channel>thought\n' + details.thinking.trim() + '\n<channel|>';
+        }
+        assistantContent += test.response || '';
+        if (assistantContent) {
+            messages.push({ role: 'assistant', content: assistantContent });
+        }
+    }
+
     // Process each turn in conversation_log
     conversationLog.forEach((turn, idx) => {
         let assistantContent = '';

@@ -393,21 +393,28 @@ class EvaluationEngine:
                 duration_ms = loop_result["total_duration_ms"]
                 total_tokens = loop_result["total_tokens"]
                 thinking_content = loop_result["thinking"]
-                
+
+                # Log thinking first (before summary)
+                if thinking_content:
+                    if config.LOG_FULL_THINKING:
+                        self._log(f'[THINKING] {thinking_content}')
+                    else:
+                        self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
+
                 # Build response content with all tool calls
                 all_tool_calls = loop_result["all_tool_calls"]
                 if all_tool_calls:
                     response_content = json.dumps({"tool_calls": all_tool_calls}, indent=2)
                 else:
                     response_content = loop_result["final_response"]
-                
+
                 self._log(f'[LLM] Total: {duration_ms}ms, {total_tokens} tokens, {loop_result["iterations"]} iteration(s)')
                 self._log(f'[TOOLS] Made {len(all_tool_calls)} tool call(s): {[tc["function"]["name"] for tc in all_tool_calls]}')
-                
+
                 # Accumulate tokens and duration
                 self.total_tokens += total_tokens
                 self.total_duration_ms += duration_ms
-                
+
                 error_info = None  # No single error for loop
             else:
                 # Standard single-turn LLM call for other domains
@@ -438,15 +445,21 @@ class EvaluationEngine:
                 content_info = llm_client.extract_content_with_thinking(llm_response)
                 response_content = content_info["content"]  # Final content (without thinking)
                 thinking_content = content_info["thinking"]  # Thinking content (if present)
-            
-            # Log if thinking content was detected
-            if thinking_content:
-                self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
-            
-            # Log response (truncated)
-            response_display = response_content[:200] + '...' if len(response_content) > 200 else response_content
-            response_display = response_display.replace('\n', ' ')
-            self._log(f'[OUTPUT] {response_display}')
+
+                # Log thinking for single-turn path
+                if thinking_content:
+                    if config.LOG_FULL_THINKING:
+                        self._log(f'[THINKING] {thinking_content}')
+                    else:
+                        self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
+
+            # Log response
+            if config.LOG_FULL_RESPONSE:
+                self._log(f'[OUTPUT] {response_content}')
+            else:
+                response_display = response_content[:200] + '...' if len(response_content) > 200 else response_content
+                response_display = response_display.replace('\n', ' ')
+                self._log(f'[OUTPUT] {response_display}')
 
             # Get domain-specific evaluator
             evaluator = get_evaluator(domain)
@@ -745,17 +758,24 @@ class EvaluationEngine:
             duration_ms = loop_result["total_duration_ms"]
             total_tokens = loop_result["total_tokens"]
             thinking_content = loop_result["thinking"]
-            
+
+            # Log thinking first (before summary)
+            if thinking_content:
+                if config.LOG_FULL_THINKING:
+                    self._log(f'[THINKING] {thinking_content}')
+                else:
+                    self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
+
             # Build response content with all tool calls
             all_tool_calls = loop_result["all_tool_calls"]
             if all_tool_calls:
                 response_content = json.dumps({"tool_calls": all_tool_calls}, indent=2)
             else:
                 response_content = loop_result["final_response"]
-            
+
             self._log(f'[LLM] Total: {duration_ms}ms, {total_tokens} tokens, {loop_result["iterations"]} iteration(s)')
             self._log(f'[TOOLS] Made {len(all_tool_calls)} tool call(s): {[tc["function"]["name"] for tc in all_tool_calls]}')
-            
+
             # Accumulate tokens and duration
             self.total_tokens += total_tokens
             self.total_duration_ms += duration_ms
@@ -786,16 +806,22 @@ class EvaluationEngine:
             content_info = llm_client.extract_content_with_thinking(llm_response)
             response_content = content_info["content"]
             thinking_content = content_info["thinking"]
-        
-        # Log if thinking content was detected
-        if thinking_content:
-            self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
-        
+
+            # Log thinking for single-turn path
+            if thinking_content:
+                if config.LOG_FULL_THINKING:
+                    self._log(f'[THINKING] {thinking_content}')
+                else:
+                    self._log(f'[THINKING] Model used thinking ({len(thinking_content)} chars)')
+
         # Log response
-        response_display = response_content[:200] + '...' if len(response_content) > 200 else response_content
-        response_display = response_display.replace('\n', ' ')
-        self._log(f'[OUTPUT] {response_display}')
-        
+        if config.LOG_FULL_RESPONSE:
+            self._log(f'[OUTPUT] {response_content}')
+        else:
+            response_display = response_content[:200] + '...' if len(response_content) > 200 else response_content
+            response_display = response_display.replace('\n', ' ')
+            self._log(f'[OUTPUT] {response_display}')
+
         # Evaluate using appropriate evaluator
         evaluator_id = test.get('evaluator_id', '')
         

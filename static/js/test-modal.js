@@ -51,8 +51,13 @@ function showModalWithTests(domain, level, tests, summaryData) {
     header.className = 'modal-header ' + headerClass;
     title.innerHTML = `${domain.replace(/_/g, ' ').toUpperCase()} Level ${level} — ${passed}/${total} Passed`;
     
-    // Two-column layout
+    // Two-column layout with mobile dropdown
     body.innerHTML = `
+        <select class="modal-test-select-mobile" id="modal-test-select-mobile" onchange="selectTest(parseInt(this.value))">
+            ${tests.map((t, i) => `
+                <option value="${i}">${t.status === 'passed' ? '\u2713' : '\u2717'} ${escapeHtml(t.test_id || t.name || 'Test ' + (i+1))}</option>
+            `).join('')}
+        </select>
         <div class="modal-two-col">
             <div class="modal-test-list">
                 <div class="test-list-header">Tests <span class="pass-count">${passed}/${total}</span></div>
@@ -81,12 +86,16 @@ function showModalWithTests(domain, level, tests, summaryData) {
  */
 function selectTest(index) {
     currentSelectedTestIndex = index;
-    
+
     // Update active state in list
     document.querySelectorAll('.test-list-item').forEach((el, i) => {
         el.classList.toggle('active', i === index);
     });
-    
+
+    // Sync mobile dropdown
+    const mobileSelect = document.getElementById('modal-test-select-mobile');
+    if (mobileSelect) mobileSelect.value = index;
+
     // Update detail view
     const detailDiv = document.getElementById('modal-test-detail');
     const test = currentModalTests[index];
@@ -245,22 +254,20 @@ function renderTestDetail(test, domain) {
         `;
     }
     
-    // Generate Training Data button
-    if (details.conversation_log && details.conversation_log.length > 0) {
-        html += `
-            <div class="test-detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
-                <button onclick="console.log('[TEST-MODAL] Button clicked, idx=', currentSelectedTestIndex); onGenerateTrainingDataClick(currentSelectedTestIndex)"
-                        style="width: 100%; padding: 0.6rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                               color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600; 
-                               cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-                               transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                    📋 Generate Training Data
-                </button>
-            </div>
-        `;
-    }
+    // Generate Training Data button (always visible)
+    html += `
+        <div class="test-detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
+            <button onclick="console.log('[TEST-MODAL] Button clicked, idx=', currentSelectedTestIndex); onGenerateTrainingDataClick(currentSelectedTestIndex)"
+                    style="width: 100%; padding: 0.6rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                           color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600;
+                           cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+                           transition: transform 0.2s, box-shadow 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                📋 Generate Training Data
+            </button>
+        </div>
+    `;
     
     return html;
 }

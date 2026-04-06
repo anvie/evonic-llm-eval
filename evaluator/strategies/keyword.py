@@ -56,16 +56,18 @@ class KeywordEvaluator(BaseEvaluator):
         - Correctness: 40% (content quality)
         - Fluency: 30% (Indonesian language quality)
         """
-        # Get expected keywords
-        keywords = self.KEYWORDS.get(self.domain, {}).get(level, [])
-        if not keywords and expected and isinstance(expected, dict):
+        # Get expected keywords - prefer test-defined over hardcoded
+        keywords = []
+        if expected and isinstance(expected, dict):
             keywords = expected.get("keywords", [])
-        
+        if not keywords:
+            keywords = self.KEYWORDS.get(self.domain, {}).get(level, [])
+
         # Score relevance (keyword matching)
         relevance = self._score_relevance(response, keywords)
-        
+
         # Score correctness (content quality)
-        correctness = self._score_correctness(response, level)
+        correctness = self._score_correctness(response, level, expected)
         
         # Score fluency (Indonesian language)
         fluency = self._score_fluency(response)
@@ -113,10 +115,17 @@ class KeywordEvaluator(BaseEvaluator):
         
         return 0.8 * keyword_score + 0.2 * length_score
     
-    def _score_correctness(self, response: str, level: int) -> float:
+    def _score_correctness(self, response: str, level: int, expected: Any = None) -> float:
         """Score based on content correctness (domain-specific rules)"""
         response_lower = response.lower()
-        
+
+        # If expected has keywords, use those for correctness check
+        if expected and isinstance(expected, dict) and expected.get("keywords"):
+            if any(kw.lower() in response_lower for kw in expected["keywords"]):
+                return 0.9
+            return 0.3
+
+        # Fallback to hardcoded rules
         correctness_rules = {
             1: (["ai", "assistant", "membantu", "bot", "qwen", "alibaba", "llm", "model"], 0.9, 0.5),
             2: (["jakarta", "nusantara", "ikn", "kalimantan"], 0.9, 0.3),
@@ -124,13 +133,13 @@ class KeywordEvaluator(BaseEvaluator):
             4: (["tokopedia", "shopee", "bukalapak", "pemasaran", "marketplace", "platform"], 0.8, 0.4),
             5: (["digital", "teknologi", "online", "e-commerce", "adaptasi", "transformasi"], 0.85, 0.5)
         }
-        
+
         if level in correctness_rules:
             keywords, hit_score, miss_score = correctness_rules[level]
             if any(kw in response_lower for kw in keywords):
                 return hit_score
             return miss_score
-        
+
         return 0.5
     
     def _score_fluency(self, response: str) -> float:

@@ -43,7 +43,18 @@ def strip_thinking_tags(content: str) -> Tuple[str, Optional[str]]:
     cleaned = cleaned.strip()
     
     thinking_content = '\n'.join(thinking_matches) if thinking_matches else None
-    
+
+    # Fallback: handle missing opening <think> tag (common with vLLM)
+    # Model output may look like: "thinking content\n</think>\n\nactual response"
+    if not thinking_content and '</think>' in content:
+        parts = content.split('</think>', 1)
+        thinking_text = parts[0].strip()
+        cleaned_text = parts[1].strip() if len(parts) > 1 else ""
+        if thinking_text:
+            return cleaned_text or "No content generated", thinking_text
+        # If nothing before </think>, just strip the tag
+        return cleaned_text or content.replace('</think>', '').strip(), None
+
     return cleaned, thinking_content
 
 
@@ -184,7 +195,7 @@ class LLMClient:
                 finish_reason = choices[0].get("finish_reason")
                 message = choices[0].get("message", {})
                 content = message.get("content", "")
-                reasoning = message.get("reasoning_content", "")
+                reasoning = message.get("reasoning_content") or message.get("reasoning") or ""
                 
                 if finish_reason == "length" and not content:
                     # Generation hit max_tokens without producing final answer
@@ -310,7 +321,7 @@ class LLMClient:
         
         message = choices[0].get("message", {})
         content = message.get("content", "")
-        reasoning_content = message.get("reasoning_content")  # llama.cpp --reasoning mode
+        reasoning_content = message.get("reasoning_content") or message.get("reasoning")  # llama.cpp / vLLM
         tool_calls = message.get("tool_calls")
         
         # DEBUG: Log thinking extraction process
