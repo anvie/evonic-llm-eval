@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, Response, stream_with_context
+from flask import Flask, render_template, jsonify, request
 import queue
 import time
 import json
@@ -351,44 +351,23 @@ def api_config_model():
         'config_model': config.LLM_MODEL  # Also return config for comparison
     })
 
-@app.route('/api/log_stream')
-def log_stream():
-    @stream_with_context
-    def generate():
-        yield "data: [SYSTEM] Log stream connected.\n\n"
-        last_message_time = time.time()
-        heartbeat_interval = 15  # Send heartbeat every 15 seconds
-        last_heartbeat = time.time()
-        
-        while True:
-            try:
-                message = evaluation_engine.log_queue.get(timeout=0.5)  # Shorter timeout for responsiveness
-                yield f"data: {message}\n\n"
-                last_message_time = time.time()
-                if message == "EVAL_COMPLETE":
-                    break
-            except queue.Empty:
-                # Send heartbeat to keep connection alive
-                if time.time() - last_heartbeat > heartbeat_interval:
-                    yield ": heartbeat\n\n"  # SSE comment (ignored by client but keeps connection alive)
-                    last_heartbeat = time.time()
-                
-                if not evaluation_engine.is_running and time.time() - last_message_time > 2:
-                    # Drain any remaining messages in queue before closing
-                    while not evaluation_engine.log_queue.empty():
-                        try:
-                            message = evaluation_engine.log_queue.get_nowait()
-                            yield f"data: {message}\n\n"
-                        except queue.Empty:
-                            break
-                    yield "data: [SYSTEM] Evaluation stopped. Closing stream.\n\n"
-                    break
-    
-    response = Response(generate(), mimetype='text/event-stream')
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
-    response.headers['Connection'] = 'keep-alive'
-    return response
+@app.route('/api/log_poll')
+def log_poll():
+    """Poll for new log messages - returns batch of pending messages"""
+    messages = []
+    # Drain up to 100 messages per poll to avoid huge responses
+    for _ in range(100):
+        try:
+            message = evaluation_engine.log_queue.get_nowait()
+            messages.append(message)
+            if message == "EVAL_COMPLETE":
+                break
+        except queue.Empty:
+            break
+    return jsonify({
+        'messages': messages,
+        'is_running': evaluation_engine.is_running
+    })
 
 
 # ==================== Settings API ====================

@@ -113,7 +113,7 @@ const DOMAINS = {{ domains | tojson }};
 let pollingInterval;
 let testResultsData = {};  // Store all test results for modal access
 let configModel = null;  // Store model name from config
-let eventSource = null;  // Global EventSource reference for reconnection
+let logPollInterval = null;  // Log polling interval reference
 
 // Fetch model config on load
 fetch('/api/config/model')
@@ -590,64 +590,39 @@ window.addEventListener('load', function() {
 
 function setupLogStream() {
     const logBox = document.getElementById('log-box');
-    console.log('[LOG STREAM] Setting up log stream...');
-    
-    // Close existing connection if any
-    if (eventSource) {
-        console.log('[LOG STREAM] Closing existing connection');
-        eventSource.close();
+
+    // Stop existing polling if any
+    if (logPollInterval) {
+        clearInterval(logPollInterval);
+        logPollInterval = null;
     }
-    
-    // Add initial message to show connection attempt
-    logBox.innerHTML += '<div class="log-entry" style="color: #60a5fa;">[SYSTEM] Connecting to log stream...</div>';
-    
-    eventSource = new EventSource('/api/log_stream');
-    console.log('[LOG STREAM] EventSource created');
-    
-    eventSource.onopen = function() {
-        console.log('[LOG STREAM] Connection opened');
-    };
-    
-    eventSource.onmessage = function(event) {
-        console.log('[LOG STREAM] Message received:', event.data.substring(0, 50));
-        // Convert newline to <br> for HTML display
-        const message = event.data.replace(/\n/g, '<br>');
-        const logEntry = '<div class="log-entry">' + message + '</div>';
-        logBox.innerHTML += logEntry;
-        logBox.scrollTop = logBox.scrollHeight;
-        
-        // Save logs to localStorage
-        saveLogsToStorage();
-        
-        if (event.data.includes('[SYSTEM] EVALUASI SELESAI') || event.data.includes('Evaluation stopped')) {
-            eventSource.close();
-            eventSource = null;
-        }
-    };
-    
-    eventSource.onerror = function(e) {
-        console.log('EventSource error:', e);
-        eventSource.close();
-        eventSource = null;
-        
-        // Only reconnect if evaluation is still running
-        fetch('/api/status')
+
+    logBox.innerHTML += '<div class="log-entry" style="color: #60a5fa;">[SYSTEM] Log stream connected.</div>';
+
+    // Poll for new log messages every 500ms
+    logPollInterval = setInterval(() => {
+        fetch('/api/log_poll')
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'running') {
-                // Reconnect after a short delay
-                setTimeout(() => {
-                    const reconnectMsg = '<div class="log-entry" style="color: #f59e0b;">[SYSTEM] Reconnecting to log stream...</div>';
-                    logBox.innerHTML += reconnectMsg;
-                    saveLogsToStorage();
-                    setupLogStream();
-                }, 1000);
+            if (data.messages && data.messages.length > 0) {
+                for (const msg of data.messages) {
+                    const message = msg.replace(/\n/g, '<br>');
+                    logBox.innerHTML += '<div class="log-entry">' + message + '</div>';
+                }
+                logBox.scrollTop = logBox.scrollHeight;
+                saveLogsToStorage();
+            }
+
+            // Stop polling when evaluation is done
+            if (!data.is_running && data.messages.length === 0) {
+                clearInterval(logPollInterval);
+                logPollInterval = null;
             }
         })
         .catch(err => {
-            console.error('Error checking status:', err);
+            console.error('Error polling logs:', err);
         });
-    };
+    }, 500);
 }
 
 function saveLogsToStorage() {
