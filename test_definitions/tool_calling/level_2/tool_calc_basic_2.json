@@ -1,0 +1,23 @@
+{
+  "id": "tool_calc_basic_2",
+  "name": "Calculator Basic Expression",
+  "description": "Test calculator tool call with a simple arithmetic expression argument",
+  "prompt": "Berapa hasil dari 125 * 48?",
+  "expected": {
+    "args": {
+      "expression": "125 * 48"
+    },
+    "tool": "calculator"
+  },
+  "evaluator_id": "tool_call",
+  "tool_ids": [
+    "calculator"
+  ],
+  "timeout_ms": 30000,
+  "weight": 1,
+  "enabled": true,
+  "created_at": "2026-04-06T10:00:00.000000",
+  "updated_at": "2026-04-06T10:39:15.906636",
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite"
+}

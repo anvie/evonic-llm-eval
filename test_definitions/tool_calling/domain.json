@@ -3,9 +3,20 @@
   "name": "Tool Calling",
   "description": "Function/tool calling tests - tests ability to use tools and APIs correctly",
   "icon": "wrench",
-  "color": "#F59E0B",
+  "color": "#f59e0b",
   "evaluator_id": "tool_call",
   "enabled": true,
   "created_at": "2026-04-02T06:43:42.045407",
-  "updated_at": "2026-04-06T07:58:22.780810"
+  "updated_at": "2026-04-06T10:55:52.557330",
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite",
+  "tool_ids": [
+    "api_call",
+    "calculator",
+    "get_order",
+    "get_weather",
+    "search_hotels",
+    "search_restaurants",
+    "send_notification"
+  ]
 }

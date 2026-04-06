@@ -350,6 +350,8 @@ class TestLoader:
         level_path = domain_path / f"level_{level}"
         if level_path.exists():
             for test_file in level_path.glob("*.json"):
+                if test_file.name == "level.json":
+                    continue
                 test = self._load_test(test_file, domain_id, level)
                 if test:
                     tests.append(test)

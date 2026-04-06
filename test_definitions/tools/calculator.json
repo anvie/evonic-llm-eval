@@ -16,7 +16,7 @@
       "required": ["expression"]
     }
   },
-  "mock_response": "const args = JSON.parse(ARGS);\nconst expr = args.expression;\nconst allowed = /^[0-9+\\-*/.() ]+$/;\nif (!allowed.test(expr)) { JSON.stringify({error: 'Invalid characters'}); }\nelse { JSON.stringify({result: eval(expr), expression: expr}); }",
+  "mock_response": "const args = JSON.parse(ARGS);\nconst expr = args.expression;\nconst allowed = /^[0-9+\\-*/.() ]+$/;\nif (!allowed.test(expr)) { console.log(JSON.stringify({error: 'Invalid characters'})); }\nelse { console.log(JSON.stringify({result: eval(expr), expression: expr})); }",
   "mock_response_type": "javascript",
   "created_at": "2026-04-06T00:00:00.000000",
   "updated_at": "2026-04-06T00:00:00.000000"

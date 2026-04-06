@@ -292,6 +292,9 @@ function loadSavedState() {
                 updateStatusIndicator(state.status);
                 if (state.status === 'running') {
                     updateToggleButton(true);
+                    // Resume polling to pick up completion from server
+                    startPolling();
+                    setupLogStream();
                 } else {
                     updateToggleButton(false);
                     showClearButton(true);

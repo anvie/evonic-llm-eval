@@ -44,30 +44,30 @@
 
 <!-- Domain Modal -->
 <div id="domain-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="domain-modal-title">Add Domain</h3>
-            <button onclick="closeModal('domain-modal')" class="close-btn">&times;</button>
+    <div class="bg-white rounded-xl w-[90%] max-w-[500px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+            <h3 id="domain-modal-title" class="m-0 text-gray-800">Add Domain</h3>
+            <button onclick="closeModal('domain-modal')" class="bg-transparent border-none text-gray-500 text-2xl cursor-pointer hover:text-gray-800">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-5">
             <form id="domain-form">
                 <input type="hidden" id="domain-id">
-                <div class="form-group">
-                    <label>ID</label>
-                    <input type="text" id="domain-id-input" placeholder="e.g., math (auto-generated if empty)">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">ID</label>
+                    <input type="text" id="domain-id-input" placeholder="e.g., math (auto-generated if empty)" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Name *</label>
-                    <input type="text" id="domain-name" required placeholder="e.g., Mathematics">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Name *</label>
+                    <input type="text" id="domain-name" required placeholder="e.g., Mathematics" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="domain-description" rows="3" placeholder="Domain description"></textarea>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Description</label>
+                    <textarea id="domain-description" rows="3" placeholder="Domain description" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Icon</label>
-                        <select id="domain-icon">
+                <div class="flex gap-4">
+                    <div class="mb-4 flex-1">
+                        <label class="block mb-1 text-gray-700 text-sm font-medium">Icon</label>
+                        <select id="domain-icon" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                             <option value="chat">💬 Chat</option>
                             <option value="calculator">🔢 Calculator</option>
                             <option value="database">🗄️ Database</option>
@@ -77,71 +77,71 @@
                             <option value="file">📄 File</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Color</label>
-                        <input type="color" id="domain-color" value="#3B82F6">
+                    <div class="mb-4 flex-1">
+                        <label class="block mb-1 text-gray-700 text-sm font-medium">Color</label>
+                        <input type="color" id="domain-color" value="#3B82F6" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Default Evaluator</label>
-                    <select id="domain-evaluator">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Default Evaluator</label>
+                    <select id="domain-evaluator" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                         <!-- Evaluators will be loaded here -->
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Domain System Prompt (Optional)</label>
-                    <textarea id="domain-system-prompt" rows="3" placeholder="Default system prompt for all tests in this domain"></textarea>
-                    <small>This will be used as default for all tests unless overridden</small>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Domain System Prompt (Optional)</label>
+                    <textarea id="domain-system-prompt" rows="3" placeholder="Default system prompt for all tests in this domain" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
+                    <small class="text-gray-500 text-xs">This will be used as default for all tests unless overridden</small>
                 </div>
-                <div class="form-group">
-                    <label>System Prompt Mode</label>
-                    <select id="domain-system-prompt-mode">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">System Prompt Mode</label>
+                    <select id="domain-system-prompt-mode" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                         <option value="overwrite">Overwrite (use as-is)</option>
                         <option value="append">Append (tests can add to this)</option>
                     </select>
-                    <small>Default mode for tests (can be overridden per-test)</small>
+                    <small class="text-gray-500 text-xs">Default mode for tests (can be overridden per-test)</small>
                 </div>
-                <div class="form-group">
-                    <label>Attached Tools</label>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Attached Tools</label>
                     <div id="domain-tool-select" class="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white text-sm">
                         <span class="text-gray-400">Loading tools...</span>
                     </div>
-                    <small>Tools available to all tests in this domain (append mode)</small>
+                    <small class="text-gray-500 text-xs">Tools available to all tests in this domain (append mode)</small>
                 </div>
-                <div class="form-group">
-                    <label>
+                <div class="mb-4">
+                    <label class="inline-flex items-center gap-2 text-gray-700 text-sm font-medium">
                         <input type="checkbox" id="domain-enabled" checked> Enabled
                     </label>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('domain-modal')" class="btn-secondary">Cancel</button>
-            <button onclick="saveDomain()" class="btn-primary">Save Domain</button>
+        <div class="flex justify-end gap-2.5 p-5 border-t border-gray-200">
+            <button onclick="closeModal('domain-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
+            <button onclick="saveDomain()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Save Domain</button>
         </div>
     </div>
 </div>
 
 <!-- Test Modal -->
 <div id="test-modal" class="modal">
-    <div class="modal-content modal-large">
-        <div class="modal-header">
-            <h3 id="test-modal-title">Add Test</h3>
-            <button onclick="closeModal('test-modal')" class="close-btn">&times;</button>
+    <div class="bg-white rounded-xl w-[90%] max-w-[700px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+            <h3 id="test-modal-title" class="m-0 text-gray-800">Add Test</h3>
+            <button onclick="closeModal('test-modal')" class="bg-transparent border-none text-gray-500 text-2xl cursor-pointer hover:text-gray-800">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-5">
             <form id="test-form">
                 <input type="hidden" id="test-id">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Domain</label>
-                        <select id="test-domain" required>
+                <div class="flex gap-4">
+                    <div class="mb-4 flex-1">
+                        <label class="block mb-1 text-gray-700 text-sm font-medium">Domain</label>
+                        <select id="test-domain" required class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                             <!-- Domains will be loaded here -->
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Level</label>
-                        <select id="test-level" required>
+                    <div class="mb-4 flex-1">
+                        <label class="block mb-1 text-gray-700 text-sm font-medium">Level</label>
+                        <select id="test-level" required class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                             <option value="1">Level 1</option>
                             <option value="2">Level 2</option>
                             <option value="3">Level 3</option>
@@ -150,249 +150,255 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Test ID</label>
-                    <input type="text" id="test-id-input" placeholder="Auto-generated if empty">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Test ID</label>
+                    <input type="text" id="test-id-input" placeholder="Auto-generated if empty" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Name *</label>
-                    <input type="text" id="test-name" required placeholder="Test name">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Name *</label>
+                    <input type="text" id="test-name" required placeholder="Test name" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" id="test-description" placeholder="Brief description">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Description</label>
+                    <input type="text" id="test-description" placeholder="Brief description" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>System Prompt (Optional)</label>
-                    <textarea id="test-system-prompt" rows="3" placeholder="Custom system prompt for this test"></textarea>
-                    <small>Leave empty to use domain-level system prompt</small>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">System Prompt (Optional)</label>
+                    <textarea id="test-system-prompt" rows="3" placeholder="Custom system prompt for this test" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
+                    <small class="text-gray-500 text-xs">Leave empty to use domain-level system prompt</small>
                 </div>
-                <div class="form-group" id="test-system-prompt-mode-group" style="display:none;">
-                    <label>System Prompt Mode</label>
-                    <select id="test-system-prompt-mode">
+                <div class="mb-4" id="test-system-prompt-mode-group" style="display:none;">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">System Prompt Mode</label>
+                    <select id="test-system-prompt-mode" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                         <option value="overwrite">Overwrite (replace domain prompt)</option>
                         <option value="append">Append (add to domain prompt)</option>
                     </select>
-                    <small>How this test's prompt combines with domain-level prompt</small>
+                    <small class="text-gray-500 text-xs">How this test's prompt combines with domain-level prompt</small>
                 </div>
-                <div class="form-group">
-                    <label>Attached Tools</label>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Inherited Tools</label>
+                    <div id="test-inherited-tools" class="text-sm text-gray-500 italic min-h-[28px]">
+                        No inherited tools
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Attached Tools (this test)</label>
                     <div id="test-tool-select" class="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white text-sm">
                         <span class="text-gray-400">Loading tools...</span>
                     </div>
-                    <small>Tools for this test (appended to domain/level tools)</small>
+                    <small class="text-gray-500 text-xs">Additional tools for this test (appended to inherited tools)</small>
                 </div>
-                <div class="form-group">
-                    <label>Prompt *</label>
-                    <textarea id="test-prompt" rows="4" required placeholder="The prompt to send to the LLM"></textarea>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Prompt *</label>
+                    <textarea id="test-prompt" rows="4" required placeholder="The prompt to send to the LLM" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
                 </div>
-                <div class="form-group">
-                    <label>Expected (JSON)</label>
-                    <textarea id="test-expected" rows="4" placeholder='{"answer": 42, "type": "numeric"}'></textarea>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Expected (JSON)</label>
+                    <textarea id="test-expected" rows="4" placeholder='{"answer": 42, "type": "numeric"}' class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Evaluator</label>
-                        <select id="test-evaluator">
+                <div class="flex gap-4">
+                    <div class="mb-4 flex-1">
+                        <label class="block mb-1 text-gray-700 text-sm font-medium">Evaluator</label>
+                        <select id="test-evaluator" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                             <!-- Evaluators will be loaded here -->
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Timeout (ms)</label>
-                        <input type="number" id="test-timeout" value="30000">
+                    <div class="mb-4 flex-1">
+                        <label class="block mb-1 text-gray-700 text-sm font-medium">Timeout (ms)</label>
+                        <input type="number" id="test-timeout" value="30000" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                     </div>
-                    <div class="form-group">
-                        <label>Weight</label>
-                        <input type="number" id="test-weight" value="1.0" step="0.1">
+                    <div class="mb-4 flex-1">
+                        <label class="block mb-1 text-gray-700 text-sm font-medium">Weight</label>
+                        <input type="number" id="test-weight" value="1.0" step="0.1" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>
+                <div class="mb-4">
+                    <label class="inline-flex items-center gap-2 text-gray-700 text-sm font-medium">
                         <input type="checkbox" id="test-enabled" checked> Enabled
                     </label>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('test-modal')" class="btn-secondary">Cancel</button>
-            <button onclick="saveTest()" class="btn-primary">Save Test</button>
+        <div class="flex justify-end gap-2.5 p-5 border-t border-gray-200">
+            <button onclick="closeModal('test-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
+            <button onclick="saveTest()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Save Test</button>
         </div>
     </div>
 </div>
 
 <!-- Evaluator Modal -->
 <div id="evaluator-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="evaluator-modal-title">Add Custom Evaluator</h3>
-            <button onclick="closeModal('evaluator-modal')" class="close-btn">&times;</button>
+    <div class="bg-white rounded-xl w-[90%] max-w-[500px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+            <h3 id="evaluator-modal-title" class="m-0 text-gray-800">Add Custom Evaluator</h3>
+            <button onclick="closeModal('evaluator-modal')" class="bg-transparent border-none text-gray-500 text-2xl cursor-pointer hover:text-gray-800">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-5">
             <form id="evaluator-form">
                 <input type="hidden" id="evaluator-id">
-                <div class="form-group">
-                    <label>ID</label>
-                    <input type="text" id="evaluator-id-input" placeholder="Auto-generated if empty">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">ID</label>
+                    <input type="text" id="evaluator-id-input" placeholder="Auto-generated if empty" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Name *</label>
-                    <input type="text" id="evaluator-name" required placeholder="Evaluator name">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Name *</label>
+                    <input type="text" id="evaluator-name" required placeholder="Evaluator name" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" id="evaluator-description" placeholder="Brief description">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Description</label>
+                    <input type="text" id="evaluator-description" placeholder="Brief description" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Type</label>
-                    <select id="evaluator-type" onchange="toggleEvaluatorType()">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Type</label>
+                    <select id="evaluator-type" onchange="toggleEvaluatorType()" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                         <option value="custom">LLM-based (Custom Prompt)</option>
                         <option value="regex">Regex Pattern Matcher</option>
                         <option value="hybrid">Hybrid (LLM + Regex)</option>
                     </select>
                 </div>
-                <div class="form-group" id="eval-prompt-group">
-                    <label>Evaluation Prompt</label>
-                    <textarea id="evaluator-prompt" rows="5" placeholder="Prompt template for LLM evaluation. Use {response} and {expected} as placeholders.\n\nExample:\nAnalyze this response and rate it from 0-100:\nResponse: {response}\nExpected: {expected}\n\nScore:"></textarea>
-                    <small>Use {response}, {expected}, {level} as placeholders</small>
+                <div class="mb-4" id="eval-prompt-group">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Evaluation Prompt</label>
+                    <textarea id="evaluator-prompt" rows="5" placeholder="Prompt template for LLM evaluation. Use {response} and {expected} as placeholders." class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
+                    <small class="text-gray-500 text-xs">Use {response}, {expected}, {level} as placeholders</small>
                 </div>
-                <div class="form-group" id="eval-regex-group">
-                    <label>Extraction Regex</label>
-                    <input type="text" id="evaluator-regex" placeholder="SCORE:\s*(\d+)">
-                    <small>Regex pattern with capture group for score/answer extraction. Example patterns:<br>
-                        • Extract number: <code>Jawaban:\s*(\d+)</code><br>
-                        • Exact match: <code>^(Expected Answer)$</code><br>
-                        • Extract date: <code>(\d{4}-\d{2}-\d{2})</code><br>
-                        • Multiple choice: <code>Jawaban:\s*([ABCD])</code>
+                <div class="mb-4" id="eval-regex-group">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Extraction Regex</label>
+                    <input type="text" id="evaluator-regex" placeholder="SCORE:\s*(\d+)" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
+                    <small class="text-gray-500 text-xs">Regex pattern with capture group for score/answer extraction. Example patterns:<br>
+                        &bull; Extract number: <code>Jawaban:\s*(\d+)</code><br>
+                        &bull; Exact match: <code>^(Expected Answer)$</code><br>
+                        &bull; Extract date: <code>(\d{4}-\d{2}-\d{2})</code><br>
+                        &bull; Multiple choice: <code>Jawaban:\s*([ABCD])</code>
                     </small>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('evaluator-modal')" class="btn-secondary">Cancel</button>
-            <button onclick="saveEvaluator()" class="btn-primary">Save Evaluator</button>
+        <div class="flex justify-end gap-2.5 p-5 border-t border-gray-200">
+            <button onclick="closeModal('evaluator-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
+            <button onclick="saveEvaluator()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Save Evaluator</button>
         </div>
     </div>
 </div>
 
 <!-- Import Modal -->
 <div id="import-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Import Tests</h3>
-            <button onclick="closeModal('import-modal')" class="close-btn">&times;</button>
+    <div class="bg-white rounded-xl w-[90%] max-w-[500px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+            <h3 class="m-0 text-gray-800">Import Tests</h3>
+            <button onclick="closeModal('import-modal')" class="bg-transparent border-none text-gray-500 text-2xl cursor-pointer hover:text-gray-800">&times;</button>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>Import JSON</label>
-                <textarea id="import-json" rows="10" placeholder="Paste exported JSON here..."></textarea>
+        <div class="p-5">
+            <div class="mb-4">
+                <label class="block mb-1 text-gray-700 text-sm font-medium">Import JSON</label>
+                <textarea id="import-json" rows="10" placeholder="Paste exported JSON here..." class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
             </div>
-            <div class="form-group">
-                <label>
+            <div class="mb-4">
+                <label class="inline-flex items-center gap-2 text-gray-700 text-sm font-medium">
                     <input type="checkbox" id="import-merge" checked> Merge with existing tests
                 </label>
             </div>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('import-modal')" class="btn-secondary">Cancel</button>
-            <button onclick="importTests()" class="btn-primary">Import</button>
+        <div class="flex justify-end gap-2.5 p-5 border-t border-gray-200">
+            <button onclick="closeModal('import-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
+            <button onclick="importTests()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Import</button>
         </div>
     </div>
 </div>
 
 <!-- Level System Prompt Modal -->
 <div id="level-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="level-modal-title">Level System Prompt</h3>
-            <button onclick="closeModal('level-modal')" class="close-btn">&times;</button>
+    <div class="bg-white rounded-xl w-[90%] max-w-[500px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+            <h3 id="level-modal-title" class="m-0 text-gray-800">Level System Prompt</h3>
+            <button onclick="closeModal('level-modal')" class="bg-transparent border-none text-gray-500 text-2xl cursor-pointer hover:text-gray-800">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-5">
             <form id="level-form">
                 <input type="hidden" id="level-domain-id">
                 <input type="hidden" id="level-number">
-                <div class="form-group">
-                    <label>System Prompt (Optional)</label>
-                    <textarea id="level-system-prompt" rows="6" placeholder="System prompt for all tests in this level"></textarea>
-                    <small>Leave empty to inherit from domain. This prompt sits between domain and test-level prompts.</small>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">System Prompt (Optional)</label>
+                    <textarea id="level-system-prompt" rows="6" placeholder="System prompt for all tests in this level" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
+                    <small class="text-gray-500 text-xs">Leave empty to inherit from domain. This prompt sits between domain and test-level prompts.</small>
                 </div>
-                <div class="form-group" id="level-mode-group" style="display:none;">
-                    <label>System Prompt Mode</label>
-                    <select id="level-system-prompt-mode">
+                <div class="mb-4" id="level-mode-group" style="display:none;">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">System Prompt Mode</label>
+                    <select id="level-system-prompt-mode" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                         <option value="overwrite">Overwrite (replace domain prompt)</option>
                         <option value="append">Append (add to domain prompt)</option>
                     </select>
-                    <small>How this level's prompt combines with the domain-level prompt</small>
+                    <small class="text-gray-500 text-xs">How this level's prompt combines with the domain-level prompt</small>
                 </div>
-                <div class="form-group">
-                    <label>Attached Tools</label>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Attached Tools</label>
                     <div id="level-tool-select" class="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white text-sm">
                         <span class="text-gray-400">Loading tools...</span>
                     </div>
-                    <small>Tools available to all tests in this level (appended to domain tools)</small>
+                    <small class="text-gray-500 text-xs">Tools available to all tests in this level (appended to domain tools)</small>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('level-modal')" class="btn-secondary">Cancel</button>
-            <button onclick="saveLevelPrompt()" class="btn-primary">Save</button>
+        <div class="flex justify-end gap-2.5 p-5 border-t border-gray-200">
+            <button onclick="closeModal('level-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
+            <button onclick="saveLevelPrompt()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Save</button>
         </div>
     </div>
 </div>
 
 <!-- Tool Modal -->
 <div id="tool-modal" class="modal">
-    <div class="modal-content modal-large">
-        <div class="modal-header">
-            <h3 id="tool-modal-title">Add Tool</h3>
-            <button onclick="closeModal('tool-modal')" class="close-btn">&times;</button>
+    <div class="bg-white rounded-xl w-[90%] max-w-[700px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <div class="flex justify-between items-center p-5 border-b border-gray-200">
+            <h3 id="tool-modal-title" class="m-0 text-gray-800">Add Tool</h3>
+            <button onclick="closeModal('tool-modal')" class="bg-transparent border-none text-gray-500 text-2xl cursor-pointer hover:text-gray-800">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="p-5">
             <form id="tool-form">
                 <input type="hidden" id="tool-edit-id">
-                <div class="form-group">
-                    <label>ID</label>
-                    <input type="text" id="tool-id-input" placeholder="Auto-generated from name if empty">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">ID</label>
+                    <input type="text" id="tool-id-input" placeholder="Auto-generated from name if empty" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Name *</label>
-                    <input type="text" id="tool-name" required placeholder="e.g., Get Weather">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Name *</label>
+                    <input type="text" id="tool-name" required placeholder="e.g., Get Weather" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" id="tool-description" placeholder="Brief description of the tool">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Description</label>
+                    <input type="text" id="tool-description" placeholder="Brief description of the tool" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                 </div>
-                <div class="form-group">
-                    <label>Function Name *</label>
-                    <input type="text" id="tool-func-name" required placeholder="e.g., get_weather">
-                    <small>The function name used in OpenAI tool calling format</small>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Function Name *</label>
+                    <input type="text" id="tool-func-name" required placeholder="e.g., get_weather" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
+                    <small class="text-gray-500 text-xs">The function name used in OpenAI tool calling format</small>
                 </div>
-                <div class="form-group">
-                    <label>Function Description</label>
-                    <textarea id="tool-func-description" rows="2" placeholder="Description shown to the LLM"></textarea>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Function Description</label>
+                    <textarea id="tool-func-description" rows="2" placeholder="Description shown to the LLM" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
                 </div>
-                <div class="form-group">
-                    <label>Parameters (JSON)</label>
-                    <textarea id="tool-parameters" rows="6" placeholder='{"type": "object", "properties": {"location": {"type": "string", "description": "City name"}}, "required": ["location"]}'></textarea>
-                    <small>OpenAI function parameters schema (JSON object)</small>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Parameters (JSON)</label>
+                    <textarea id="tool-parameters" rows="6" placeholder='{"type": "object", "properties": {"location": {"type": "string", "description": "City name"}}, "required": ["location"]}' class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
+                    <small class="text-gray-500 text-xs">OpenAI function parameters schema (JSON object)</small>
                 </div>
-                <div class="form-group">
-                    <label>Mock Response Type</label>
-                    <select id="tool-mock-type" onchange="toggleMockResponseHelp()">
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Mock Response Type</label>
+                    <select id="tool-mock-type" onchange="toggleMockResponseHelp()" class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10">
                         <option value="json">JSON Object</option>
                         <option value="javascript">JavaScript</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Mock Response</label>
-                    <textarea id="tool-mock-response" rows="6" placeholder='{"result": "sample data"}'></textarea>
-                    <small id="tool-mock-help-json">JSON object that will be returned when this tool is called during evaluation</small>
-                    <small id="tool-mock-help-js" class="hidden">JavaScript code. Use <code>ARGS</code> variable to access tool call arguments (JSON string). Output via <code>console.log(JSON.stringify(result))</code>.</small>
+                <div class="mb-4">
+                    <label class="block mb-1 text-gray-700 text-sm font-medium">Mock Response</label>
+                    <textarea id="tool-mock-response" rows="6" placeholder='{"result": "sample data"}' class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-gray-800 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"></textarea>
+                    <small id="tool-mock-help-json" class="text-gray-500 text-xs">JSON object that will be returned when this tool is called during evaluation</small>
+                    <small id="tool-mock-help-js" class="hidden text-gray-500 text-xs">JavaScript code. Use <code>ARGS</code> variable to access tool call arguments (JSON string). Output via <code>console.log(JSON.stringify(result))</code>.</small>
                 </div>
             </form>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeModal('tool-modal')" class="btn-secondary">Cancel</button>
-            <button onclick="saveTool()" class="btn-primary">Save Tool</button>
+        <div class="flex justify-end gap-2.5 p-5 border-t border-gray-200">
+            <button onclick="closeModal('tool-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
+            <button onclick="saveTool()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Save Tool</button>
         </div>
     </div>
 </div>
@@ -682,103 +688,6 @@
     align-items: flex-start;
     justify-content: center;
     padding-top: 50px;
-}
-
-.modal-content {
-    background: #ffffff;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-content.modal-large {
-    max-width: 700px;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #1f2937;
-}
-
-.close-btn {
-    background: none;
-    border: none;
-    color: #6b7280;
-    font-size: 24px;
-    cursor: pointer;
-}
-
-.close-btn:hover {
-    color: #1f2937;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 20px;
-    border-top: 1px solid #e5e7eb;
-}
-
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: #374151;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #d1d5db;
-    border-radius: 5px;
-    background: #ffffff;
-    color: #1f2937;
-    font-size: 14px;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    border-color: #3B82F6;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.form-row {
-    display: flex;
-    gap: 15px;
-}
-
-.form-row .form-group {
-    flex: 1;
-}
-
-.form-group small {
-    color: #6b7280;
-    font-size: 12px;
 }
 
 .btn-primary {
@@ -1266,6 +1175,11 @@ function showAddTestModal(domainId, level) {
     document.getElementById('test-system-prompt').oninput = toggleTestPromptModeVisibility;
     toggleTestPromptModeVisibility();
     renderToolCheckboxes('test-tool-select', []);
+    renderInheritedTools(domainId, level);
+
+    // Update inherited tools when domain/level changes
+    document.getElementById('test-domain').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
+    document.getElementById('test-level').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
 
     openModal('test-modal');
 }
@@ -1273,27 +1187,40 @@ function showAddTestModal(domainId, level) {
 async function editTest(testId, domainId) {
     try {
         const test = await apiGet(`/api/settings/tests/${testId}`);
-        
+
         document.getElementById('test-modal-title').textContent = 'Edit Test';
+
+        // Populate domain select before setting value
+        const domainSelect = document.getElementById('test-domain');
+        domainSelect.innerHTML = domains.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+
+        // Ensure evaluator select is populated
+        updateEvaluatorSelects();
+
         document.getElementById('test-id').value = test.id;
         document.getElementById('test-id-input').value = test.id;
-        document.getElementById('test-domain').value = test.domain_id;
+        domainSelect.value = test.domain_id;
         document.getElementById('test-level').value = test.level;
-        document.getElementById('test-name').value = test.name;
+        document.getElementById('test-name').value = test.name || '';
         document.getElementById('test-description').value = test.description || '';
         document.getElementById('test-system-prompt').value = test.system_prompt || '';
         document.getElementById('test-system-prompt-mode').value = test.system_prompt_mode || 'overwrite';
-        document.getElementById('test-prompt').value = test.prompt;
+        document.getElementById('test-prompt').value = test.prompt || '';
         document.getElementById('test-expected').value = test.expected ? JSON.stringify(test.expected, null, 2) : '';
         document.getElementById('test-evaluator').value = test.evaluator_id || '';
         document.getElementById('test-timeout').value = test.timeout_ms || 30000;
         document.getElementById('test-weight').value = test.weight || 1.0;
         document.getElementById('test-enabled').checked = test.enabled !== false;
-        
+
         // Set up prompt mode toggle and show/hide based on current value
         document.getElementById('test-system-prompt').oninput = toggleTestPromptModeVisibility;
         toggleTestPromptModeVisibility();
         renderToolCheckboxes('test-tool-select', test.tool_ids || []);
+        renderInheritedTools(test.domain_id, test.level);
+
+        // Update inherited tools when domain/level changes
+        document.getElementById('test-domain').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
+        document.getElementById('test-level').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
 
         openModal('test-modal');
     } catch (error) {
@@ -1303,7 +1230,27 @@ async function editTest(testId, domainId) {
 
 async function saveTest() {
     const testId = document.getElementById('test-id').value || null;
-    
+
+    // Validate required fields
+    const name = document.getElementById('test-name').value.trim();
+    if (!name) {
+        alert('Test name is required');
+        document.getElementById('test-name').focus();
+        return;
+    }
+    const prompt = document.getElementById('test-prompt').value.trim();
+    if (!prompt) {
+        alert('Test prompt is required');
+        document.getElementById('test-prompt').focus();
+        return;
+    }
+    const domainId = document.getElementById('test-domain').value;
+    if (!domainId) {
+        alert('Domain is required');
+        document.getElementById('test-domain').focus();
+        return;
+    }
+
     let expected = null;
     try {
         const expectedText = document.getElementById('test-expected').value.trim();
@@ -1652,6 +1599,41 @@ function getSelectedToolIds(containerId) {
     const container = document.getElementById(containerId);
     const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
     return Array.from(checkboxes).map(cb => cb.value);
+}
+
+async function renderInheritedTools(domainId, level) {
+    const container = document.getElementById('test-inherited-tools');
+    const inherited = [];
+
+    // Domain tools
+    const domain = domains.find(d => d.id === domainId);
+    const domainToolIds = domain && domain.tool_ids ? domain.tool_ids : [];
+    for (const tid of domainToolIds) {
+        const t = tools.find(x => x.id === tid);
+        inherited.push({ name: t ? t.name : tid, funcName: t && t.function ? t.function.name : tid, source: 'domain' });
+    }
+
+    // Level tools
+    try {
+        const data = await apiGet(`/api/settings/levels/${domainId}/${level}`);
+        const levelToolIds = data.level && data.level.tool_ids ? data.level.tool_ids : [];
+        for (const tid of levelToolIds) {
+            const t = tools.find(x => x.id === tid);
+            inherited.push({ name: t ? t.name : tid, funcName: t && t.function ? t.function.name : tid, source: `level ${level}` });
+        }
+    } catch (e) { /* no level config */ }
+
+    if (inherited.length === 0) {
+        container.innerHTML = '<span class="text-gray-400 text-xs italic">No inherited tools from domain or level</span>';
+        return;
+    }
+
+    container.innerHTML = '<div class="flex flex-wrap gap-1.5">' + inherited.map(t =>
+        `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">` +
+        `<code class="text-blue-500 text-[11px]">${t.funcName}</code>` +
+        `<span class="text-blue-300">from ${t.source}</span>` +
+        `</span>`
+    ).join('') + '</div>';
 }
 
 // Import/Export Functions

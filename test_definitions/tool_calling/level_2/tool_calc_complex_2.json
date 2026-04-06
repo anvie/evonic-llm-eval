@@ -1,0 +1,19 @@
+{
+  "id": "tool_calc_complex_2",
+  "name": "Calculator Complex Expression",
+  "description": "Test calculator tool call with a more complex expression involving parentheses and multiple operators",
+  "prompt": "Hitung total belanja: 3 barang seharga Rp 45.000 dan 2 barang seharga Rp 78.500, pakai calculator tool. Ekspresinya: (3 * 45000) + (2 * 78500)",
+  "expected": {
+    "tool": "calculator",
+    "args": {
+      "expression": "(3 * 45000) + (2 * 78500)"
+    }
+  },
+  "evaluator_id": "tool_call",
+  "tool_ids": ["calculator"],
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-06T10:00:00.000000",
+  "updated_at": "2026-04-06T10:00:00.000000"
+}

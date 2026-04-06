@@ -206,7 +206,7 @@ class TestManager:
         level_def = self.loader.load_level(domain_id, level)
         if level_def:
             return level_def.to_dict()
-        return {'domain_id': domain_id, 'level': level, 'system_prompt': None, 'system_prompt_mode': 'overwrite'}
+        return {'domain_id': domain_id, 'level': level, 'system_prompt': None, 'system_prompt_mode': 'overwrite', 'tool_ids': None}
 
     def update_level(self, domain_id: str, level: int, data: Dict[str, Any]) -> Dict[str, Any]:
         """Update level definition - writes level.json and syncs to DB"""

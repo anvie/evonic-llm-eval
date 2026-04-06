@@ -1,0 +1,24 @@
+{
+  "id": "tool_calc_weather_3",
+  "name": "Calculator + Weather Multiple Tools",
+  "description": "Test calling calculator and weather tools together - compute temperature conversion while checking weather",
+  "prompt": "Cek cuaca di Jakarta sekarang, lalu hitung konversi suhu dari Celsius ke Fahrenheit dengan rumus (32 * 9/5) + 32",
+  "expected": {
+    "tools": [
+      "get_weather",
+      "calculator"
+    ]
+  },
+  "evaluator_id": "tool_call",
+  "tool_ids": [
+    "calculator",
+    "get_weather"
+  ],
+  "timeout_ms": 30000,
+  "weight": 1,
+  "enabled": true,
+  "created_at": "2026-04-06T10:00:00.000000",
+  "updated_at": "2026-04-06T10:47:31.142215",
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite"
+}

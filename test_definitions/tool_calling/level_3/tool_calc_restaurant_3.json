@@ -1,0 +1,16 @@
+{
+  "id": "tool_calc_restaurant_3",
+  "name": "Calculator + Restaurant Search Multiple Tools",
+  "description": "Test calling calculator and restaurant search tools together - find restaurants and calculate budget",
+  "prompt": "Cari restoran di Jakarta dengan rating minimal 4, lalu hitung berapa budget makan untuk 5 orang kalau rata-rata per orang Rp 150.000 menggunakan calculator (5 * 150000)",
+  "expected": {
+    "tools": ["search_restaurants", "calculator"]
+  },
+  "evaluator_id": "tool_call",
+  "tool_ids": ["calculator", "search_restaurants"],
+  "timeout_ms": 30000,
+  "weight": 1.0,
+  "enabled": true,
+  "created_at": "2026-04-06T10:00:00.000000",
+  "updated_at": "2026-04-06T10:00:00.000000"
+}
