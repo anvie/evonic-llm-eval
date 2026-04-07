@@ -2,9 +2,9 @@
   "id": "tool_complex_5",
   "name": "Complex Tool Usage",
   "description": "Test complex tool orchestration",
-  "prompt": "Rencanakan perjalanan ke Yogyakarta untuk 3 orang, termasuk penerbangan, hotel, dan aktivitas",
+  "prompt": "Cari hotel di Bali, cek cuaca di sana, cari restoran Italia, lalu kirim ringkasan ke email@test.com",
   "expected": {
-    "multiple_chains": true
+    "tools": ["search_hotels", "get_weather", "search_restaurants", "send_notification"]
   },
   "evaluator_id": "tool_call",
   "timeout_ms": 30000,

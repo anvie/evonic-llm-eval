@@ -220,9 +220,14 @@
                 </div>
             </form>
         </div>
-        <div class="flex justify-end gap-2.5 p-5 border-t border-gray-200">
-            <button onclick="closeModal('test-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
-            <button onclick="saveTest()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Save Test</button>
+        <div class="flex justify-between p-5 border-t border-gray-200">
+            <div>
+                <button id="duplicate-test-btn" onclick="duplicateTest()" class="bg-amber-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-amber-600" style="display:none;">Duplicate</button>
+            </div>
+            <div class="flex gap-2.5">
+                <button onclick="closeModal('test-modal')" class="bg-gray-100 text-gray-700 border border-gray-300 px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-gray-200">Cancel</button>
+                <button onclick="saveTest()" class="bg-blue-500 text-white border-none px-5 py-2.5 rounded-md cursor-pointer text-sm hover:bg-blue-600">Save Test</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1187,6 +1192,7 @@ function showAddTestModal(domainId, level) {
     document.getElementById('test-domain').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
     document.getElementById('test-level').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
 
+    document.getElementById('duplicate-test-btn').style.display = 'none';
     openModal('test-modal');
 }
 
@@ -1228,6 +1234,7 @@ async function editTest(testId, domainId) {
         document.getElementById('test-domain').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
         document.getElementById('test-level').onchange = () => renderInheritedTools(document.getElementById('test-domain').value, document.getElementById('test-level').value);
 
+        document.getElementById('duplicate-test-btn').style.display = '';
         openModal('test-modal');
     } catch (error) {
         alert('Error loading test: ' + error);
@@ -1306,7 +1313,7 @@ async function saveTest() {
 
 async function deleteTest(testId) {
     if (!confirm('Are you sure you want to delete this test?')) return;
-    
+
     try {
         const result = await apiDelete(`/api/settings/tests/${testId}`);
         if (result.success) {
@@ -1315,6 +1322,73 @@ async function deleteTest(testId) {
         }
     } catch (error) {
         alert('Error deleting test: ' + error);
+    }
+}
+
+async function duplicateTest() {
+    const domainId = document.getElementById('test-domain').value;
+    const level = parseInt(document.getElementById('test-level').value);
+    const currentName = document.getElementById('test-name').value.trim();
+
+    if (!currentName) {
+        alert('Test name is required before duplicating');
+        return;
+    }
+
+    try {
+        // Fetch existing tests in same domain+level to find next suffix
+        const existing = await apiGet(`/api/settings/tests?domain=${domainId}&level=${level}`);
+        const existingNames = (existing.tests || []).map(t => t.name);
+
+        // Strip trailing " (N)" to get base name
+        const baseName = currentName.replace(/\s*\(\d+\)$/, '');
+
+        // Find next available number
+        let nextNum = 2;
+        while (existingNames.includes(nextNum === 1 ? baseName : `${baseName} (${nextNum})`)) {
+            nextNum++;
+        }
+        const newName = `${baseName} (${nextNum})`;
+
+        // Collect form data
+        let expected = null;
+        try {
+            const expectedText = document.getElementById('test-expected').value.trim();
+            if (expectedText) expected = JSON.parse(expectedText);
+        } catch (e) {
+            alert('Invalid JSON in Expected field');
+            return;
+        }
+
+        const data = {
+            domain_id: domainId,
+            level: level,
+            name: newName,
+            description: document.getElementById('test-description').value,
+            system_prompt: document.getElementById('test-system-prompt').value || null,
+            system_prompt_mode: document.getElementById('test-system-prompt-mode').value,
+            prompt: document.getElementById('test-prompt').value,
+            expected: expected,
+            evaluator_id: document.getElementById('test-evaluator').value,
+            timeout_ms: parseInt(document.getElementById('test-timeout').value),
+            weight: parseFloat(document.getElementById('test-weight').value),
+            enabled: document.getElementById('test-enabled').checked,
+            tool_ids: getSelectedToolIds('test-tool-select')
+        };
+
+        const result = await apiPost('/api/settings/tests', data);
+        if (result.success) {
+            // Switch modal to the new duplicated test
+            document.getElementById('test-id').value = result.test.id;
+            document.getElementById('test-id-input').value = result.test.id;
+            document.getElementById('test-name').value = newName;
+            document.getElementById('test-modal-title').textContent = 'Edit Test';
+            loadDomains();
+        } else {
+            alert('Error duplicating: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error duplicating test: ' + error);
     }
 }
 

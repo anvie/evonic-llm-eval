@@ -87,31 +87,41 @@ class ToolCallEvaluator(BaseEvaluator):
     
     def _validate_tool_calls(self, tool_calls: List[Dict], expected: Any, level: int) -> EvaluationResult:
         """Validate tool calls from LLM response"""
-        
+
         called_tools = [tc.get("function", {}).get("name", "") for tc in tool_calls]
-        
+
         expected_tools = []
+        is_chain = False
         if isinstance(expected, dict):
-            expected_tools = expected.get("tools", [])
+            if "tool" in expected:
+                expected_tools = [expected["tool"]]
+            elif "tools" in expected:
+                expected_tools = expected.get("tools", [])
+            elif "chain" in expected:
+                expected_tools = expected.get("chain", [])
+                is_chain = True
         elif isinstance(expected, list):
             expected_tools = expected
-        
+
         # Calculate score
         if not expected_tools:
-            # No expected tools, just check that tools were called
-            score = 1.0 if called_tools else 0.0
+            score = 0.0
         else:
             # Check if expected tools were called
             expected_set = set(expected_tools)
             called_set = set(called_tools)
-            
+
             correct = expected_set & called_set
-            missing = expected_set - called_set
-            
+
             score = len(correct) / len(expected_set) if expected_set else 1.0
-        
+
+            # For chains, also verify sequential order
+            if is_chain and score > 0:
+                if not self._check_chain_order(called_tools, expected_tools):
+                    score *= 0.5  # Penalize wrong order
+
         status = "passed" if score >= 0.8 else "failed"
-        
+
         return EvaluationResult(
             score=score,
             status=status,
@@ -119,7 +129,8 @@ class ToolCallEvaluator(BaseEvaluator):
                 "called_tools": called_tools,
                 "expected_tools": expected_tools,
                 "missing_tools": list(set(expected_tools) - set(called_tools)),
-                "scoring_method": "tool_validation",
+                "scoring_method": "chain_validation" if is_chain else "tool_validation",
+                "chain_order_correct": self._check_chain_order(called_tools, expected_tools) if is_chain else None,
                 "pass2": {
                     "success": True,
                     "format": "direct_tool_calls"
@@ -129,11 +140,18 @@ class ToolCallEvaluator(BaseEvaluator):
             pass2_used=False  # No PASS2 needed for direct tool calls
         )
     
-    def _validate_tool_names(self, tool_names: List[str], expected: Any, 
+    @staticmethod
+    def _check_chain_order(called: List[str], chain: List[str]) -> bool:
+        """Check that chain tools appear as a subsequence in called tools."""
+        it = iter(called)
+        return all(tool in it for tool in chain)
+
+    def _validate_tool_names(self, tool_names: List[str], expected: Any,
                              level: int, extraction: Dict) -> EvaluationResult:
         """Validate extracted tool names"""
-        
+
         expected_tools = []
+        is_chain = False
         if isinstance(expected, dict):
             # Handle both "tool" (singular) and "tools" (plural)
             if "tool" in expected:
@@ -142,22 +160,28 @@ class ToolCallEvaluator(BaseEvaluator):
                 expected_tools = expected.get("tools", [])
             elif "chain" in expected:
                 expected_tools = expected.get("chain", [])
+                is_chain = True
         elif isinstance(expected, list):
             expected_tools = expected
-        
+
         # Calculate score
         if not expected_tools:
-            score = 1.0 if tool_names else 0.0
+            score = 0.0
         else:
             expected_set = set(expected_tools)
             called_set = set(tool_names)
-            
+
             correct = expected_set & called_set
-            
+
             score = len(correct) / len(expected_set) if expected_set else 1.0
-        
+
+            # For chains, also verify sequential order
+            if is_chain and score > 0:
+                if not self._check_chain_order(tool_names, expected_tools):
+                    score *= 0.5  # Penalize wrong order
+
         status = "passed" if score >= 0.8 else "failed"
-        
+
         return EvaluationResult(
             score=score,
             status=status,
@@ -165,7 +189,8 @@ class ToolCallEvaluator(BaseEvaluator):
                 "called_tools": tool_names,
                 "expected_tools": expected_tools,
                 "missing_tools": list(set(expected_tools) - set(tool_names)),
-                "scoring_method": "tool_validation",
+                "scoring_method": "chain_validation" if is_chain else "tool_validation",
+                "chain_order_correct": self._check_chain_order(tool_names, expected_tools) if is_chain else None,
                 "pass2": {
                     "success": True,
                     "format": extraction.get("expected_format")

@@ -105,58 +105,111 @@ class ScoringEngine:
         
         return weighted_sum / total_weight if total_weight > 0 else 0.0
     
-    def generate_summary(self, test_results: list, model_name: str) -> str:
-        """Generate executive summary using scoring data"""
+    def generate_summary(self, test_results: list, model_name: str, llm_client=None) -> str:
+        """Generate executive summary using LLM or fallback to rule-based"""
         if not test_results:
             return "No tests completed"
-        
+
         # Count results by domain
         domain_scores = {}
         domain_counts = {}
-        
+        domain_passed = {}
+
         for result in test_results:
             domain = result.get("domain")
             score = result.get("score", 0.0)
-            
+            status = result.get("status", "failed")
+
             if domain not in domain_scores:
                 domain_scores[domain] = 0.0
                 domain_counts[domain] = 0
-            
+                domain_passed[domain] = 0
+
             domain_scores[domain] += score
             domain_counts[domain] += 1
-        
+            if status == "passed":
+                domain_passed[domain] += 1
+
         # Calculate average per domain
         domain_avgs = {}
         for domain in domain_scores:
             if domain_counts[domain] > 0:
                 domain_avgs[domain] = domain_scores[domain] / domain_counts[domain]
-        
-        # Find strongest and weakest domains
+
+        # Try LLM-generated summary first
+        if llm_client and domain_avgs:
+            llm_summary = self._generate_llm_summary(domain_avgs, domain_counts, domain_passed, llm_client)
+            if llm_summary:
+                return llm_summary
+
+        # Fallback: rule-based summary
         if domain_avgs:
             strongest_domain = max(domain_avgs.items(), key=lambda x: x[1])
             weakest_domain = min(domain_avgs.items(), key=lambda x: x[1])
-            
-            # Generate summary text
+
             summary_parts = []
-            
+
             if strongest_domain[1] >= 0.8:
                 summary_parts.append(f"excel dalam {strongest_domain[0]}")
             elif strongest_domain[1] >= 0.6:
                 summary_parts.append(f"cukup baik dalam {strongest_domain[0]}")
-            
+
             if weakest_domain[1] <= 0.4:
                 summary_parts.append(f"tetapi kurang dalam {weakest_domain[0]}")
             elif weakest_domain[1] <= 0.6:
                 summary_parts.append(f"dengan performa sedang dalam {weakest_domain[0]}")
-            
+
             if summary_parts:
-                summary = f"Model {model_name} " + ", ".join(summary_parts) + "."
+                summary = ", ".join(summary_parts).capitalize() + "."
             else:
-                summary = f"Model {model_name} menunjukkan performa yang seimbang di semua domain."
+                summary = "Performa yang seimbang di semua domain."
         else:
-            summary = f"Model {model_name} telah diuji tetapi tidak ada data domain yang cukup."
-        
+            summary = "Telah diuji tetapi tidak ada data domain yang cukup."
+
         return summary
+
+    def _generate_llm_summary(self, domain_avgs: dict, domain_counts: dict, domain_passed: dict, llm_client) -> str:
+        """Generate natural summary using the tested LLM"""
+        try:
+            # Build domain performance data
+            lines = []
+            for domain, avg in sorted(domain_avgs.items(), key=lambda x: x[1], reverse=True):
+                total = domain_counts.get(domain, 0)
+                passed = domain_passed.get(domain, 0)
+                pct = avg * 100
+                lines.append(f"- {domain}: {pct:.0f}% rata-rata ({passed}/{total} lulus)")
+
+            domain_data = "\n".join(lines)
+            total_tests = sum(domain_counts.values())
+            total_passed = sum(domain_passed.values())
+            overall_avg = sum(s * domain_counts[d] for d, s in domain_avgs.items()) / total_tests if total_tests > 0 else 0
+
+            prompt = f"""Berikut adalah hasil evaluasi LLM di beberapa domain:
+
+{domain_data}
+
+Total: {total_passed}/{total_tests} tes lulus, rata-rata keseluruhan {overall_avg*100:.0f}%.
+
+Tulis ringkasan evaluasi dalam 2-3 kalimat bahasa Indonesia yang natural dan spesifik tentang kekuatan dan kelemahan berdasarkan data di atas. JANGAN menyebut nama model. JANGAN gunakan format bullet/list. Langsung tulis ringkasannya saja tanpa pembuka."""
+
+            response = llm_client.chat_completion(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                enable_thinking=False
+            )
+
+            if response.get("success") and response.get("response"):
+                from evaluator.llm_client import strip_thinking_tags
+                content = llm_client.extract_content(response["response"])
+                if content:
+                    content, _ = strip_thinking_tags(content)
+                    content = content.strip().strip('"').strip()
+                    if len(content) > 20:
+                        return content
+
+            return None
+        except Exception:
+            return None
 
 # Global scoring engine instance
 scoring_engine = ScoringEngine()

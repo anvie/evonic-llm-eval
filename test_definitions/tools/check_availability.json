@@ -1,0 +1,31 @@
+{
+  "id": "check_availability",
+  "name": "Check Availability",
+  "description": "Check room availability for a date range",
+  "function": {
+    "name": "check_availability",
+    "description": "Check room availability for a date range",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "start_date": {
+          "type": "string",
+          "description": "Start date in YYYY-MM-DD format"
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date in YYYY-MM-DD format"
+        }
+      },
+      "required": ["start_date", "end_date"]
+    }
+  },
+  "mock_response": {
+    "available_rooms": ["Bismo", "Sindoro", "Sumbing", "Joglo"],
+    "booked_rooms": [],
+    "period": "2026-04-10 to 2026-04-12"
+  },
+  "mock_response_type": "json",
+  "created_at": "2026-04-07T00:00:00.000000",
+  "updated_at": "2026-04-07T00:00:00.000000"
+}

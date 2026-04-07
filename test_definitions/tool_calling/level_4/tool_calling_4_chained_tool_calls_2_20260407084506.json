@@ -1,0 +1,23 @@
+{
+  "domain_id": "tool_calling",
+  "level": 4,
+  "name": "Chained Tool Calls (2)",
+  "description": "Test chained tool calls - get order then send notification",
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite",
+  "prompt": "Tolong cari detail pesanan customer ID 123, lalu kirim notifikasi status pesanan ke email customer tersebut.",
+  "expected": {
+    "chain": [
+      "get_order",
+      "send_notification"
+    ]
+  },
+  "evaluator_id": "tool_call",
+  "timeout_ms": 30000,
+  "weight": 1,
+  "enabled": true,
+  "tool_ids": [],
+  "id": "tool_calling_4_chained_tool_calls_2_20260407084506",
+  "created_at": "2026-04-07T08:45:06.986633",
+  "updated_at": "2026-04-07T08:46:50.324993"
+}

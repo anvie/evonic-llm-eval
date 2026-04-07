@@ -59,6 +59,9 @@ class SQLExecutorEvaluator(BaseEvaluator):
         # Normalize SQL dialect (PostgreSQL/MySQL → SQLite)
         sql_query = self._normalize_sql(sql_query)
 
+        # Extract only the first SQL statement if multiple were returned
+        sql_query = self._extract_first_statement(sql_query)
+
         # Execute SQL
         execution_result = sql_executor.execute_safe_query(sql_query)
         
@@ -110,6 +113,14 @@ class SQLExecutorEvaluator(BaseEvaluator):
             pass2_used=True
         )
     
+    def _extract_first_statement(self, sql: str) -> str:
+        """Extract only the first SQL statement when multiple are present."""
+        # Split on semicolons, take the first non-empty statement
+        statements = [s.strip() for s in sql.split(';') if s.strip()]
+        if statements:
+            return statements[0] + ';'
+        return sql
+
     def _normalize_sql(self, sql: str) -> str:
         """Translate common PostgreSQL/MySQL functions to SQLite equivalents."""
         # DATE_TRUNC('month', col) → strftime('%Y-%m', col)

@@ -71,33 +71,50 @@
     </div>
     
     <!-- Test Matrix (Same UI as index.html) -->
-    <div class="test-matrix">
-        <h3>Test Matrix <span style="font-size: 0.75rem; color: #666; font-weight: normal;">(Click any cell to see details)</span></h3>
-        
-        <div class="matrix-header">
-            <div>Domain</div>
-            <div>Level 1</div>
-            <div>Level 2</div>
-            <div>Level 3</div>
-            <div>Level 4</div>
-            <div>Level 5</div>
-            <div style="background: #667eea; color: white; border-radius: 4px;">Total</div>
+    <div class="mt-6">
+        <h3 class="mb-2 text-gray-800 font-semibold">Test Matrix <span class="text-xs text-gray-400 font-normal">(Click any cell to see details)</span></h3>
+
+        <!-- Matrix Header (desktop only) -->
+        <div class="hidden md:grid md:grid-cols-[160px_repeat(5,1fr)_120px] gap-2 p-4 bg-gray-50 font-semibold rounded-t-lg text-sm">
+            <div class="flex items-center">Domain</div>
+            <div class="text-center">Level 1</div>
+            <div class="text-center">Level 2</div>
+            <div class="text-center">Level 3</div>
+            <div class="text-center">Level 4</div>
+            <div class="text-center">Level 5</div>
+            <div class="text-center">Total</div>
         </div>
-        
+
         {% for domain in domains %}
-        <div class="matrix-row">
-            <div style="font-weight: 600; text-transform: capitalize;">{{ domain.replace('_', ' ') }}</div>
+        <!-- Matrix Row: card on mobile, grid row on desktop -->
+        <div class="grid grid-cols-5 gap-1 p-3 mb-3 border border-gray-200 rounded-lg bg-white
+                    md:grid-cols-[160px_repeat(5,1fr)_120px] md:gap-2 md:p-4 md:mb-0 md:border-x-0 md:border-t-0 md:border-b md:border-gray-200 md:rounded-none md:bg-transparent md:hover:bg-gray-50 transition-colors"
+             id="row-{{ domain }}">
+            <!-- Domain name (mobile: full-width header row) -->
+            <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0">
+                <span class="font-semibold capitalize text-sm">{{ domain.replace('_', ' ') }}</span>
+            </div>
+            <!-- Hide desktop-only domain name since we show it for both -->
+            <!-- Level cells (5 columns on both mobile and desktop) -->
             {% for level in range(1, 6) %}
-            <div class="matrix-cell clickable-cell" id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
-                <div class="cell-status status-pending"></div>
-                <span class="cell-score">-</span>
-                <div class="cell-duration" id="duration-{{ domain }}-{{ level }}"></div>
+            <div class="level-cell flex flex-col items-center justify-center min-h-[50px] md:min-h-[70px] p-1 md:p-2 rounded-md font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                 id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
+                <span class="text-[0.6rem] font-semibold text-gray-400 uppercase md:hidden">L{{ level }}</span>
+                <div class="flex items-center justify-center gap-1 md:gap-2">
+                    <div class="status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-pending"></div>
+                    <span class="cell-score text-xs md:text-sm text-gray-500">-</span>
+                </div>
+                <div class="text-[0.6rem] md:text-[0.7rem] text-gray-500 mt-0.5 min-h-[1em]" id="duration-{{ domain }}-{{ level }}"></div>
             </div>
             {% endfor %}
-            <div class="domain-total" id="total-{{ domain }}">
-                <div class="domain-total-score" id="total-score-{{ domain }}">-</div>
-                <span class="domain-total-passed" id="total-passed-{{ domain }}">0/5</span>
-                <div class="domain-total-duration" id="total-duration-{{ domain }}"></div>
+
+            <!-- Domain total (mobile: full-width footer, desktop: column) -->
+            <div class="col-span-5 flex flex-row items-center justify-center gap-3 p-2 bg-gray-50 rounded-md mt-1
+                        md:col-span-1 md:flex-col md:gap-0 md:mt-0 md:min-h-[60px]"
+                 id="total-{{ domain }}">
+                <div class="text-base md:text-lg font-bold text-gray-800" id="total-score-{{ domain }}">-</div>
+                <span class="text-xs text-gray-500" id="total-passed-{{ domain }}">0/5</span>
+                <div class="text-[0.7rem] text-gray-400" id="total-duration-{{ domain }}"></div>
             </div>
         </div>
         {% endfor %}
@@ -178,8 +195,8 @@ function updateMatrix(matrix) {
                 testResultsData[domain][level] = data;
                 
                 // Update status indicator
-                const statusEl = cell.querySelector('.cell-status');
-                statusEl.className = 'cell-status status-' + data.status;
+                const statusEl = cell.querySelector('.status-dot');
+                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + data.status;
                 
                 // Update score
                 const scoreEl = cell.querySelector('.cell-score');
@@ -516,12 +533,6 @@ document.addEventListener('keydown', function(event) {
 </script>
 
 <style>
-/* Override matrix grid for history view (no checkbox column) */
-.matrix-header,
-.matrix-row {
-    grid-template-columns: 160px repeat(5, 1fr) 120px !important;
-}
-
 .run-info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -693,11 +704,6 @@ document.addEventListener('keydown', function(event) {
     color: #ef4444;
 }
 
-.clickable-cell:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
 /* Modal styles */
 .modal {
     position: fixed;
@@ -785,10 +791,5 @@ document.addEventListener('keydown', function(event) {
     line-height: 1.6;
 }
 
-.cell-duration {
-    font-size: 0.7rem;
-    color: #9ca3af;
-    margin-top: 0.15rem;
-}
 </style>
 {% endblock %}

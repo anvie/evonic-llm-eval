@@ -37,7 +37,7 @@
             <div class="w-full h-2 bg-gray-200 rounded overflow-hidden">
                 <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300 rounded" id="progress-fill" style="width: 0%"></div>
             </div>
-            <div class="text-center text-gray-500 text-sm mt-2" id="progress-text">0/25 tests completed</div>
+            <div class="text-center text-gray-500 text-sm mt-2" id="progress-text">0/{{ domain_test_counts.values() | sum }} tests completed</div>
         </div>
     </div>
 
@@ -59,8 +59,8 @@
 
             {% for domain in domains %}
             <!-- Matrix Row: card on mobile, grid row on desktop -->
-            <div class="grid grid-cols-5 gap-1 p-3 mb-3 border border-gray-200 rounded-lg bg-white
-                        md:grid-cols-[40px_160px_repeat(5,1fr)_120px] md:gap-2 md:p-4 md:mb-0 md:border-x-0 md:border-t-0 md:border-b md:border-gray-200 md:rounded-none md:bg-transparent md:hover:bg-gray-50 transition-colors"
+            <div class="grid grid-cols-5 gap-1 mb-3 border border-gray-200 rounded-lg bg-white
+                        md:grid-cols-[40px_160px_repeat(5,1fr)_120px] md:gap-2 md:mb-0 md:border-x-0 md:border-t-0 md:border-b md:border-gray-200 md:rounded-none md:bg-transparent md:hover:bg-gray-50 transition-colors"
                  id="row-{{ domain }}">
                 <!-- Checkbox + Domain name (mobile: full-width header row) -->
                 <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0 md:justify-center">
@@ -120,6 +120,18 @@
     </div>
 </div>
 
+<!-- Completion Modal -->
+<div id="completion-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+        <div class="text-6xl mb-4" id="completion-emoji"></div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Evaluation Complete!</h2>
+        <div class="text-7xl font-extrabold my-6" id="completion-score-text" style="color: #059669;"></div>
+        <div class="text-gray-500 text-lg mb-2" id="completion-tests-label"></div>
+        <div class="text-gray-400 text-sm mb-6" id="completion-stats-label"></div>
+        <button onclick="closeCompletionModal()" class="btn btn-primary px-8 py-2 text-lg">OK</button>
+    </div>
+</div>
+
 <!-- Test Modal (shared component) -->
 {% include 'partials/test-modal.html' %}
 
@@ -133,6 +145,7 @@
 <script>
 // Domains loaded from server (enabled domains only)
 const DOMAINS = {{ domains | tojson }};
+const DOMAIN_TEST_COUNTS = {{ domain_test_counts | tojson }};
 
 let pollingInterval;
 let testResultsData = {};  // Store all test results for modal access
@@ -148,6 +161,7 @@ fetch('/api/config/model')
 
 // Load saved state on page load
 document.addEventListener('DOMContentLoaded', function() {
+    updateTotalTestCount();
     loadSavedState();
     loadSavedLogs();
 });
@@ -237,8 +251,8 @@ function getSelectedDomains() {
 }
 
 function updateTotalTestCount() {
-    const selectedCount = getSelectedDomains().length;
-    const totalTests = selectedCount * 5;
+    const selected = getSelectedDomains();
+    const totalTests = selected.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
     document.getElementById('progress-text').textContent = `0/${totalTests} tests completed`;
 }
 
@@ -287,8 +301,8 @@ function clearMatrixState() {
     testResultsData = {};
     
     // Reset progress bar with selected domain count
-    const selectedCount = getSelectedDomains().length;
-    const totalTests = selectedCount * 5;
+    const selected = getSelectedDomains();
+    const totalTests = selected.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
     document.getElementById('progress-fill').style.width = '0%';
     document.getElementById('progress-text').textContent = `0/${totalTests} tests completed`;
 }
@@ -464,6 +478,47 @@ function stopEvaluation() {
     });
 }
 
+function showCompletionModal(data) {
+    const modal = document.getElementById('completion-modal');
+    const score = data.overall_score;
+    const scorePercent = score !== null && score !== undefined ? (score * 100).toFixed(1) : '—';
+    const completed = data.completed_tests || 0;
+    const activeDomains = Object.keys(data.domains || {});
+    const total = activeDomains.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
+
+    document.getElementById('completion-score-text').textContent = scorePercent + '%';
+    document.getElementById('completion-tests-label').textContent = `${completed}/${total} tests completed`;
+
+    // Color based on score
+    const scoreEl = document.getElementById('completion-score-text');
+    if (score >= 0.8) {
+        scoreEl.style.color = '#059669';
+        document.getElementById('completion-emoji').textContent = '\uD83C\uDFBA\uD83C\uDF89';
+    } else if (score >= 0.6) {
+        scoreEl.style.color = '#d97706';
+        document.getElementById('completion-emoji').textContent = '\uD83C\uDFBA';
+    } else {
+        scoreEl.style.color = '#dc2626';
+        document.getElementById('completion-emoji').textContent = '\uD83C\uDFBA';
+    }
+
+    // Stats line
+    const stats = [];
+    if (data.tok_per_sec) stats.push(`${data.tok_per_sec} tok/s`);
+    if (data.total_tokens) stats.push(`${data.total_tokens} tokens`);
+    if (data.total_duration_ms) stats.push(`${(data.total_duration_ms / 1000).toFixed(1)}s`);
+    document.getElementById('completion-stats-label').textContent = stats.join(' · ');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeCompletionModal() {
+    const modal = document.getElementById('completion-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
 function startPolling() {
     pollingInterval = setInterval(updateStatus, 2000);
     updateStatus();
@@ -506,8 +561,9 @@ function updateStatus() {
                 logBox.innerHTML += '<div class="log-entry" style="color: #f59e0b; font-weight: bold;">[SYSTEM] ====== EVALUASI DIHENTIKAN ======</div>';
             } else {
                 logBox.innerHTML += '<div class="log-entry" style="color: #4ade80; font-weight: bold;">[SYSTEM] ====== EVALUASI SELESAI ======</div>';
+                showCompletionModal(data);
             }
-            
+
             // Show tok/s if available
             if (data.tok_per_sec) {
                 logBox.innerHTML += `<div class="log-entry" style="color: #3b82f6; font-weight: bold;">[STATS] Average: ${data.tok_per_sec} tok/s (${data.total_tokens} tokens in ${(data.total_duration_ms / 1000).toFixed(1)}s)</div>`;
@@ -593,20 +649,13 @@ function updateMatrix(matrix) {
 
 function updateProgress(data) {
     if (!data.domains) return;
-    
-    let completed = 0;
-    let total = 0;
-    
-    for (const domain of Object.values(data.domains)) {
-        for (const level of Object.values(domain)) {
-            total++;
-            if (level.status === 'completed' || level.status === 'passed' || level.status === 'failed') {
-                completed++;
-            }
-        }
-    }
-    
-    const progressPercent = (completed / total) * 100;
+
+    // Use actual individual test counts; derive active domains from matrix data
+    const activeDomains = Object.keys(data.domains);
+    const total = activeDomains.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
+    const completed = data.completed_tests || 0;
+
+    const progressPercent = total > 0 ? (completed / total) * 100 : 0;
     document.getElementById('progress-fill').style.width = progressPercent + '%';
     document.getElementById('progress-text').textContent = `${completed}/${total} tests completed`;
 }

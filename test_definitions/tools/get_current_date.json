@@ -1,0 +1,22 @@
+{
+  "id": "get_current_date",
+  "name": "Get Current Date",
+  "description": "Get current date and day of week",
+  "function": {
+    "name": "get_current_date",
+    "description": "Get current date and day of week",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  "mock_response": {
+    "date": "2026-04-01",
+    "day": "Wednesday",
+    "year": 2026,
+    "month": 4
+  },
+  "mock_response_type": "json",
+  "created_at": "2026-04-07T00:00:00.000000",
+  "updated_at": "2026-04-07T00:00:00.000000"
+}

@@ -962,7 +962,7 @@ class EvaluationEngine:
             })
         
         # Generate summary
-        summary = scoring_engine.generate_summary(results_dict, model_name)
+        summary = scoring_engine.generate_summary(results_dict, model_name, llm_client=llm_client)
         overall_score = scoring_engine.calculate_overall_score(results_dict)
         
         # Store summary with token stats
@@ -1227,11 +1227,17 @@ class EvaluationEngine:
         if self.total_duration_ms > 0:
             tok_per_sec = (self.total_tokens / self.total_duration_ms) * 1000
 
+        # Count completed individual tests for accurate progress
+        individual_results = db.get_individual_test_results(run_id)
+        completed_tests = len(individual_results)
+
         return {
             "domains": matrix,
             "run_id": run_id,
             "model_name": model_name,
             "status": status,
+            "completed_tests": completed_tests,
+            "overall_score": run_info.get("overall_score") if run_info else None,
             "tok_per_sec": round(tok_per_sec, 1) if tok_per_sec else None,
             "total_tokens": self.total_tokens,
             "total_duration_ms": self.total_duration_ms,
