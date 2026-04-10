@@ -1,0 +1,15 @@
+[package]
+name = "envcrypt"
+version = "0.1.0"
+edition = "2021"
+description = "CLI tool to encrypt/decrypt .env file values"
+license = "MIT"
+
+[[bin]]
+name = "envcrypt"
+path = "src/main.rs"
+
+[dependencies]
+envcrypt-lib = { path = "../libs/rust" }
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"

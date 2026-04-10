@@ -1,8 +1,14 @@
 import os
-from dotenv import load_dotenv
+import sys
 
-# Load .env file
-load_dotenv()
+# Load .env file — prefer envcrypt (supports encrypted values), fall back to dotenv
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib', 'envcrypt', 'libs', 'python'))
+try:
+    import envcrypt
+    envcrypt.load(".env")
+except Exception:
+    from dotenv import load_dotenv
+    load_dotenv()
 
 # LLM Configuration (OpenAI-compatible endpoint)
 # For OpenRouter: https://openrouter.ai/api/v1

@@ -22,7 +22,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+lib/*
+!lib/envcrypt/
 lib64/
 parts/
 sdist/
