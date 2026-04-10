@@ -3,17 +3,21 @@ import queue
 import time
 import json
 import os
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 from evaluator.engine import evaluation_engine
 from models.db import db
+from routes.agents import agents_bp
+from routes.auth import auth_bp, login_required
+from routes.skills import skills_bp
+from routes.plugins import plugins_bp
 import config
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.register_blueprint(auth_bp)
+app.register_blueprint(agents_bp)
+app.register_blueprint(skills_bp)
+app.register_blueprint(plugins_bp)
 
 @app.route('/')
 def index():
