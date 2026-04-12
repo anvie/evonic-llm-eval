@@ -16,7 +16,7 @@ class ScoreComparator:
     def __init__(self):
         pass
     
-    def compare_runs(self, base_run_id: str, improved_run_id: str) -> Dict[str, Any]:
+    def compare_runs(self, base_run_id: int, improved_run_id: int) -> Dict[str, Any]:
         """
         Compare two evaluation runs.
         
@@ -184,8 +184,8 @@ class ScoreComparator:
             "IMPROVEMENT CYCLE COMPARISON REPORT",
             "=" * 60,
             "",
-            f"Base Run:     {comparison['base_run_id'][:8]}...",
-            f"Improved Run: {comparison['improved_run_id'][:8]}...",
+            f"Base Run:     #{comparison['base_run_id']:04d}",
+            f"Improved Run: #{comparison['improved_run_id']:04d}",
             "",
             f"Overall Score: {comparison['base_score']*100:.1f}% → {comparison['improved_score']*100:.1f}% ({comparison['improvement_pct']})",
             "",

@@ -115,9 +115,9 @@ class TestHistoryAPIRunDomainLevel:
         from app import app
         
         with app.test_client() as client:
-            response = client.get('/api/v1/history/invalid-run-id/math/1')
+            response = client.get('/api/v1/history/99999999/math/1')
             assert response.status_code == 404
-            
+
             data = response.get_json()
             assert "error" in data
     
@@ -201,12 +201,12 @@ class TestDatabaseLastRun:
         assert last_run["run_id"] == run2
     
     def test_get_last_run_id(self):
-        """Test get_last_run_id returns ID string"""
+        """Test get_last_run_id returns ID"""
         run_id = db.create_evaluation_run("model-test")
-        
+
         last_id = db.get_last_run_id()
         assert last_id is not None
-        assert isinstance(last_id, str)
+        assert isinstance(last_id, int)
         assert last_id == run_id
 
 

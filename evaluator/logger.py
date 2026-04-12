@@ -21,15 +21,15 @@ class TestLogger:
     def __init__(self, base_dir: str = "logs"):
         self.base_dir = base_dir
         self.current_run_dir: Optional[Path] = None
-        self.run_id: Optional[str] = None
+        self.run_id: Optional[int] = None
         self.test_count = 0
         self.passed_count = 0
         self.total_score = 0.0
         
-    def start_run(self, run_id: str, model_name: str):
+    def start_run(self, run_id: int, model_name: str):
         """Initialize a new run directory"""
         self.run_id = run_id
-        self.current_run_dir = Path(self.base_dir) / run_id
+        self.current_run_dir = Path(self.base_dir) / str(run_id)
         self.current_run_dir.mkdir(parents=True, exist_ok=True)
         self.test_count = 0
         self.passed_count = 0

@@ -37,7 +37,7 @@ class EvaluationEngine:
             use_configurable_tests: If True, load tests from test_definitions/
                                    If False, use legacy hardcoded tests
         """
-        self.current_run_id: Optional[str] = None
+        self.current_run_id: Optional[int] = None
         self.is_running = False
         self.was_interrupted = False  # User clicked Stop
         self.has_error = False       # Error occurred during evaluation
@@ -145,7 +145,7 @@ class EvaluationEngine:
                 "error_message": self.error_message if self.has_error else None
             }
     
-    def _run_evaluation(self, run_id: str, model_name: str, domains: list = None):
+    def _run_evaluation(self, run_id: int, model_name: str, domains: list = None):
         """Main evaluation loop - supports both legacy and configurable tests
         
         Args:
@@ -187,7 +187,7 @@ class EvaluationEngine:
                 final_status = "completed"
             test_logger.finalize_run(status=final_status)
     
-    def _run_legacy_evaluation(self, run_id: str, model_name: str, selected_domains: list = None):
+    def _run_legacy_evaluation(self, run_id: int, model_name: str, selected_domains: list = None):
         """Run evaluation using legacy hardcoded tests
         
         Args:
@@ -234,7 +234,7 @@ class EvaluationEngine:
                 # Small delay between tests
                 time.sleep(0.5)
     
-    def _run_configurable_evaluation(self, run_id: str, model_name: str, selected_domains: list = None):
+    def _run_configurable_evaluation(self, run_id: int, model_name: str, selected_domains: list = None):
         """Run evaluation using configurable test definitions
         
         Args:
@@ -652,6 +652,36 @@ class EvaluationEngine:
 
         return tools_list, mock_responses, mock_response_types
 
+    def _format_tool_result_text(self, data, indent=0):
+        """Convert tool result dict/list to plain text format to save tokens"""
+        if not isinstance(data, (dict, list)):
+            return str(data)
+        lines = []
+        prefix = "  " * indent
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, dict):
+                    lines.append(f"{prefix}{key}:")
+                    lines.append(self._format_tool_result_text(value, indent + 1))
+                elif isinstance(value, list):
+                    lines.append(f"{prefix}{key}:")
+                    for i, item in enumerate(value):
+                        if isinstance(item, dict):
+                            lines.append(f"{prefix}  [{i+1}]")
+                            lines.append(self._format_tool_result_text(item, indent + 2))
+                        else:
+                            lines.append(f"{prefix}  - {item}")
+                else:
+                    lines.append(f"{prefix}{key}: {value}")
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                if isinstance(item, dict):
+                    lines.append(f"{prefix}[{i+1}]")
+                    lines.append(self._format_tool_result_text(item, indent + 1))
+                else:
+                    lines.append(f"{prefix}- {item}")
+        return "\n".join(lines)
+
     def _execute_js_mock(self, js_code: str, args: dict):
         """Execute JavaScript mock response via Node.js subprocess"""
         import subprocess
@@ -676,7 +706,7 @@ class EvaluationEngine:
             return {"error": str(e)}
 
     def _run_single_configurable_test(self, test: Dict[str, Any], domain: str,
-                                       level: int, model_name: str, run_id: str) -> TestResult:
+                                       level: int, model_name: str, run_id: int) -> TestResult:
         """Run a single configurable test"""
         test_id = test['id']
         prompt = test['prompt']
@@ -946,7 +976,7 @@ class EvaluationEngine:
             details=details
         )
     
-    def _generate_summary(self, run_id: str, model_name: str):
+    def _generate_summary(self, run_id: int, model_name: str):
         """Generate executive summary"""
         self._log('[INFO] Semua tes selesai. Membuat ringkasan...')
         test_results = db.get_test_results(run_id)
@@ -1118,7 +1148,7 @@ class EvaluationEngine:
                         }
                     })
                 
-                result_str = json.dumps(mock_result.get("result", {}))
+                result_str = self._format_tool_result_text(mock_result.get("result", {}))
                 self._log(f'[TOOL-RESULT] {result_str[:100]}...')
                 
                 # Add to turn log
@@ -1159,7 +1189,7 @@ class EvaluationEngine:
             "messages": messages
         }
     
-    def get_test_matrix(self, run_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_test_matrix(self, run_id: Optional[int] = None) -> Dict[str, Any]:
         """Get test matrix for UI display"""
         if not run_id:
             run_id = self.current_run_id

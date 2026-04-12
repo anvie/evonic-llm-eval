@@ -197,12 +197,22 @@ class Database:
                     details TEXT,
                     duration_ms INTEGER,
                     model_name TEXT,
+                    system_prompt TEXT,
+                    system_prompt_mode TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (run_id) REFERENCES evaluation_runs(run_id),
                     FOREIGN KEY (test_id) REFERENCES tests(id)
                 )
             """)
-            
+
+            # Add system_prompt columns to individual_test_results if they don't exist
+            cursor.execute("PRAGMA table_info(individual_test_results)")
+            itr_cols = [row[1] for row in cursor.fetchall()]
+            if 'system_prompt' not in itr_cols:
+                cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt TEXT")
+            if 'system_prompt_mode' not in itr_cols:
+                cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt_mode TEXT")
+
             # Tools registry table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS tools (
@@ -949,7 +959,7 @@ class Database:
             """, (run_id, test_id, domain, level, prompt, response, expected, score, status, details, duration_ms, model_name, system_prompt, system_prompt_mode))
             conn.commit()
     
-    def get_individual_test_results(self, run_id: str, domain: str = None, level: int = None) -> List[Dict[str, Any]]:
+    def get_individual_test_results(self, run_id: int, domain: str = None, level: int = None) -> List[Dict[str, Any]]:
         """Get individual test results for a run - prioritize saved resolved system_prompt"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -994,7 +1004,7 @@ class Database:
             row = cursor.fetchone()
             return dict(row) if row else None
     
-    def get_last_run_id(self) -> Optional[str]:
+    def get_last_run_id(self) -> Optional[int]:
         """Get the most recent evaluation run ID"""
         run = self.get_last_run()
         return run["run_id"] if run else None

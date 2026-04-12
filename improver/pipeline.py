@@ -39,7 +39,7 @@ class ImprovementPipeline:
         # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
     
-    def start_cycle(self, base_run_id: str, min_score_threshold: float = 0.8) -> Dict[str, Any]:
+    def start_cycle(self, base_run_id: int, min_score_threshold: float = 0.8) -> Dict[str, Any]:
         """
         Start an improvement cycle from an evaluation run.
         
@@ -123,9 +123,9 @@ class ImprovementPipeline:
         }
     
     def complete_cycle(
-        self, 
-        cycle_id: str, 
-        improved_run_id: str,
+        self,
+        cycle_id: str,
+        improved_run_id: int,
         require_approval: bool = True
     ) -> Dict[str, Any]:
         """

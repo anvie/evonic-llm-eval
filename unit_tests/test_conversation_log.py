@@ -188,9 +188,12 @@ class TestIndividualTestResultsAPI:
         """Test API returns all tests for a domain/level"""
         from app import app
         
+        from models.db import db as test_db
+        run_id = test_db.create_evaluation_run("test-model")
+
         with app.test_client() as client:
-            # This will return empty if no run exists
-            response = client.get('/api/run/test-run-id/tests/math/1')
+            # This will return empty if no tests exist yet
+            response = client.get(f'/api/run/{run_id}/tests/math/1')
             assert response.status_code == 200
             
             data = response.get_json()
@@ -203,14 +206,10 @@ class TestIndividualTestResultsAPI:
     def test_api_parses_json_fields(self):
         """Test API properly parses JSON fields in test results"""
         from models.db import db
-        import uuid
-        
+
         # Create a test run and result
-        run_id = str(uuid.uuid4())
-        
-        # Create run first
-        db.create_evaluation_run("test-model")
-        
+        run_id = db.create_evaluation_run("test-model")
+
         # Save individual test result
         db.save_individual_test_result(
             run_id=run_id,

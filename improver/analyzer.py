@@ -89,7 +89,7 @@ class FailureAnalyzer:
 
         return self._parse_response(response)
 
-    def analyze_from_run(self, run_id: str) -> Dict[str, Any]:
+    def analyze_from_run(self, run_id: int) -> Dict[str, Any]:
         """Load failed tests from a completed evaluation run and analyze them."""
         from models.db import db
 

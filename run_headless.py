@@ -146,7 +146,7 @@ class HeadlessRunner:
         self.model = model
         self.api_key = api_key
         self.results: List[Dict[str, Any]] = []
-        self.run_id: str = ""
+        self.run_id: int = 0
         self.logger = TestLogger(log_dir)
         
     def configure(self):

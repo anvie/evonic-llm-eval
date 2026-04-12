@@ -92,7 +92,7 @@ def api_reset():
 @app.route('/api/test_matrix')
 def api_test_matrix():
     """Get test matrix for current run"""
-    run_id = request.args.get('run_id')
+    run_id = request.args.get('run_id', type=int)
     matrix = evaluation_engine.get_test_matrix(run_id)
     return jsonify(matrix)
 
@@ -113,7 +113,7 @@ def history():
                           total_pages=total_pages,
                           total_count=total_count)
 
-@app.route('/api/history/<run_id>', methods=['DELETE'])
+@app.route('/api/history/<int:run_id>', methods=['DELETE'])
 def api_delete_run(run_id):
     """Delete an evaluation run and all related data"""
     try:
@@ -121,14 +121,14 @@ def api_delete_run(run_id):
         if success:
             # Also remove log files
             import shutil
-            log_dir = os.path.join(os.path.dirname(__file__), 'logs', run_id)
+            log_dir = os.path.join(os.path.dirname(__file__), 'logs', str(run_id))
             if os.path.isdir(log_dir):
                 shutil.rmtree(log_dir)
         return jsonify({'success': success})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/history/<run_id>')
+@app.route('/history/<int:run_id>')
 def history_detail(run_id):
     """Evaluation detail page - frozen result view"""
     run_info = db.get_evaluation_run(run_id)
@@ -153,7 +153,7 @@ def history_detail(run_id):
                           stats=stats,
                           domains=domains)
 
-@app.route('/api/run/<run_id>')
+@app.route('/api/run/<int:run_id>')
 def api_run_details(run_id):
     """Get details for a specific run"""
     run_info = db.get_evaluation_run(run_id)
@@ -166,7 +166,7 @@ def api_run_details(run_id):
         'stats': stats
     })
 
-@app.route('/api/run/<run_id>/matrix')
+@app.route('/api/run/<int:run_id>/matrix')
 def api_run_matrix(run_id):
     """Get test matrix for a specific run (same format as /api/test_matrix)"""
     import json
@@ -218,7 +218,7 @@ def api_run_matrix(run_id):
         "status": "completed"
     })
 
-@app.route('/api/run/<run_id>/tests/<domain>/<int:level>')
+@app.route('/api/run/<int:run_id>/tests/<domain>/<int:level>')
 def api_run_cell_tests(run_id, domain, level):
     """Get individual test results for a specific cell (domain + level)"""
     import json
@@ -325,7 +325,7 @@ def api_v1_history_last_domain_level(domain, level):
     })
 
 
-@app.route('/api/v1/history/<run_id>/<domain>/<int:level>')
+@app.route('/api/v1/history/<int:run_id>/<domain>/<int:level>')
 def api_v1_history_run_domain_level(run_id, domain, level):
     """Get test results for a specific run/domain/level with full details"""
     # Verify run exists

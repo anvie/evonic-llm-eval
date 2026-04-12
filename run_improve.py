@@ -63,7 +63,7 @@ def cmd_start(args):
 def cmd_complete(args):
     """Complete an improvement cycle after fine-tuning."""
     print(f"Completing cycle: {args.cycle_id[:8]}...")
-    print(f"Improved run: {args.improved_run_id[:8]}...")
+    print(f"Improved run: #{args.improved_run_id:04d}")
     print("-" * 50)
     
     pipeline = ImprovementPipeline()
@@ -170,8 +170,8 @@ def cmd_status(args):
         print(f"Cycle Status: {args.cycle_id[:8]}...")
         print("-" * 50)
         print(f"  Status:         {status.get('status', 'unknown')}")
-        print(f"  Base Run:       {status.get('base_run_id', 'N/A')[:8]}...")
-        print(f"  Improved Run:   {(status.get('improved_run_id') or 'N/A')[:8]}...")
+        print(f"  Base Run:       #{status.get('base_run_id', 0):04d}")
+        print(f"  Improved Run:   #{(status.get('improved_run_id') or 0):04d}")
         print(f"  Created:        {status.get('created_at', 'N/A')}")
         print(f"  Completed:      {status.get('completed_at') or 'Not yet'}")
         print(f"  Examples:       {status.get('examples_count', 'N/A')}")
