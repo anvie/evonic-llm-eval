@@ -5,7 +5,7 @@
   "icon": "chat",
   "color": "#3B82F6",
   "evaluator_id": "keyword",
-  "enabled": true,
+  "enabled": false,
   "created_at": "2026-04-02T06:43:42.043843",
-  "updated_at": "2026-04-06T22:50:19.623239"
+  "updated_at": "2026-04-13T06:24:04.546342"
 }

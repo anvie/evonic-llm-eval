@@ -5,7 +5,7 @@
   "icon": "brain",
   "color": "#EF4444",
   "evaluator_id": "two_pass",
-  "enabled": true,
+  "enabled": false,
   "created_at": "2026-04-02T06:43:42.046104",
-  "updated_at": "2026-04-06T22:50:24.069131"
+  "updated_at": "2026-04-13T06:24:21.945065"
 }

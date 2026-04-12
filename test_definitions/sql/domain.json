@@ -5,7 +5,7 @@
   "icon": "database",
   "color": "#8B5CF6",
   "evaluator_id": "sql_executor",
-  "enabled": true,
+  "enabled": false,
   "created_at": "2026-04-02T06:43:42.044942",
-  "updated_at": "2026-04-06T22:50:20.744584"
+  "updated_at": "2026-04-13T06:24:08.701831"
 }
