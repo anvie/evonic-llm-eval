@@ -114,7 +114,7 @@ class LLMClient:
         # Fallback to config
         return self.model
     
-    def chat_completion(self, messages: list, tools: Optional[list] = None, temperature: float = 0.1, enable_thinking: bool = True, max_tokens: int = 4096) -> Dict[str, Any]:
+    def chat_completion(self, messages: list, tools: Optional[list] = None, temperature: float = 0.1, enable_thinking: bool = True, max_tokens: int = 32768) -> Dict[str, Any]:
         """Send chat completion request to OpenAI-compatible endpoint"""
         url = f"{self.base_url}/chat/completions"
         
