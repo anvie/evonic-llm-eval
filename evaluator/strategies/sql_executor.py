@@ -56,6 +56,10 @@ class SQLExecutorEvaluator(BaseEvaluator):
         
         sql_query = extraction["extracted"]
 
+        # Strip markdown code fences if present (LLM may wrap SQL in ```sql blocks)
+        sql_query = re.sub(r'```(?:sql)?\s*', '', sql_query)
+        sql_query = sql_query.replace('```', '').strip()
+
         # Normalize SQL dialect (PostgreSQL/MySQL → SQLite)
         sql_query = self._normalize_sql(sql_query)
 

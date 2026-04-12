@@ -1,6 +1,5 @@
 import sqlite3
 import json
-import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import config
@@ -9,16 +8,23 @@ class Database:
     def __init__(self, db_path: str = config.DB_PATH):
         self.db_path = db_path
         self._init_tables()
-    
+
+    def _connect(self) -> sqlite3.Connection:
+        """Create a connection with WAL mode and busy timeout for concurrency."""
+        conn = sqlite3.connect(self.db_path, timeout=10)
+        conn.execute("PRAGMA busy_timeout = 10000")
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
     def _init_tables(self):
         """Initialize database tables"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._connect() as conn:
             cursor = conn.cursor()
             
             # Evaluation runs table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS evaluation_runs (
-                    run_id TEXT PRIMARY KEY,
+                    run_id INTEGER PRIMARY KEY AUTOINCREMENT,
                     started_at DATETIME NOT NULL,
                     completed_at DATETIME,
                     model_name TEXT,
@@ -33,7 +39,7 @@ class Database:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS test_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    run_id TEXT NOT NULL,
+                    run_id INTEGER NOT NULL,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                     model_name TEXT,
                     domain TEXT NOT NULL,
@@ -53,8 +59,8 @@ class Database:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS improvement_cycles (
                     cycle_id TEXT PRIMARY KEY,
-                    base_run_id TEXT NOT NULL,
-                    improved_run_id TEXT,
+                    base_run_id INTEGER NOT NULL,
+                    improved_run_id INTEGER,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     completed_at DATETIME,
                     status TEXT DEFAULT 'pending',
@@ -164,7 +170,7 @@ class Database:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS level_scores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    run_id TEXT NOT NULL,
+                    run_id INTEGER NOT NULL,
                     domain TEXT NOT NULL,
                     level INTEGER NOT NULL,
                     average_score REAL NOT NULL,
@@ -179,7 +185,7 @@ class Database:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS individual_test_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    run_id TEXT NOT NULL,
+                    run_id INTEGER NOT NULL,
                     test_id TEXT NOT NULL,
                     domain TEXT NOT NULL,
                     level INTEGER NOT NULL,
@@ -212,13 +218,99 @@ class Database:
                 )
             """)
 
-            # Add system_prompt and system_prompt_mode columns to individual_test_results if they don't exist
-            cursor.execute("PRAGMA table_info(individual_test_results)")
-            itr_cols = [row[1] for row in cursor.fetchall()]
-            if 'system_prompt' not in itr_cols:
-                cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt TEXT")
-            if 'system_prompt_mode' not in itr_cols:
-                cursor.execute("ALTER TABLE individual_test_results ADD COLUMN system_prompt_mode TEXT")
+            # Migrate run_id from TEXT (UUID) to INTEGER AUTOINCREMENT
+            # Drop all tables that reference evaluation_runs and recreate them
+            cursor.execute("PRAGMA table_info(evaluation_runs)")
+            er_info = cursor.fetchall()
+            er_col_types = {row[1]: row[2] for row in er_info}
+            if er_col_types.get('run_id', '').upper() != 'INTEGER':
+                cursor.execute("DROP TABLE IF EXISTS individual_test_results")
+                cursor.execute("DROP TABLE IF EXISTS level_scores")
+                cursor.execute("DROP TABLE IF EXISTS test_results")
+                cursor.execute("DROP TABLE IF EXISTS improvement_cycles")
+                cursor.execute("DROP TABLE IF EXISTS evaluation_runs")
+                cursor.execute("""
+                    CREATE TABLE evaluation_runs (
+                        run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        started_at DATETIME NOT NULL,
+                        completed_at DATETIME,
+                        model_name TEXT,
+                        summary TEXT,
+                        overall_score REAL,
+                        total_tokens INTEGER DEFAULT 0,
+                        total_duration_ms INTEGER DEFAULT 0
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE test_results (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        run_id INTEGER NOT NULL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        model_name TEXT,
+                        domain TEXT NOT NULL,
+                        level INTEGER NOT NULL,
+                        prompt TEXT,
+                        response TEXT,
+                        expected TEXT,
+                        score REAL,
+                        status TEXT NOT NULL,
+                        details TEXT,
+                        duration_ms INTEGER,
+                        FOREIGN KEY (run_id) REFERENCES evaluation_runs (run_id)
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE improvement_cycles (
+                        cycle_id TEXT PRIMARY KEY,
+                        base_run_id INTEGER NOT NULL,
+                        improved_run_id INTEGER,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        completed_at DATETIME,
+                        status TEXT DEFAULT 'pending',
+                        analysis TEXT,
+                        training_data_path TEXT,
+                        examples_count INTEGER,
+                        comparison TEXT,
+                        recommendation TEXT,
+                        FOREIGN KEY (base_run_id) REFERENCES evaluation_runs (run_id),
+                        FOREIGN KEY (improved_run_id) REFERENCES evaluation_runs (run_id)
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE level_scores (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        run_id INTEGER NOT NULL,
+                        domain TEXT NOT NULL,
+                        level INTEGER NOT NULL,
+                        average_score REAL NOT NULL,
+                        total_tests INTEGER NOT NULL,
+                        passed_tests INTEGER NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (run_id) REFERENCES evaluation_runs(run_id)
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE individual_test_results (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        run_id INTEGER NOT NULL,
+                        test_id TEXT NOT NULL,
+                        domain TEXT NOT NULL,
+                        level INTEGER NOT NULL,
+                        prompt TEXT,
+                        response TEXT,
+                        expected TEXT,
+                        score REAL,
+                        status TEXT NOT NULL,
+                        details TEXT,
+                        duration_ms INTEGER,
+                        model_name TEXT,
+                        system_prompt TEXT,
+                        system_prompt_mode TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (run_id) REFERENCES evaluation_runs(run_id),
+                        FOREIGN KEY (test_id) REFERENCES tests(id)
+                    )
+                """)
 
             # Add tool_ids column to domains, levels, tests if they don't exist
             for table in ('domains', 'levels', 'tests'):
@@ -236,22 +328,20 @@ class Database:
             
             conn.commit()
     
-    def create_evaluation_run(self, model_name: str) -> str:
+    def create_evaluation_run(self, model_name: str) -> int:
         """Create a new evaluation run and return run_id"""
-        run_id = str(uuid.uuid4())
         started_at = datetime.now()
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO evaluation_runs (run_id, started_at, model_name) VALUES (?, ?, ?)",
-                (run_id, started_at, model_name)
+                "INSERT INTO evaluation_runs (started_at, model_name) VALUES (?, ?)",
+                (started_at, model_name)
             )
             conn.commit()
-        
-        return run_id
+            return cursor.lastrowid
     
-    def update_test_result(self, run_id: str, domain: str, level: int, **kwargs):
+    def update_test_result(self, run_id: int, domain: str, level: int, **kwargs):
         """Update test result with various fields"""
         allowed_fields = {
             'model_name', 'prompt', 'response', 'expected', 'score', 
@@ -293,7 +383,7 @@ class Database:
             
             conn.commit()
     
-    def complete_evaluation_run(self, run_id: str, summary: str, overall_score: float, 
+    def complete_evaluation_run(self, run_id: int, summary: str, overall_score: float,
                                  total_tokens: int = 0, total_duration_ms: int = 0):
         """Mark evaluation run as completed"""
         completed_at = datetime.now()
@@ -309,7 +399,7 @@ class Database:
             )
             conn.commit()
     
-    def get_evaluation_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+    def get_evaluation_run(self, run_id: int) -> Optional[Dict[str, Any]]:
         """Get evaluation run details"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -321,7 +411,7 @@ class Database:
             row = cursor.fetchone()
             return dict(row) if row else None
     
-    def get_test_results(self, run_id: str) -> List[Dict[str, Any]]:
+    def get_test_results(self, run_id: int) -> List[Dict[str, Any]]:
         """Get all test results for a run"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -347,7 +437,7 @@ class Database:
             )
             return [dict(row) for row in cursor.fetchall()]
     
-    def delete_run(self, run_id: str) -> bool:
+    def delete_run(self, run_id: int) -> bool:
         """Delete an evaluation run and all related data"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -374,7 +464,7 @@ class Database:
             cursor.execute("SELECT COUNT(*) FROM evaluation_runs")
             return cursor.fetchone()[0]
     
-    def get_run_stats(self, run_id: str) -> Dict[str, Any]:
+    def get_run_stats(self, run_id: int) -> Dict[str, Any]:
         """Get statistics for a run"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -407,9 +497,9 @@ class Database:
     # ==================== Improvement Cycles ====================
     
     def create_improvement_cycle(
-        self, 
-        cycle_id: str, 
-        base_run_id: str,
+        self,
+        cycle_id: str,
+        base_run_id: int,
         analysis: str = None,
         training_data_path: str = None,
         examples_count: int = 0
@@ -429,7 +519,7 @@ class Database:
     def complete_improvement_cycle(
         self,
         cycle_id: str,
-        improved_run_id: str,
+        improved_run_id: int,
         comparison: str,
         recommendation: str
     ):
@@ -822,7 +912,7 @@ class Database:
             return cursor.rowcount > 0
 
     # Level scores operations
-    def save_level_score(self, run_id: str, domain: str, level: int, 
+    def save_level_score(self, run_id: int, domain: str, level: int,
                          average_score: float, total_tests: int, passed_tests: int):
         """Save aggregated level score"""
         with sqlite3.connect(self.db_path) as conn:
@@ -833,7 +923,7 @@ class Database:
             """, (run_id, domain, level, average_score, total_tests, passed_tests))
             conn.commit()
     
-    def get_level_scores(self, run_id: str) -> List[Dict[str, Any]]:
+    def get_level_scores(self, run_id: int) -> List[Dict[str, Any]]:
         """Get all level scores for a run"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -845,7 +935,7 @@ class Database:
             return [dict(row) for row in cursor.fetchall()]
     
     # Individual test results operations
-    def save_individual_test_result(self, run_id: str, test_id: str, domain: str, level: int,
+    def save_individual_test_result(self, run_id: int, test_id: str, domain: str, level: int,
                                     prompt: str, response: str, expected: str, score: float,
                                     status: str, details: str, duration_ms: int, model_name: str,
                                     system_prompt: str = None, system_prompt_mode: str = None):

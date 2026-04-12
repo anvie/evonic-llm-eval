@@ -55,3 +55,7 @@ DEBUG = os.getenv("DEBUG", "1") == "1"
 # Real-time log verbosity
 LOG_FULL_THINKING = os.getenv("LOG_FULL_THINKING", "0") == "1"
 LOG_FULL_RESPONSE = os.getenv("LOG_FULL_RESPONSE", "0") == "1"
+
+# LLM API call logging (to markdown file)
+LLM_API_LOG_ENABLED = os.getenv("LLM_API_LOG_ENABLED", "0") == "1"
+LLM_API_LOG_FILE = os.getenv("LLM_API_LOG_FILE", os.path.join(BASE_DIR, "logs", "llm_api_calls.md"))

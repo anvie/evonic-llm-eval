@@ -7,6 +7,7 @@ import config
 
 # Import Gemma 4 parser for auto-detection
 from evaluator.gemma4_parser import is_gemma4_format, strip_gemma4_thinking
+from evaluator.api_logger import log_api_call
 
 def strip_thinking_tags(content: str) -> Tuple[str, Optional[str]]:
     """
@@ -113,7 +114,7 @@ class LLMClient:
         # Fallback to config
         return self.model
     
-    def chat_completion(self, messages: list, tools: Optional[list] = None, temperature: float = 0.1, enable_thinking: bool = True) -> Dict[str, Any]:
+    def chat_completion(self, messages: list, tools: Optional[list] = None, temperature: float = 0.1, enable_thinking: bool = True, max_tokens: int = 4096) -> Dict[str, Any]:
         """Send chat completion request to OpenAI-compatible endpoint"""
         url = f"{self.base_url}/chat/completions"
         
@@ -125,11 +126,7 @@ class LLMClient:
         actual_model = self._cached_model_name or self.model or ""
         model_lower = actual_model.lower()
         is_gemma4 = 'gemma-4' in model_lower or 'gemma4' in model_lower or 'gemma-4-base' in model_lower
-        
-        # DEBUG: Log Gemma4 detection
-        if config.DEBUG:
-            print(f"[DEBUG] Model detection: cached={self._cached_model_name}, config={self.model}, is_gemma4={is_gemma4}, enable_thinking={enable_thinking}")
-        
+
         for msg in messages:
             new_msg = msg.copy()
             if not thinking_injected and is_gemma4 and enable_thinking:
@@ -139,15 +136,13 @@ class LLMClient:
                 if role in ('user', 'system') and content:
                     new_msg['content'] = '<|think|>\n' + content
                     thinking_injected = True
-                    if config.DEBUG:
-                        print(f"[DEBUG] Injected <|think|> token into {role} message")
             processed_messages.append(new_msg)
         
         payload = {
             "model": self.model,
             "messages": processed_messages,
             "temperature": temperature,
-            "max_tokens": 4096  # Increased for reasoning models that need tokens for thinking
+            "max_tokens": max_tokens
         }
         
         if tools:
@@ -172,16 +167,19 @@ class LLMClient:
             duration_ms = int((time.time() - start_time) * 1000)
             
             if response.status_code != 200:
+                error_msg = f"LLM API error: {response.status_code} - {response.text[:200]}"
+                log_api_call(messages, None, duration_ms, error=error_msg)
                 return {
-                    "response": {"error": f"LLM API error: {response.status_code} - {response.text[:200]}"},
+                    "response": {"error": error_msg},
                     "duration_ms": duration_ms,
                     "success": False,
                     "error_type": "api_error"
                 }
-            
+
             result = response.json()
-            
+
             if "error" in result:
+                log_api_call(messages, None, duration_ms, error=str(result["error"]))
                 return {
                     "response": result,
                     "duration_ms": duration_ms,
@@ -199,12 +197,14 @@ class LLMClient:
                 
                 if finish_reason == "length" and not content:
                     # Generation hit max_tokens without producing final answer
+                    error_detail = f"Generation hit max_tokens limit ({payload['max_tokens']}) without producing final answer. The model was still reasoning when cutoff occurred. Reasoning length: {len(reasoning)} chars."
+                    log_api_call(messages, None, duration_ms, error=error_detail)
                     return {
                         "response": result,
                         "duration_ms": duration_ms,
                         "success": False,
                         "error_type": "generation_timeout",
-                        "error_detail": f"Generation hit max_tokens limit ({payload['max_tokens']}) without producing final answer. The model was still reasoning when cutoff occurred. Reasoning length: {len(reasoning)} chars."
+                        "error_detail": error_detail
                     }
             
             # Extract token usage if available
@@ -212,7 +212,12 @@ class LLMClient:
             prompt_tokens = usage.get("prompt_tokens", 0)
             completion_tokens = usage.get("completion_tokens", 0)
             total_tokens = usage.get("total_tokens", prompt_tokens + completion_tokens)
-            
+
+            response_text = ""
+            if choices:
+                response_text = choices[0].get("message", {}).get("content", "")
+            log_api_call(messages, response_text, duration_ms)
+
             return {
                 "response": result,
                 "duration_ms": duration_ms,
@@ -224,6 +229,7 @@ class LLMClient:
             
         except requests.exceptions.Timeout:
             elapsed_ms = int((time.time() - start_time) * 1000)
+            log_api_call(messages, None, elapsed_ms, error=f"Request timeout after {self.timeout}s")
             return {
                 "response": {"error": f"Request timeout after {self.timeout}s (elapsed: {elapsed_ms}ms)"},
                 "duration_ms": elapsed_ms,
@@ -232,6 +238,7 @@ class LLMClient:
                 "error_detail": f"HTTP request timed out after {self.timeout} seconds. The LLM server did not respond within the timeout limit."
             }
         except requests.exceptions.ConnectionError as e:
+            log_api_call(messages, None, 0, error=f"Connection error: {str(e)[:100]}")
             return {
                 "response": {"error": f"Connection error: {str(e)[:100]}"},
                 "duration_ms": 0,
@@ -241,6 +248,7 @@ class LLMClient:
             }
         except Exception as e:
             elapsed_ms = int((time.time() - start_time) * 1000) if 'start_time' in locals() else 0
+            log_api_call(messages, None, elapsed_ms, error=str(e)[:200])
             return {
                 "response": {"error": str(e)[:200]},
                 "duration_ms": elapsed_ms,
@@ -332,7 +340,7 @@ class LLMClient:
             tool_content = json.dumps({"tool_calls": tool_calls}, indent=2)
             return {
                 "content": tool_content,
-                "thinking": reasoning_content,
+                "thinking": (reasoning_content or '').strip() or None,
                 "raw": tool_content,
                 "tool_calls": tool_calls
             }
@@ -352,10 +360,13 @@ class LLMClient:
                 }
         
         # Priority 1: llama.cpp reasoning_content field (from --reasoning on)
-        if reasoning_content:
+        reasoning_text = (reasoning_content or '').strip()
+        if reasoning_text:
+            # Still strip thinking tags from content (some models put it in both)
+            cleaned = strip_thinking_tags(content)[0] if content else (content or "No content generated")
             return {
-                "content": content or "No content generated",
-                "thinking": reasoning_content,
+                "content": cleaned or "No content generated",
+                "thinking": reasoning_text,
                 "raw": content
             }
         

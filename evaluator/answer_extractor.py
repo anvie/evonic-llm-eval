@@ -370,7 +370,27 @@ class AnswerExtractor:
             match = re.search(r'(SELECT\s+.*?(?:;|$))', response, re.IGNORECASE | re.DOTALL)
             if match:
                 return {"success": True, "extracted": match.group(1).strip(), "method": "regex_sql"}
-        
+
+        elif expected_format == "health":
+            lower = response.lower()
+            # Boolean answers
+            if re.search(r'\bya\b', lower):
+                return {"success": True, "extracted": "ya", "method": "heuristic_health_boolean"}
+            if re.search(r'\btidak\b', lower):
+                return {"success": True, "extracted": "tidak", "method": "heuristic_health_boolean"}
+            # Structured BMI format
+            bmi_match = re.search(r'bmi[:\s]*(\d+\.?\d*)', lower)
+            if bmi_match:
+                kategori_match = re.search(r'kategori[:\s]*([^\n,.]+)', lower)
+                result = f"BMI: {bmi_match.group(1)}"
+                if kategori_match:
+                    result += f", Kategori: {kategori_match.group(1).strip()}"
+                return {"success": True, "extracted": result, "method": "regex_health_bmi"}
+            # Numeric answer (heart rate, weight, etc.)
+            numbers = re.findall(r'[-+]?\d+\.?\d*', response)
+            if numbers:
+                return {"success": True, "extracted": numbers[-1], "method": "heuristic_health_number"}
+
         # No fallback worked
         return {"success": False, "extracted": response, "method": "no_fallback"}
     
@@ -492,11 +512,13 @@ class AnswerExtractor:
             return {"valid": False, "cleaned": raw, "error": f"Expected statement numbers, got: {raw[:50]}"}
         
         elif expected_format == "sql":
-            # Should be SQL query
-            upper = raw.upper()
+            # Strip markdown code fences if present
+            cleaned_sql = re.sub(r'```(?:sql)?\s*', '', raw)
+            cleaned_sql = cleaned_sql.replace('```', '').strip()
+            upper = cleaned_sql.upper()
             if "SELECT" in upper:
-                return {"valid": True, "cleaned": raw, "error": ""}
-            return {"valid": False, "cleaned": raw, "error": "Expected SQL query"}
+                return {"valid": True, "cleaned": cleaned_sql, "error": ""}
+            return {"valid": False, "cleaned": cleaned_sql, "error": "Expected SQL query"}
         
         elif expected_format == "tools":
             # Should be: tool1, tool2

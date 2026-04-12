@@ -133,7 +133,13 @@ def extract_gemma4_content(text: str) -> str:
             end_pos = pos
     
     content = remaining[:end_pos].strip()
-    
+
+    # Strip any residual Gemma 4 markers that leaked into the content
+    # (e.g. <|channel> appearing without a matching <channel|> closing tag)
+    for marker in GEMMA4_MARKERS:
+        content = content.replace(marker, '')
+    content = content.strip()
+
     return content
 
 
