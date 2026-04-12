@@ -1,0 +1,4 @@
+{
+  "system_prompt": "\nComplex case with potentially conflicting or unusual results. Consider: compensatory mechanisms, acute vs chronic changes, mixed acid-base disorders, and how clinical context modifies interpretation.",
+  "system_prompt_mode": "append"
+}

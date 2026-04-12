@@ -1,0 +1,4 @@
+{
+  "system_prompt": "\nComplex case requiring careful sequencing. Apply ICD-10 coding guidelines: excludes notes, code-first/use-additional-code conventions, and manifestation/etiology pairing.",
+  "system_prompt_mode": "append"
+}

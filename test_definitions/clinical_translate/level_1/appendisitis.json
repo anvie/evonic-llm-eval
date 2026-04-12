@@ -1,0 +1,19 @@
+{
+  "id": "ct_appendisitis_1",
+  "name": "Appendisitis Akut",
+  "description": "Single diagnosis - acute appendicitis dengan tanda klinis klasik dan konfirmasi USG",
+  "prompt": "Pasien perempuan 25 tahun datang dengan nyeri perut kanan bawah sejak 2 hari, awalnya di ulu hati lalu berpindah. Mual, muntah 3x, demam 38.5°C. Pemeriksaan fisik: nyeri tekan McBurney (+), Rovsing sign (+), defans muskuler (+). Leukosit 16.500. USG abdomen: appendix diameter 12mm, non-compressible. Diagnosa: Appendisitis akut.",
+  "expected": {
+    "diagnoses": ["acute appendicitis"],
+    "clinical_findings": ["right lower quadrant pain", "migrating pain from epigastrium", "nausea", "vomiting", "fever 38.5°C", "McBurney point tenderness positive", "Rovsing sign positive", "guarding / muscle rigidity", "leukocytosis 16500", "appendix diameter 12mm non-compressible on ultrasound"],
+    "abbreviations_expanded": {"USG": "ultrasound"},
+    "lab_results": ["WBC 16500"],
+    "risk_factors": []
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["K35.89"],
+  "difficulty": "easy",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

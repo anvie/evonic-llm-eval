@@ -1,0 +1,30 @@
+{
+  "id": "lab_renal_elec_3",
+  "name": "Lab Interpretation — Cirrhosis Multi-System Panel",
+  "description": "Level 3 — MIMIC hadm 22987108 — renal + liver + hematology + electrolytes in decompensated cirrhosis",
+  "prompt": "Interpret the following laboratory results for a 69-year-old male with known liver cirrhosis (NASH) and type 2 diabetes, admitted in shock with hematemesis:\n\nRenal:\n- BUN: 49 mg/dL (reference: 6–20 mg/dL)\n- Creatinine: 2.1 mg/dL (reference: 0.5–1.2 mg/dL)\n\nLiver:\n- Total Bilirubin: 12.3 mg/dL (reference: 0–1.5 mg/dL)\n- ALT: 205 IU/L (reference: 0–40 IU/L)\n- AST: 227 IU/L (reference: 0–40 IU/L)\n\nHematology:\n- WBC: 15,100 /uL (reference: 4,000–10,000)\n- Platelets: 78,000 /uL (reference: 150,000–400,000)\n- Hemoglobin: 9.7 g/dL (reference: 13.7–17.5 g/dL)\n\nElectrolytes / Acid-base:\n- Sodium: 128 mEq/L (reference: 133–145 mEq/L)\n- Bicarbonate: 16 mEq/L (reference: 22–32 mEq/L)\n- Anion Gap: 28 mEq/L (reference: 8–20 mEq/L)\n- Chloride: 95 mEq/L (reference: 96–108 mEq/L)\n\nProvide clinical interpretation of these results.",
+  "expected": {
+    "abnormal_values": [
+      {"test": "Total Bilirubin", "value": "12.3 mg/dL", "reference": "0-1.5 mg/dL", "direction": "HIGH", "severity": "CRITICAL", "significance": "Severe jaundice indicating profound hepatic failure and/or biliary obstruction"},
+      {"test": "AST", "value": "227 IU/L", "reference": "0-40 IU/L", "direction": "HIGH", "severity": "HIGH", "significance": "Hepatocellular injury; AST > ALT ratio suggests alcohol or cirrhotic etiology"},
+      {"test": "ALT", "value": "205 IU/L", "reference": "0-40 IU/L", "direction": "HIGH", "severity": "HIGH", "significance": "Hepatocellular injury from decompensation/ischemia"},
+      {"test": "Creatinine", "value": "2.1 mg/dL", "reference": "0.5-1.2 mg/dL", "direction": "HIGH", "severity": "HIGH", "significance": "Elevated creatinine in context of cirrhosis — raises suspicion for hepatorenal syndrome"},
+      {"test": "BUN", "value": "49 mg/dL", "reference": "6-20 mg/dL", "direction": "HIGH", "severity": "HIGH", "significance": "Markedly elevated; combined with upper GI bleed suggests protein load contribution"},
+      {"test": "Platelets", "value": "78000 /uL", "reference": "150000-400000", "direction": "LOW", "severity": "HIGH", "significance": "Thrombocytopenia from hypersplenism (portal hypertension) and/or DIC"},
+      {"test": "WBC", "value": "15100 /uL", "reference": "4000-10000", "direction": "HIGH", "severity": "MODERATE", "significance": "Leukocytosis consistent with sepsis (E. coli bacteremia)"},
+      {"test": "Hemoglobin", "value": "9.7 g/dL", "reference": "13.7-17.5 g/dL", "direction": "LOW", "severity": "MODERATE", "significance": "Anemia from combination of hemorrhage, hypersplenism, and chronic liver disease"},
+      {"test": "Sodium", "value": "128 mEq/L", "reference": "133-145 mEq/L", "direction": "LOW", "severity": "CRITICAL", "significance": "Severe hyponatremia in cirrhosis — hypervolemic hyponatremia from impaired free water excretion"},
+      {"test": "Bicarbonate", "value": "16 mEq/L", "reference": "22-32 mEq/L", "direction": "LOW", "severity": "HIGH", "significance": "Metabolic acidosis from lactic acidosis in shock state"},
+      {"test": "Anion Gap", "value": "28 mEq/L", "reference": "8-20 mEq/L", "direction": "HIGH", "severity": "HIGH", "significance": "Markedly elevated — high anion gap metabolic acidosis consistent with severe lactic acidosis from septic/hypovolemic shock"}
+    ],
+    "interpretation": "Decompensated cirrhosis with multi-system failure: hepatic failure (bilirubin 12.3, moderate transaminase elevation), acute kidney injury suspicious for hepatorenal syndrome (Cr 2.1 + cirrhosis), severe sepsis (leukocytosis + bacteremia), high anion gap metabolic acidosis from shock, hyponatremia from hepatic ascites/hypervolemia, thrombocytopenia from portal hypertension and/or DIC.",
+    "pattern_recognition": "Decompensated cirrhosis cascade: bilirubin 12.3 + AST:ALT ratio >1 (227:205) = hepatic failure + portal hypertension → thrombocytopenia (78K) + hyponatremia (128) + ascites. Superimposed sepsis: leukocytosis + shock → lactic acidosis (AG 28, bicarb 16) + AKI (Cr 2.1, BUN 49) + possible hepatorenal syndrome.",
+    "differential_considerations": ["Hepatorenal syndrome type 1 (rapidly progressive AKI in cirrhosis)", "E. coli sepsis with septic shock causing multi-organ failure", "Spontaneous bacterial peritonitis (ascites infection)", "Disseminated intravascular coagulation (thrombocytopenia + coagulopathy)", "Hypervolemic hyponatremia from cirrhotic ascites"]
+  },
+  "evaluator_id": "lab_interpretation_judge",
+  "difficulty": "hard",
+  "source": "MIMIC-IV hadm_id=22987108",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

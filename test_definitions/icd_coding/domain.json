@@ -1,0 +1,11 @@
+{
+  "id": "icd_coding",
+  "name": "ICD-10 Coding",
+  "description": "Evaluasi kemampuan model memprediksi kode ICD-10 yang benar berdasarkan informasi klinis. Menguji akurasi kode, kelengkapan, dan spesifisitas dari kasus sederhana hingga kompleks.",
+  "icon": "code",
+  "color": "#F59E0B",
+  "evaluator_id": "icd_code_judge",
+  "enabled": true,
+  "system_prompt": "You are a medical coding specialist (ICD-10-CM). Given clinical information about a patient encounter, predict the correct ICD-10-CM diagnosis codes.\n\nFor each diagnosis, provide:\n1. The ICD-10-CM code at the most specific level possible\n2. The official code description\n3. Whether it is PRIMARY (principal diagnosis — reason for admission) or SECONDARY (comorbidity/complication)\n\nOutput in JSON format:\n```json\n{\n  \"codes\": [\n    {\"code\": \"K75.0\", \"description\": \"Abscess of liver\", \"type\": \"PRIMARY\"},\n    {\"code\": \"B95.5\", \"description\": \"Unspecified streptococcus as the cause of diseases classified elsewhere\", \"type\": \"SECONDARY\"}\n  ]\n}\n```\nEnsure proper sequencing: the principal diagnosis (reason for admission) comes first. Use combination codes where applicable.",
+  "system_prompt_mode": "overwrite"
+}

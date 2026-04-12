@@ -1,0 +1,19 @@
+{
+  "id": "ct_stroke_iskemik_2",
+  "name": "Stroke Iskemik Akut",
+  "description": "Multi-diagnosis — stroke iskemik akut dengan hipertensi grade II, terminologi neurologis dan lateralisasi",
+  "prompt": "Pasien laki-laki 67 tahun dibawa ke IGD dengan kelemahan anggota gerak kanan mendadak onset 3 jam, bicara pelo, mulut mencong ke kiri. Riwayat: HT tidak terkontrol, merokok 30 tahun. CT scan kepala: tidak tampak perdarahan. NIHSS: 12. Diagnosa: Stroke iskemik akut, Hipertensi grade II.",
+  "expected": {
+    "diagnoses": ["acute ischemic stroke", "hypertension grade II"],
+    "clinical_findings": ["right-sided hemiparesis", "acute onset 3 hours", "dysarthria", "facial palsy left deviation", "CT scan no hemorrhage", "NIHSS score 12"],
+    "abbreviations_expanded": {"IGD": "emergency department", "HT": "hypertension", "NIHSS": "National Institutes of Health Stroke Scale"},
+    "lab_results": [],
+    "risk_factors": ["uncontrolled hypertension", "smoking 30 years"]
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["I63.9", "I10"],
+  "difficulty": "medium",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

@@ -1,0 +1,26 @@
+{
+  "id": "lab_abg_4",
+  "name": "Lab Interpretation — ABG with Metabolic Context",
+  "description": "Level 4 — MIMIC hadm 26048429 — ABG interpretation in post-surgical esophageal cancer, respiratory acidosis with hypoxemia",
+  "prompt": "Interpret the following arterial blood gas and related laboratory results for a 64-year-old male post-esophagectomy for esophageal adenocarcinoma:\n\nArterial Blood Gas (ABG):\n- pH: 7.27 (reference: 7.35–7.45)\n- pCO2: 49 mmHg (reference: 35–45 mmHg)\n- pO2: 76 mmHg (reference: 85–105 mmHg)\n- HCO3 (calculated): 22 mEq/L (reference: 22–26 mEq/L)\n- SaO2: 93% (reference: 95–100%)\n\nSupplementary Chemistry:\n- Bicarbonate (venous): 31 mEq/L (reference: 21–30 mEq/L)\n- Glucose: 130 mg/dL (reference: 70–105 mg/dL)\n- Phosphate: 1.6 mg/dL (reference: 2.7–4.5 mg/dL)\n- Calcium: 8.2 mg/dL (reference: 8.4–10.3 mg/dL)\n- Magnesium: 1.5 mg/dL (reference: 1.6–2.6 mg/dL)\n- WBC: 11,800 /uL (reference: 4,000–11,000 /uL)\n\nClinical context: Day 2 post-esophagectomy. On epidural analgesia (bupivacaine). Patient appears in mild respiratory distress, SpO2 93% on 2L nasal cannula.\n\nProvide stepwise ABG interpretation and clinical correlation.",
+  "expected": {
+    "abnormal_values": [
+      {"test": "pH", "value": "7.27", "reference": "7.35-7.45", "direction": "LOW", "severity": "HIGH", "significance": "Acidemia — below normal, requires acid-base classification"},
+      {"test": "pCO2", "value": "49 mmHg", "reference": "35-45 mmHg", "direction": "HIGH", "severity": "MODERATE", "significance": "Hypercapnia — elevated CO2 indicates ventilatory failure or hypoventilation"},
+      {"test": "pO2", "value": "76 mmHg", "reference": "85-105 mmHg", "direction": "LOW", "severity": "MODERATE", "significance": "Hypoxemia — reduced oxygen partial pressure indicating impaired gas exchange"},
+      {"test": "HCO3", "value": "22 mEq/L", "reference": "22-26 mEq/L", "direction": "NORMAL", "severity": "NORMAL", "significance": "Normal bicarbonate — no metabolic compensation present, confirming acute primary respiratory disorder"},
+      {"test": "Phosphate", "value": "1.6 mg/dL", "reference": "2.7-4.5 mg/dL", "direction": "LOW", "severity": "HIGH", "significance": "Hypophosphatemia — worsens respiratory muscle weakness; common post-major surgery (refeeding)"},
+      {"test": "Magnesium", "value": "1.5 mg/dL", "reference": "1.6-2.6 mg/dL", "direction": "LOW", "severity": "MILD", "significance": "Hypomagnesemia — contributes to respiratory muscle weakness and bronchospasm"},
+      {"test": "Calcium", "value": "8.2 mg/dL", "reference": "8.4-10.3 mg/dL", "direction": "LOW", "severity": "MILD", "significance": "Mild hypocalcemia — can contribute to tetany and diaphragm dysfunction"}
+    ],
+    "interpretation": "Acute uncompensated respiratory acidosis (pH 7.27, pCO2 49, HCO3 normal) with hypoxemia (pO2 76, SaO2 93%). Primary cause: post-esophagectomy hypoventilation from pain, epidural analgesia side effects, or early pneumonia/atelectasis. Compounding factors: hypophosphatemia (1.6 mg/dL) and hypomagnesemia causing respiratory muscle weakness.",
+    "pattern_recognition": "Stepwise ABG analysis: (1) Acidemia (pH 7.27). (2) pCO2 high (49) → primary respiratory acidosis. (3) HCO3 normal (22) → no metabolic compensation → ACUTE (not compensated chronic). (4) Expected pH compensation absent → pure respiratory acidosis. (5) pO2 76 → hypoxemia. Hypophosphatemia (1.6) is a critical compounding factor for respiratory failure — impairs diaphragmatic contractility.",
+    "differential_considerations": ["Post-operative hypoventilation from epidural analgesia or pain inhibition", "Early pulmonary complication: atelectasis or pneumonia (WBC 11800 borderline elevated)", "Phrenic nerve injury from esophagectomy", "Hypophosphatemia-induced respiratory muscle weakness"]
+  },
+  "evaluator_id": "lab_interpretation_judge",
+  "difficulty": "very_hard",
+  "source": "MIMIC-IV hadm_id=26048429",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

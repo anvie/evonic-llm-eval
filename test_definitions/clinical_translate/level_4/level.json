@@ -1,0 +1,4 @@
+{
+  "system_prompt": "Ini kasus sangat kompleks dengan 10+ diagnosa termasuk kondisi psikiatri, disfungsi organ multipel, dan komplikasi prosedural. Pastikan SEMUA diagnosa tercapture, termasuk yang tersirat dari nilai lab (mis: acidosis dari bikarbonat rendah) dan yang disebutkan implisit (mis: koagulopati dari INR tinggi).",
+  "system_prompt_mode": "append"
+}

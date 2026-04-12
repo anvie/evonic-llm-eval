@@ -1,0 +1,4 @@
+{
+  "system_prompt": "Perhatikan: ini kasus kompleks dengan multiple komorbid. Perhatikan:\n- Etiologi/penyebab dasar (mis: \"GGK ec nefropati diabetik\" -> CKD + diabetic nephropathy)\n- Komplikasi metabolik (hiperkalemia, hipoalbuminemia, dll)\n- Semua abbreviasi harus di-expand",
+  "system_prompt_mode": "append"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "icd_liver_abscess_1",
+  "name": "ICD Coding — Liver Abscess + Streptococcal Infection",
+  "description": "Level 1 — MIMIC hadm 26321862 — 2 diagnoses with etiology pairing",
+  "prompt": "Patient: Male, 43 years old. ER admission. Chief complaint: right upper quadrant pain and high fever for 5 days. Physical exam: hepatomegaly, right hypochondrial tenderness. Ultrasound: hypoechoic lesion right hepatic lobe consistent with abscess. Labs: hemoglobin 8.4 g/dL, albumin 2.8 g/dL, INR 1.6, sodium 130 mEq/L. Blood culture: Streptococcus species. Treatment: Ceftriaxone, Ampicillin-Sulbactam, Metronidazole. Discharged home after 8 days. Diagnoses: Liver abscess, Streptococcal infection. Assign the appropriate ICD-10-CM code(s).",
+  "expected": {
+    "codes": [
+      {"code": "K75.0", "description": "Abscess of liver", "type": "PRIMARY"},
+      {"code": "B95.5", "description": "Unspecified streptococcus as the cause of diseases classified elsewhere", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "easy",
+  "source": "MIMIC-IV hadm_id=26321862",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

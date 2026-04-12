@@ -1,0 +1,20 @@
+{
+  "id": "icd_mitral_valve_3",
+  "name": "ICD Coding — Mitral Valve Disorder + Iatrogenic Pneumothorax",
+  "description": "Level 3 — MIMIC hadm 28324362 — 4 diagnoses with procedural complication coding",
+  "prompt": "Patient: Male, 28 years old. Elective admission for cardiac procedure. History of mitral valve disorder. Post-procedure complication: iatrogenic pneumothorax. Labs: WBC 19,200 (elevated), INR 1.2, glucose 199 mg/dL, pO2 286 mmHg (on supplemental O2), fibrinogen 107 mg/dL (low), potassium 5.5, bicarbonate 34. Diagnoses: Mitral valve disorders, Iatrogenic pneumothorax, Flatulence/gas pain, Other postprocedural status. Assign the appropriate ICD-10-CM code(s).",
+  "expected": {
+    "codes": [
+      {"code": "I34.9", "description": "Nonrheumatic mitral valve disorder, unspecified", "type": "PRIMARY"},
+      {"code": "J95.811", "description": "Postprocedural pneumothorax", "type": "SECONDARY"},
+      {"code": "R14.3", "description": "Flatulence", "type": "SECONDARY"},
+      {"code": "Z98.89", "description": "Other specified postprocedural states", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "hard",
+  "source": "MIMIC-IV hadm_id=28324362",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

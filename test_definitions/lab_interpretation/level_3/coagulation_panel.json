@@ -1,0 +1,26 @@
+{
+  "id": "lab_coag_3",
+  "name": "Lab Interpretation — Coagulation Panel DIC Pattern",
+  "description": "Level 3 — handcrafted — DIC pattern recognition requiring multi-parameter correlation",
+  "prompt": "Interpret the following laboratory results for a 45-year-old female admitted to ICU with septic shock following complicated obstetric delivery:\n\nCoagulation:\n- PT: 28 sec (reference: 9.4–12.5 sec)\n- INR: 2.5 (reference: 0.9–1.1)\n- PTT: 78 sec (reference: 25–36.5 sec)\n- Fibrinogen: 80 mg/dL (reference: 180–400 mg/dL)\n- D-dimer: 18.5 mg/L FEU (reference: <0.5 mg/L FEU)\n- Thrombin Time: prolonged\n\nHematology:\n- Platelet count: 45,000 /uL (reference: 150,000–400,000)\n- Hemoglobin: 7.8 g/dL (reference: 12.0–16.0)\n- Blood smear: schistocytes 4+ per high-power field\n\nChemistry:\n- LDH: 1,850 IU/L (reference: 140–280 IU/L)\n- Indirect Bilirubin: 3.2 mg/dL (reference: 0–0.8 mg/dL)\n\nProvide clinical interpretation of these results.",
+  "expected": {
+    "abnormal_values": [
+      {"test": "INR", "value": "2.5", "reference": "0.9-1.1", "direction": "HIGH", "severity": "CRITICAL", "significance": "Severe coagulopathy — clotting factor consumption from DIC"},
+      {"test": "PTT", "value": "78 sec", "reference": "25-36.5 sec", "direction": "HIGH", "severity": "CRITICAL", "significance": "Severely prolonged — intrinsic pathway factor consumption"},
+      {"test": "Fibrinogen", "value": "80 mg/dL", "reference": "180-400 mg/dL", "direction": "LOW", "severity": "CRITICAL", "significance": "Critically low from fibrinogen consumption in disseminated clotting"},
+      {"test": "D-dimer", "value": "18.5 mg/L", "reference": "<0.5 mg/L", "direction": "HIGH", "severity": "CRITICAL", "significance": "Massively elevated from fibrin degradation — pathognomonic of active DIC"},
+      {"test": "Platelets", "value": "45000 /uL", "reference": "150000-400000", "direction": "LOW", "severity": "CRITICAL", "significance": "Severe thrombocytopenia from platelet consumption in microthrombi"},
+      {"test": "Schistocytes", "value": "4+ per HPF", "reference": "absent", "direction": "HIGH", "severity": "CRITICAL", "significance": "Fragmented red cells = microangiopathic hemolytic anemia (MAHA) — hallmark of DIC/TMA"},
+      {"test": "LDH", "value": "1850 IU/L", "reference": "140-280 IU/L", "direction": "HIGH", "severity": "HIGH", "significance": "Markedly elevated from intravascular hemolysis and tissue hypoxia"},
+      {"test": "Indirect Bilirubin", "value": "3.2 mg/dL", "reference": "0-0.8 mg/dL", "direction": "HIGH", "severity": "MODERATE", "significance": "Hemolytic jaundice from RBC destruction"}
+    ],
+    "interpretation": "Classic overt DIC (Disseminated Intravascular Coagulation): consumptive coagulopathy with prolonged PT/PTT/INR, critically low fibrinogen (80 mg/dL), massively elevated D-dimer (18.5), severe thrombocytopenia (45K), and MAHA (schistocytes + elevated LDH + indirect bilirubin). Life-threatening — requires urgent FFP, cryoprecipitate, platelet transfusion, and treatment of underlying trigger.",
+    "pattern_recognition": "DIC triad: (1) Coagulopathy — PT/PTT/INR all prolonged + fibrinogen critically low; (2) Thrombocytopenia — platelets 45K from consumption; (3) MAHA — schistocytes 4+ + LDH 1850 + indirect bilirubin 3.2. D-dimer 37x ULN confirms active fibrinolysis. This is ISTH overt DIC score ≥5.",
+    "differential_considerations": ["Overt DIC from septic shock (primary diagnosis)", "Thrombotic microangiopathy (TMA) / HUS (schistocytes + thrombocytopenia + renal involvement)", "Liver failure-associated coagulopathy (fibrinogen low, but D-dimer massively elevated favors DIC over isolated hepatic failure)"]
+  },
+  "evaluator_id": "lab_interpretation_judge",
+  "difficulty": "hard",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

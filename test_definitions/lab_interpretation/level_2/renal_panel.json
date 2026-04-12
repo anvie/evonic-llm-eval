@@ -1,0 +1,26 @@
+{
+  "id": "lab_renal_2",
+  "name": "Lab Interpretation — Renal Function Panel",
+  "description": "Level 2 — handcrafted — CKD pattern with electrolyte disturbances",
+  "prompt": "Interpret the following laboratory results for a 55-year-old male with known hypertension and type 2 diabetes:\n\nRenal Function:\n- BUN (Blood Urea Nitrogen): 52 mg/dL (reference: 6–20 mg/dL)\n- Creatinine: 3.8 mg/dL (reference: 0.5–1.2 mg/dL)\n- eGFR: 18 mL/min/1.73m² (reference: >60)\n- Urine protein: 3+ (3.5 g/24h) (reference: negative)\n\nElectrolytes:\n- Potassium: 5.6 mEq/L (reference: 3.5–5.0)\n- Sodium: 138 mEq/L (reference: 133–145) — normal\n- Bicarbonate: 18 mEq/L (reference: 22–32)\n- Phosphate: 5.8 mg/dL (reference: 2.7–4.5)\n- Calcium: 8.0 mg/dL (reference: 8.4–10.3)\n\nHematology:\n- Hemoglobin: 9.2 g/dL (reference: 13.5–17.5)\n\nProvide clinical interpretation of these results.",
+  "expected": {
+    "abnormal_values": [
+      {"test": "Creatinine", "value": "3.8 mg/dL", "reference": "0.5-1.2 mg/dL", "direction": "HIGH", "severity": "CRITICAL", "significance": "Markedly elevated indicating severe renal impairment (CKD stage 4)"},
+      {"test": "eGFR", "value": "18 mL/min/1.73m²", "reference": ">60", "direction": "LOW", "severity": "CRITICAL", "significance": "CKD stage 4 (severely decreased), approaching need for renal replacement therapy"},
+      {"test": "BUN", "value": "52 mg/dL", "reference": "6-20 mg/dL", "direction": "HIGH", "severity": "HIGH", "significance": "Azotemia consistent with severe renal failure"},
+      {"test": "Potassium", "value": "5.6 mEq/L", "reference": "3.5-5.0", "direction": "HIGH", "severity": "HIGH", "significance": "Hyperkalemia from impaired renal potassium excretion — arrhythmia risk"},
+      {"test": "Bicarbonate", "value": "18 mEq/L", "reference": "22-32", "direction": "LOW", "severity": "MODERATE", "significance": "Renal tubular acidosis from impaired acid excretion in CKD"},
+      {"test": "Phosphate", "value": "5.8 mg/dL", "reference": "2.7-4.5", "direction": "HIGH", "severity": "MODERATE", "significance": "Hyperphosphatemia from impaired renal phosphate excretion — promotes vascular calcification"},
+      {"test": "Calcium", "value": "8.0 mg/dL", "reference": "8.4-10.3", "direction": "LOW", "severity": "MILD", "significance": "Hypocalcemia from reduced renal 1-alpha-hydroxylation of vitamin D and hyperphosphatemia"},
+      {"test": "Hemoglobin", "value": "9.2 g/dL", "reference": "13.5-17.5", "direction": "LOW", "severity": "MODERATE", "significance": "Anemia of chronic kidney disease from reduced erythropoietin production"}
+    ],
+    "interpretation": "Advanced chronic kidney disease stage 4 (eGFR 18) with full metabolic constellation: azotemia, hyperkalemia (arrhythmia risk), metabolic acidosis, hyperphosphatemia, hypocalcemia (renal osteodystrophy risk), and renal anemia. Pattern consistent with diabetic or hypertensive nephropathy with heavy proteinuria.",
+    "pattern_recognition": "Classic CKD stage 4 panel: elevated BUN + creatinine + low eGFR + hyperkalemia + metabolic acidosis (low bicarb) + mineral bone disease (high phosphate + low calcium) + renal anemia (Hgb 9.2). Massive proteinuria (3.5g/24h) suggests nephrotic range proteinuria from diabetic nephropathy.",
+    "differential_considerations": ["Diabetic nephropathy (most likely given DM history + proteinuria)", "Hypertensive nephrosclerosis", "Hyperkalemia requiring urgent management to prevent cardiac arrhythmia"]
+  },
+  "evaluator_id": "lab_interpretation_judge",
+  "difficulty": "medium",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

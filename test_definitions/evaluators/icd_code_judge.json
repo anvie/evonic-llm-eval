@@ -1,0 +1,10 @@
+{
+  "id": "icd_code_judge",
+  "name": "ICD Code Judge",
+  "type": "hybrid",
+  "description": "Evaluates ICD-10 coding accuracy, completeness, and specificity",
+  "eval_prompt": "You are an ICD-10 coding quality assessor. Evaluate the predicted ICD-10 codes against the expected codes.\n\n---EXPECTED---\n{expected}\n---END EXPECTED---\n\n---RESPONSE---\n{response}\n---END RESPONSE---\n\nEvaluate on 3 dimensions (score 1-5 each):\n\n## 1. CODE ACCURACY (weight 50%)\nAre the predicted ICD-10 codes correct?\n- 5: All codes exactly match expected (correct category, etiology, manifestation)\n- 4: All codes correct at 3-character level, minor specificity differences\n- 3: Most codes correct, 1 code wrong or missing\n- 2: Multiple incorrect codes\n- 1: Majority of codes wrong\n\n## 2. COMPLETENESS (weight 30%)\nAre all expected codes present?\n- 5: All expected codes captured, correct primary/secondary sequencing\n- 4: All codes present, minor sequencing issue\n- 3: 1 code missing\n- 2: 2+ codes missing\n- 1: Majority of codes missing\n\n## 3. SPECIFICITY (weight 20%)\nAre codes at the most specific level possible?\n- 5: All codes at highest specificity (e.g., K26.4 not K26)\n- 4: 1 code could be more specific\n- 3: 2+ codes lack specificity\n- 2: Most codes at generic 3-character level\n- 1: Very generic codes throughout\n\nProvide output EXACTLY in this format:\nACCURACY: [1-5]\nCOMPLETENESS: [1-5]\nSPECIFICITY: [1-5]\nWEIGHTED_SCORE: [calculate: (accuracy*0.5 + completeness*0.3 + specificity*0.2) / 5 * 100]\nREASONING: [brief explanation max 3 sentences]",
+  "extraction_regex": "WEIGHTED_SCORE:\\s*(\\d+(?:\\.\\d+)?)",
+  "uses_pass2": false,
+  "config": {}
+}

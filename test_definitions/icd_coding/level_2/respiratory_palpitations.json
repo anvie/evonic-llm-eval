@@ -1,0 +1,19 @@
+{
+  "id": "icd_resp_palp_2",
+  "name": "ICD Coding — Respiratory Abnormality + Palpitations + Hypertension",
+  "description": "Level 2 — MIMIC hadm 25561728 — 3 diagnoses across different systems",
+  "prompt": "Patient: Male, 67 years old. Observation admission. Chief complaints: shortness of breath and palpitations. History of hypertension. No significant lab abnormalities found. EKG: sinus tachycardia, no arrhythmia. Chest X-ray: mild cardiomegaly. Diagnoses: Other respiratory abnormalities, Palpitations, Unspecified essential hypertension. Assign the appropriate ICD-10-CM code(s).",
+  "expected": {
+    "codes": [
+      {"code": "R09.89", "description": "Other specified symptoms and signs involving the circulatory and respiratory systems", "type": "PRIMARY"},
+      {"code": "R00.2", "description": "Palpitations", "type": "SECONDARY"},
+      {"code": "I10", "description": "Essential (primary) hypertension", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "medium",
+  "source": "MIMIC-IV hadm_id=25561728",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

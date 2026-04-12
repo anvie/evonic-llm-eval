@@ -1,0 +1,20 @@
+{
+  "id": "ct_gi_bleed_2",
+  "name": "Perdarahan GI — MIMIC",
+  "description": "MIMIC hadm 22585261 — ulkus duodenum dengan perdarahan, anemia posthemoragik, ankylosing spondylitis, duodenitis",
+  "prompt": "Laki-laki 44 tahun dirujuk URGENT dari RS lain dengan hematemesis dan melena sejak 2 hari. Riwayat nyeri epigastrium kronis. Mengonsumsi OAINS rutin untuk nyeri sendi akibat AS (ankylosing spondylitis). Pemeriksaan fisik: TD 100/70 mmHg, nadi 110x/mnt, konjungtiva anemis (+). Lab: Hb 8.3 g/dL, RBC 2.52 juta/uL, INR 1.3, albumin 3.3 g/dL, BUN 21 mg/dL. Endoskopi: ulkus duodenum kronik dengan perdarahan aktif, duodenitis. Terapi: Pantoprazole IV, Epoetin Alfa, Ferric Gluconate, Cyanocobalamin, Folic Acid, Phytonadione. Diagnosa: Ulkus duodenum kronik dengan perdarahan, anemia posthemoragik akut, spondilitis ankilosa, duodenitis.",
+  "expected": {
+    "diagnoses": ["chronic duodenal ulcer with hemorrhage", "acute posthemorrhagic anemia", "ankylosing spondylitis", "duodenitis"],
+    "clinical_findings": ["hematemesis", "melena", "chronic epigastric pain", "hypotension 100/70 mmHg", "tachycardia 110 bpm", "conjunctival pallor", "active bleeding duodenal ulcer on endoscopy"],
+    "abbreviations_expanded": {"OAINS": "NSAIDs (non-steroidal anti-inflammatory drugs)", "AS": "ankylosing spondylitis", "TD": "blood pressure", "Hb": "hemoglobin", "RBC": "red blood cells", "INR": "international normalized ratio", "BUN": "blood urea nitrogen"},
+    "lab_results": ["hemoglobin 8.3 g/dL", "RBC 2.52 million/uL", "INR 1.3", "albumin 3.3 g/dL", "BUN 21 mg/dL"],
+    "risk_factors": ["chronic NSAID use", "ankylosing spondylitis"]
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["K26.4", "D62", "M45.9", "K29.80"],
+  "difficulty": "medium",
+  "source": "MIMIC-IV hadm_id=22585261",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

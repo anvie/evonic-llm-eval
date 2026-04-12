@@ -1,0 +1,16 @@
+{
+  "id": "icd_pneumonia_1",
+  "name": "ICD Coding — Community-Acquired Pneumonia",
+  "description": "Level 1 — single obvious diagnosis, one ICD-10 code",
+  "prompt": "Patient: Male, 58 years old. Admitted with 5-day history of productive cough with yellow sputum, dyspnea, and high fever (39.2°C). Physical exam: coarse crackles right lower lobe. Chest X-ray: infiltrate right lower lobe. No prior lung disease. Diagnosis: Community-acquired pneumonia. Assign the appropriate ICD-10-CM code(s).",
+  "expected": {
+    "codes": [
+      {"code": "J18.9", "description": "Pneumonia, unspecified organism", "type": "PRIMARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "easy",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

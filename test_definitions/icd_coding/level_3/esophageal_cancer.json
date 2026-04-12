@@ -1,0 +1,20 @@
+{
+  "id": "icd_esofagus_3",
+  "name": "ICD Coding — Esophageal Cancer + Barrett's + GERD + Acidosis",
+  "description": "Level 3 — MIMIC hadm 26048429 — 4 diagnoses including oncology sequencing and acid-base",
+  "prompt": "Patient: Male, 64 years old. Surgical same-day admission. History of long-standing GERD and Barrett's esophagus. Progressive dysphagia, 8 kg weight loss over 3 months. EGD: Barrett's esophagus + mass at distal (lower third) esophagus; biopsy: adenocarcinoma. Labs: Hgb 12.1 g/dL, WBC 11,800, phosphate 1.6 mg/dL, calcium 8.2 mg/dL, magnesium 1.5. ABG: pH 7.27, pCO2 49 mmHg, pO2 76 mmHg — respiratory acidosis with hypoxemia. INR 1.3. Diagnoses: Malignant neoplasm lower third esophagus, Barrett's esophagus, Gastroesophageal reflux disease, Acidosis. Assign the appropriate ICD-10-CM code(s).",
+  "expected": {
+    "codes": [
+      {"code": "C15.5", "description": "Malignant neoplasm of lower third of esophagus", "type": "PRIMARY"},
+      {"code": "K22.70", "description": "Barrett's esophagus without dysplasia", "type": "SECONDARY"},
+      {"code": "K21.0", "description": "Gastro-esophageal reflux disease with esophagitis", "type": "SECONDARY"},
+      {"code": "E87.2", "description": "Acidosis", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "hard",
+  "source": "MIMIC-IV hadm_id=26048429",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

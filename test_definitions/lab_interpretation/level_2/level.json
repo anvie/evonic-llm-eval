@@ -1,0 +1,4 @@
+{
+  "system_prompt": "\nThis case presents a related lab panel. Focus on pattern recognition across related values. Identify the underlying condition suggested by the panel as a whole, not just individual values.",
+  "system_prompt_mode": "append"
+}

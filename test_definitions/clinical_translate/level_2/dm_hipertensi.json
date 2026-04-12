@@ -1,0 +1,19 @@
+{
+  "id": "ct_dm_hipertensi_2",
+  "name": "DM Tipe 2 + Hipertensi",
+  "description": "Multi-diagnosis — DM tidak terkontrol dan hipertensi esensial dengan komplikasi neuropati dan retinopati",
+  "prompt": "Pasien perempuan 62 tahun, kontrol rutin. Riwayat DM tipe 2 sejak 10 tahun, HT stage 2. Keluhan: kesemutan pada kedua kaki, pandangan mulai kabur. GDS: 285 mg/dL. TD: 170/100 mmHg. HbA1c: 9.2%. Terapi: Metformin 2x500mg, Glimepiride 1x2mg, Amlodipin 1x10mg. Diagnosa: DM tipe 2 tidak terkontrol, Hipertensi esensial.",
+  "expected": {
+    "diagnoses": ["type 2 diabetes mellitus uncontrolled", "essential hypertension"],
+    "clinical_findings": ["peripheral neuropathy", "tingling both feet", "blurred vision", "suspected diabetic retinopathy"],
+    "abbreviations_expanded": {"DM": "diabetes mellitus", "HT": "hypertension", "GDS": "random blood glucose", "TD": "blood pressure", "HbA1c": "glycated hemoglobin"},
+    "lab_results": ["random blood glucose 285 mg/dL", "blood pressure 170/100 mmHg", "HbA1c 9.2%"],
+    "risk_factors": ["10-year diabetes history"]
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["E11.9", "I10"],
+  "difficulty": "medium",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

@@ -1,0 +1,28 @@
+{
+  "id": "icd_bariatric_4",
+  "name": "ICD Coding — Bariatric Complications + CLL + Multiple Comorbidities",
+  "description": "Level 4 — MIMIC hadm 29757856 — 10+ diagnoses with bariatric surgery complications, oncology, metabolic",
+  "prompt": "Patient: Male, 60 years old. Emergency admission. History of prior Roux-en-Y gastric bypass (bariatric surgery). Presenting with gastrojejunal ulcer, complications of bariatric procedure, and gastric fistula. Also: acute kidney failure (unspecified), chronic diastolic heart failure, delirium due to known physiological condition. Oncologic: chronic lymphocytic leukemia of B-cell type, not in remission. Metabolic/comorbidities: morbid obesity (BMI 40-44.9), type 2 diabetes mellitus with chronic kidney disease + polyneuropathy + hyperglycemia, hypothyroidism, hypertensive CKD (stage 3), pure hyperglyceridemia, paroxysmal atrial fibrillation, prior stroke with sequelae (left lower limb monoplegia), old MI, gout, bilateral hip osteoarthritis, shoulder osteoarthritis, obstructive sleep apnea, major depressive disorder (in remission), anxiety disorder. Status: long-term anticoagulant use, insulin use, cardiac pacemaker. Assign the appropriate ICD-10-CM code(s) with proper sequencing.",
+  "expected": {
+    "codes": [
+      {"code": "K28.9", "description": "Gastrojejunal ulcer, unspecified as acute or chronic, without hemorrhage or perforation", "type": "PRIMARY"},
+      {"code": "K95.89", "description": "Other complications of other bariatric procedure", "type": "SECONDARY"},
+      {"code": "K31.6", "description": "Fistula of stomach and duodenum", "type": "SECONDARY"},
+      {"code": "N17.9", "description": "Acute kidney failure, unspecified", "type": "SECONDARY"},
+      {"code": "I50.32", "description": "Chronic diastolic (congestive) heart failure", "type": "SECONDARY"},
+      {"code": "F05", "description": "Delirium due to known physiological condition", "type": "SECONDARY"},
+      {"code": "C91.10", "description": "Chronic lymphocytic leukemia of B-cell type not having achieved remission", "type": "SECONDARY"},
+      {"code": "E66.01", "description": "Morbid (severe) obesity due to excess calories", "type": "SECONDARY"},
+      {"code": "E11.22", "description": "Type 2 diabetes mellitus with diabetic chronic kidney disease", "type": "SECONDARY"},
+      {"code": "I48.0", "description": "Paroxysmal atrial fibrillation", "type": "SECONDARY"},
+      {"code": "I12.9", "description": "Hypertensive chronic kidney disease with stage 1-4 CKD or unspecified CKD", "type": "SECONDARY"},
+      {"code": "N18.3", "description": "Chronic kidney disease, stage 3 (moderate)", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "very_hard",
+  "source": "MIMIC-IV hadm_id=29757856",
+  "timeout_ms": 120000,
+  "weight": 1.0,
+  "enabled": true
+}

@@ -1,0 +1,4 @@
+{
+  "system_prompt": "\nMulti-system lab panel. Correlate findings across organ systems. Identify which organ systems are affected, how they relate to each other, and the likely primary pathological process driving the cascade.",
+  "system_prompt_mode": "append"
+}

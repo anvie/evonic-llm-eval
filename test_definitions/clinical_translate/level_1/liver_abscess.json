@@ -1,0 +1,20 @@
+{
+  "id": "ct_liver_abscess_1",
+  "name": "Abses Hepar — MIMIC",
+  "description": "MIMIC hadm 26321862 — abses hepar dengan infeksi Streptococcus, anemia, hipoalbuminemia",
+  "prompt": "Laki-laki 43 tahun datang ke IGD dengan keluhan nyeri perut kanan atas dan demam tinggi sejak 5 hari. Riwayat mual dan penurunan nafsu makan. Pemeriksaan fisik: hepar teraba membesar, nyeri tekan hipokondria kanan (+). Lab: Hb 8.4 g/dL, Ht 27.5%, INR 1.6, albumin 2.8 g/dL, Na 130 mEq/L. USG abdomen: tampak lesi hipoechoik pada lobus kanan hepar, kesan abses hepar. Kultur darah: Streptococcus sp. Terapi: antibiotik kombinasi (Ceftriaxone, Ampicillin-Sulbactam, Metronidazole). Diagnosa: Abses hepar, infeksi Streptococcus.",
+  "expected": {
+    "diagnoses": ["abscess of liver", "streptococcal infection"],
+    "clinical_findings": ["right upper quadrant pain", "fever", "nausea", "loss of appetite", "hepatomegaly", "right hypochondrial tenderness", "hypoechoic lesion right hepatic lobe on ultrasound", "positive blood culture for Streptococcus"],
+    "abbreviations_expanded": {"IGD": "emergency department", "Hb": "hemoglobin", "Ht": "hematocrit", "INR": "international normalized ratio", "Na": "sodium", "USG": "ultrasound"},
+    "lab_results": ["hemoglobin 8.4 g/dL", "hematocrit 27.5%", "INR 1.6", "albumin 2.8 g/dL", "sodium 130 mEq/L"],
+    "risk_factors": []
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["K75.0", "B95.5"],
+  "difficulty": "easy",
+  "source": "MIMIC-IV hadm_id=26321862",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

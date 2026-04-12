@@ -1,0 +1,21 @@
+{
+  "id": "lab_glucose_1",
+  "name": "Lab Interpretation — Basic Glucose + HbA1c",
+  "description": "Level 1 — handcrafted — single metabolic abnormality, uncontrolled DM type 2",
+  "prompt": "Interpret the following laboratory results for a 62-year-old female with known type 2 diabetes at her routine clinic visit:\n\n- Fasting Blood Glucose: 285 mg/dL (reference: 70–100 mg/dL)\n- HbA1c: 9.2% (reference: <5.7% normal, 5.7–6.4% prediabetes, ≥6.5% diabetes; target for controlled DM: <7.0%)\n- Creatinine: 0.9 mg/dL (reference: 0.5–1.1)\n- eGFR: 72 mL/min/1.73m² (reference: >60 normal)\n- Urine microalbumin: 45 mg/g creatinine (reference: <30 normal)\n\nProvide clinical interpretation of these results.",
+  "expected": {
+    "abnormal_values": [
+      {"test": "Fasting Blood Glucose", "value": "285 mg/dL", "reference": "70-100 mg/dL", "direction": "HIGH", "severity": "CRITICAL", "significance": "Severely elevated glucose indicating markedly uncontrolled hyperglycemia"},
+      {"test": "HbA1c", "value": "9.2%", "reference": "<7.0% for controlled DM", "direction": "HIGH", "severity": "HIGH", "significance": "3-month average glucose severely above target, indicating poorly controlled diabetes for at least 3 months"},
+      {"test": "Urine microalbumin", "value": "45 mg/g", "reference": "<30 mg/g", "direction": "HIGH", "severity": "MILD", "significance": "Microalbuminuria indicating early diabetic nephropathy / renal involvement"}
+    ],
+    "interpretation": "Poorly controlled type 2 diabetes mellitus with HbA1c 9.2% and fasting glucose 285 mg/dL. Early diabetic nephropathy evidenced by microalbuminuria. Renal function currently preserved (eGFR 72, creatinine normal).",
+    "pattern_recognition": "Uncontrolled DM pattern: high fasting glucose (285) + high HbA1c (9.2%) + microalbuminuria as early end-organ damage. eGFR still in normal range but microalbuminuria signals impending nephropathy.",
+    "differential_considerations": ["Uncontrolled type 2 diabetes mellitus (primary)", "Early diabetic nephropathy (microalbuminuria stage)", "Medication non-adherence or insufficient therapy"]
+  },
+  "evaluator_id": "lab_interpretation_judge",
+  "difficulty": "easy",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

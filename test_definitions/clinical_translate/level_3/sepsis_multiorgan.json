@@ -1,0 +1,19 @@
+{
+  "id": "ct_sepsis_3",
+  "name": "Sepsis Disfungsi Multiorgan",
+  "description": "Kasus sangat kompleks — sepsis ec ISK dengan syok septik, AKI, DIC, disfungsi hepar, trombositopenia; 14+ abbreviasi",
+  "prompt": "Perempuan 70 tahun datang dengan penurunan kesadaran, GCS E2V3M4. Demam tinggi 40.1°C sejak 3 hari pasca operasi TURP. Riwayat: ISK berulang, DM tipe 2, HT. TD: 80/50 mmHg, nadi 130x/mnt, RR 28x/mnt. Lab: Leukosit 22.000, prokalsitonin 15.2, laktat 5.1, trombosit 65.000, SGOT 250, SGPT 180, Ur 120, Cr 4.5. Kultur urin: E. coli ESBL (+). Diagnosa: Sepsis ec ISK, syok septik, AKI stage 3, DIC, gangguan fungsi hepar, trombositopenia.",
+  "expected": {
+    "diagnoses": ["sepsis due to urinary tract infection", "septic shock", "acute kidney injury stage 3", "disseminated intravascular coagulation", "hepatic dysfunction", "thrombocytopenia"],
+    "clinical_findings": ["decreased consciousness GCS 9 (E2V3M4)", "high fever 40.1°C", "post-operative TURP", "hypotension 80/50 mmHg", "tachycardia 130 bpm", "tachypnea 28 breaths/min"],
+    "abbreviations_expanded": {"GCS": "Glasgow Coma Scale", "ISK": "urinary tract infection", "DM": "diabetes mellitus", "HT": "hypertension", "TD": "blood pressure", "RR": "respiratory rate", "SGOT": "AST / aspartate aminotransferase", "SGPT": "ALT / alanine aminotransferase", "Ur": "urea", "Cr": "creatinine", "TURP": "transurethral resection of prostate", "DIC": "disseminated intravascular coagulation", "AKI": "acute kidney injury", "ESBL": "extended-spectrum beta-lactamase"},
+    "lab_results": ["WBC 22000", "procalcitonin 15.2", "lactate 5.1", "platelets 65000", "AST 250", "ALT 180", "urea 120", "creatinine 4.5", "urine culture E. coli ESBL positive"],
+    "risk_factors": ["recurrent UTI", "type 2 diabetes mellitus", "hypertension", "post-surgical (TURP)"]
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["A41.9", "R65.21"],
+  "difficulty": "hard",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

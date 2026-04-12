@@ -1,0 +1,4 @@
+{
+  "system_prompt": "Perhatikan: resume ini mengandung MULTIPLE diagnosa. Pastikan semua diagnosa tercapture sebagai item terpisah di field \"diagnoses\".",
+  "system_prompt_mode": "append"
+}

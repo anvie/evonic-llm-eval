@@ -1,0 +1,19 @@
+{
+  "id": "ct_ckd_hd_3",
+  "name": "CKD Stage 5 on HD",
+  "description": "Kasus kompleks — GGK stadium 5 on HD dengan anemia renal, hiperkalemia, hipoalbuminemia; heavy abbreviation load",
+  "prompt": "Laki-laki 50 tahun, pasien HD rutin 2x/minggu sejak 2 tahun. Datang dengan keluhan bengkak pada kedua tungkai, mual, dan lemas. Riwayat: GGK ec nefropati diabetik. Lab: Ur 180, Cr 12.5, Hb 8.2, albumin 2.8. Elektrolit: K 5.8 mEq/L. Diagnosa: CKD stage 5 on HD, anemia renal, hiperkalemia, hipoalbuminemia.",
+  "expected": {
+    "diagnoses": ["chronic kidney disease stage 5", "renal anemia", "hyperkalemia", "hypoalbuminemia"],
+    "clinical_findings": ["bilateral lower extremity edema", "nausea", "fatigue / malaise", "on regular hemodialysis 2x/week for 2 years"],
+    "abbreviations_expanded": {"HD": "hemodialysis", "GGK": "chronic kidney disease", "CKD": "chronic kidney disease", "Ur": "blood urea nitrogen / urea", "Cr": "creatinine", "Hb": "hemoglobin", "K": "potassium"},
+    "lab_results": ["BUN/urea 180", "creatinine 12.5", "hemoglobin 8.2", "albumin 2.8", "potassium 5.8 mEq/L"],
+    "risk_factors": ["diabetic nephropathy as underlying cause"]
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["N18.5", "D63.1", "E87.5"],
+  "difficulty": "hard",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

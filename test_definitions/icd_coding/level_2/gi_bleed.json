@@ -1,0 +1,20 @@
+{
+  "id": "icd_gi_bleed_2",
+  "name": "ICD Coding — GI Bleed with Anemia and Ankylosing Spondylitis",
+  "description": "Level 2 — MIMIC hadm 22585261 — 4 diagnoses: GI bleed, hematology, musculoskeletal",
+  "prompt": "Patient: Male, 44 years old. Urgent transfer from outside hospital. Hematemesis and melena for 2 days. History of chronic epigastric pain and chronic NSAID use for ankylosing spondylitis. Vital signs: BP 100/70, HR 110. Labs: Hgb 8.3 g/dL, RBC 2.52 million/uL, INR 1.3, albumin 3.3 g/dL, BUN 21 mg/dL. Endoscopy: chronic duodenal ulcer with active hemorrhage, duodenitis. Treatment: Pantoprazole, Epoetin Alfa, iron supplementation, vitamin K. Diagnoses: Chronic duodenal ulcer with hemorrhage, Acute posthemorrhagic anemia, Ankylosing spondylitis, Duodenitis. Assign the appropriate ICD-10-CM code(s).",
+  "expected": {
+    "codes": [
+      {"code": "K26.4", "description": "Chronic or unspecified duodenal ulcer with haemorrhage", "type": "PRIMARY"},
+      {"code": "D62", "description": "Acute posthemorrhagic anemia", "type": "SECONDARY"},
+      {"code": "M45.9", "description": "Ankylosing spondylitis of unspecified sites in spine", "type": "SECONDARY"},
+      {"code": "K29.80", "description": "Duodenitis without bleeding", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "medium",
+  "source": "MIMIC-IV hadm_id=22585261",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

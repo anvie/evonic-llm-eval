@@ -1,0 +1,4 @@
+{
+  "system_prompt": "\nFull ICU panel with multi-organ involvement. Provide comprehensive interpretation: organ-by-organ assessment, critical action values, prognostic implications, and the interplay between organ dysfunction patterns.",
+  "system_prompt_mode": "append"
+}

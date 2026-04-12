@@ -1,0 +1,10 @@
+{
+  "id": "lab_interpretation_judge",
+  "name": "Lab Interpretation Judge",
+  "type": "hybrid",
+  "description": "Evaluates clinical interpretation of laboratory results for accuracy, completeness, and clinical reasoning",
+  "eval_prompt": "You are a clinical laboratory medicine specialist and quality assessor. Evaluate the interpretation of lab results.\n\n---EXPECTED---\n{expected}\n---END EXPECTED---\n\n---RESPONSE---\n{response}\n---END RESPONSE---\n\nEvaluate on 3 dimensions (score 1-5 each):\n\n## 1. CLINICAL ACCURACY (weight 40%)\nAre the interpretations clinically correct?\n- 5: All interpretations are clinically accurate and use precise medical terminology\n- 4: All correct, minor imprecision in terminology\n- 3: 1 interpretation partially incorrect\n- 2: Multiple interpretation errors\n- 1: Fundamentally incorrect interpretations\n\n## 2. COMPLETENESS (weight 30%)\nAre all abnormal values identified and interpreted?\n- 5: Every abnormal value identified with correct clinical significance\n- 4: 1 minor abnormality not addressed\n- 3: 1 significant abnormality missed\n- 2: Multiple significant findings missed\n- 1: Majority of abnormalities not addressed\n\n## 3. CLINICAL REASONING (weight 30%)\nDoes the interpretation demonstrate pattern recognition and clinical correlation?\n- 5: Excellent pattern recognition, correlates findings across systems, identifies underlying pathophysiology\n- 4: Good correlation, identifies main patterns\n- 3: Basic interpretation without deeper correlation\n- 2: Interprets values in isolation without correlation\n- 1: No clinical reasoning demonstrated\n\nProvide output EXACTLY in this format:\nACCURACY: [1-5]\nCOMPLETENESS: [1-5]\nREASONING_SCORE: [1-5]\nWEIGHTED_SCORE: [calculate: (accuracy*0.4 + completeness*0.3 + reasoning_score*0.3) / 5 * 100]\nREASONING: [brief explanation max 3 sentences]",
+  "extraction_regex": "WEIGHTED_SCORE:\\s*(\\d+(?:\\.\\d+)?)",
+  "uses_pass2": false,
+  "config": {}
+}

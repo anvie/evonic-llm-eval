@@ -1,0 +1,20 @@
+{
+  "id": "ct_esofagus_ca_3",
+  "name": "Karsinoma Esofagus — MIMIC",
+  "description": "MIMIC hadm 26048429 — kanker esofagus 1/3 distal, Barrett's, GERD, asidosis respiratorik dengan hipoksemia",
+  "prompt": "Laki-laki 64 tahun dengan riwayat GERD kronik dan Barrett's esofagus, masuk untuk operasi elektif. Keluhan: disfagia progresif, penurunan BB 8 kg dalam 3 bulan, regurgitasi. EGD sebelumnya: Barrett's esofagus + massa di 1/3 distal esofagus, biopsi konfirmasi adenokarsinoma. Pemeriksaan fisik: kacheksia, tanda malnutrisi. Lab: Hb 12.1 g/dL, Ht 35.4%, leukosit 11.800, fosfat 1.6 mg/dL, Ca 8.2 mg/dL, Mg 1.5 mg/dL, BUN 21. AGD: pH 7.27, pCO2 49 mmHg, pO2 76 mmHg — kesan asidosis respiratorik dengan hipoksemia. Diagnosa: Karsinoma esofagus 1/3 distal (adenokarsinoma), Barrett's esofagus, GERD, asidosis respiratorik.",
+  "expected": {
+    "diagnoses": ["malignant neoplasm of lower third of esophagus", "adenocarcinoma of esophagus", "Barrett's esophagus", "gastroesophageal reflux disease", "respiratory acidosis with hypoxemia"],
+    "clinical_findings": ["progressive dysphagia", "weight loss 8 kg in 3 months", "regurgitation", "cachexia", "malnutrition", "adenocarcinoma confirmed on biopsy", "mass at distal esophagus on endoscopy"],
+    "abbreviations_expanded": {"GERD": "gastroesophageal reflux disease", "EGD": "esophagogastroduodenoscopy", "AGD": "arterial blood gas", "Hb": "hemoglobin", "Ht": "hematocrit", "BB": "body weight", "Ca": "calcium", "Mg": "magnesium", "BUN": "blood urea nitrogen"},
+    "lab_results": ["hemoglobin 12.1 g/dL", "hematocrit 35.4%", "WBC 11800", "phosphate 1.6 mg/dL", "calcium 8.2 mg/dL", "magnesium 1.5 mg/dL", "pH 7.27", "pCO2 49 mmHg", "pO2 76 mmHg"],
+    "risk_factors": ["long-standing GERD", "Barrett's esophagus"]
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["C15.5", "K22.70", "K21.0", "E87.2"],
+  "difficulty": "hard",
+  "source": "MIMIC-IV hadm_id=26048429",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

@@ -1,0 +1,19 @@
+{
+  "id": "ct_pneumonia_1",
+  "name": "Pneumonia Komuniti",
+  "description": "Single diagnosis - community-acquired pneumonia dengan temuan klinis dan radiologis",
+  "prompt": "Pasien laki-laki 58 tahun datang dengan keluhan sesak napas dan batuk berdahak kuning sejak 5 hari. Demam tinggi 39.2°C. Pemeriksaan fisik: ronkhi basah kasar pada paru kanan bawah. Foto thorax: infiltrat pada lobus kanan bawah. Diagnosa kerja: Pneumonia komuniti.",
+  "expected": {
+    "diagnoses": ["community-acquired pneumonia"],
+    "clinical_findings": ["dyspnea", "productive cough", "purulent sputum", "fever 39.2°C", "coarse crackles right lower lobe", "chest X-ray infiltrate right lower lobe"],
+    "abbreviations_expanded": {},
+    "lab_results": [],
+    "risk_factors": []
+  },
+  "evaluator_id": "clinical_keyword_judge",
+  "icd_target": ["J18.9"],
+  "difficulty": "easy",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

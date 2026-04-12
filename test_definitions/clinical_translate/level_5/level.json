@@ -1,0 +1,4 @@
+{
+  "system_prompt": "Kasus terminal paling kompleks: pasien meninggal dengan 10+ diagnosa dan multi-organ failure. Capture seluruh diagnosa termasuk: komplikasi terminal, komorbid latar, infeksi oportunistik, komplikasi prosedural, dan kondisi metabolik yang tersirat dari data lab.",
+  "system_prompt_mode": "append"
+}

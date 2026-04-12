@@ -1,0 +1,25 @@
+{
+  "id": "lab_mixed_abg_4",
+  "name": "Lab Interpretation — Mixed Acid-Base Disorder",
+  "description": "Level 4 — handcrafted — mixed respiratory alkalosis + metabolic acidosis in sepsis with compensation analysis",
+  "prompt": "Interpret the following laboratory results for a 58-year-old male admitted with fever, hypotension, and altered mental status (suspected sepsis):\n\nArterial Blood Gas:\n- pH: 7.38 (reference: 7.35–7.45) — apparently normal\n- pCO2: 24 mmHg (reference: 35–45 mmHg)\n- pO2: 68 mmHg (reference: 85–105 mmHg) on FiO2 0.40\n- HCO3 (calculated): 14 mEq/L (reference: 22–26 mEq/L)\n- Base Excess: -11 mEq/L (reference: -2 to +2)\n\nElectrolytes:\n- Sodium: 142 mEq/L (reference: 133–145) — normal\n- Chloride: 104 mEq/L (reference: 96–108) — normal\n- Bicarbonate: 14 mEq/L (reference: 22–32)\n- Potassium: 4.1 mEq/L — normal\n- Anion Gap: 24 mEq/L (reference: 8–20) [Na - (Cl + HCO3) = 142 - (104+14) = 24]\n\nOther:\n- Lactate: 6.8 mmol/L (reference: 0.5–2.0 mmol/L)\n- Glucose: 188 mg/dL (reference: 70–100)\n- Creatinine: 2.2 mg/dL (reference: 0.5–1.2)\n- WBC: 24,000 /uL with left shift\n\nProvide stepwise acid-base interpretation, identify all disorders present, and assess whether pH is appropriately explained.",
+  "expected": {
+    "abnormal_values": [
+      {"test": "pH", "value": "7.38", "reference": "7.35-7.45", "direction": "NORMAL", "severity": "DECEPTIVE", "significance": "pH appears normal but CONCEALS severe mixed acid-base disorder — must analyze components"},
+      {"test": "pCO2", "value": "24 mmHg", "reference": "35-45 mmHg", "direction": "LOW", "severity": "HIGH", "significance": "Severe hypocapnia — primary respiratory alkalosis or compensation for metabolic acidosis"},
+      {"test": "HCO3", "value": "14 mEq/L", "reference": "22-26 mEq/L", "direction": "LOW", "severity": "CRITICAL", "significance": "Severely low bicarbonate — primary metabolic acidosis"},
+      {"test": "Anion Gap", "value": "24 mEq/L", "reference": "8-20 mEq/L", "direction": "HIGH", "severity": "HIGH", "significance": "High anion gap metabolic acidosis — unmeasured anions present (lactic acid)"},
+      {"test": "Lactate", "value": "6.8 mmol/L", "reference": "0.5-2.0 mmol/L", "direction": "HIGH", "severity": "CRITICAL", "significance": "Severely elevated lactate — primary cause of high anion gap; indicates severe tissue hypoperfusion"},
+      {"test": "pO2", "value": "68 mmHg on FiO2 40%", "reference": "85-105 mmHg on room air", "direction": "LOW", "severity": "HIGH", "significance": "Hypoxemia despite 40% FiO2 — P/F ratio 68/0.4 = 170, consistent with ARDS or severe pneumonia"},
+      {"test": "WBC", "value": "24000 with left shift", "reference": "4000-10000", "direction": "HIGH", "severity": "HIGH", "significance": "Leukocytosis with left shift — severe bacterial infection / sepsis"}
+    ],
+    "interpretation": "MIXED ACID-BASE DISORDER: Primary high anion gap metabolic acidosis (HCO3 14, AG 24) from severe lactic acidosis (lactate 6.8) AND concurrent primary respiratory alkalosis (pCO2 24) from sepsis-driven hyperventilation. The two disorders mask each other, producing a near-normal pH. Expected pCO2 for metabolic compensation = 1.5×14+8 = 29 mmHg; actual pCO2 of 24 is LOWER than expected → additional primary respiratory alkalosis confirmed. Underlying cause: septic shock with lactic acidosis + early ARDS.",
+    "pattern_recognition": "Key to unmask: pH 7.38 (normal) + HCO3 14 (very low) + pCO2 24 (very low) = MIXED disorder. Metabolic acidosis from lactic acidosis (AG 24, lactate 6.8) + respiratory alkalosis from sepsis hyperventilation that EXCEEDS expected compensation. P/F ratio 170 suggests concurrent ARDS. Delta AG / Delta HCO3 = (24-12)/(24-14) = 1.2 — suggests pure high AG metabolic acidosis without superimposed metabolic alkalosis.",
+    "differential_considerations": ["High anion gap metabolic acidosis from lactic acidosis type A (tissue hypoperfusion in septic shock)", "Primary respiratory alkalosis from sepsis-driven hyperventilation and/or early ARDS", "Possible early acute kidney injury (Cr 2.2) contributing to metabolic acidosis", "ARDS from sepsis (P/F ratio 170 on FiO2 40%)"]
+  },
+  "evaluator_id": "lab_interpretation_judge",
+  "difficulty": "very_hard",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

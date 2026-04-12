@@ -1,0 +1,27 @@
+{
+  "id": "lab_liver_2",
+  "name": "Lab Interpretation — Massive Liver Panel Elevation",
+  "description": "Level 2 — MIMIC hadm 22205327 — massively elevated AST/ALT (>8000), acute hepatic injury pattern recognition",
+  "prompt": "Interpret the following laboratory results for a 50-year-old female admitted with saddle pulmonary embolism, now developing acute hepatic failure:\n\nLiver Function Tests:\n- AST (Aspartate Aminotransferase): 8,035 IU/L (reference: 0–40 IU/L)\n- ALT (Alanine Aminotransferase): 8,500 IU/L (reference: 0–40 IU/L)\n- Total Bilirubin: 4.2 mg/dL (reference: 0–1.5 mg/dL)\n- Albumin: 2.8 g/dL (reference: 3.5–5.2 g/dL)\n\nCoagulation:\n- INR: 3.0 (reference: 0.9–1.1)\n- PT: 33.4 sec (reference: 9.4–12.5 sec)\n- PTT: 65.4 sec (reference: 25–36.5 sec)\n- Fibrinogen: 46 mg/dL (reference: 180–400 mg/dL)\n\nCardiac:\n- Troponin T: 0.24 ng/mL (reference: 0–0.01 ng/mL)\n\nElectrolytes:\n- Bicarbonate: 15 mEq/L (reference: 22–32 mEq/L)\n- Anion Gap: 23 mEq/L (reference: 8–20 mEq/L)\n\nProvide clinical interpretation of these results.",
+  "expected": {
+    "abnormal_values": [
+      {"test": "AST", "value": "8035 IU/L", "reference": "0-40 IU/L", "direction": "HIGH", "severity": "CRITICAL", "significance": "Massive hepatocellular injury (200x upper limit) — ischemic hepatitis or massive hepatic necrosis"},
+      {"test": "ALT", "value": "8500 IU/L", "reference": "0-40 IU/L", "direction": "HIGH", "severity": "CRITICAL", "significance": "Massive hepatocellular injury — AST:ALT ratio near 1:1 suggests ischemic (not alcoholic) hepatitis"},
+      {"test": "INR", "value": "3.0", "reference": "0.9-1.1", "direction": "HIGH", "severity": "CRITICAL", "significance": "Severe coagulopathy reflecting hepatic synthetic dysfunction"},
+      {"test": "PTT", "value": "65.4 sec", "reference": "25-36.5 sec", "direction": "HIGH", "severity": "CRITICAL", "significance": "Prolonged PTT contributing to coagulopathy risk"},
+      {"test": "Fibrinogen", "value": "46 mg/dL", "reference": "180-400 mg/dL", "direction": "LOW", "severity": "CRITICAL", "significance": "Critically low fibrinogen indicating consumptive coagulopathy (possible DIC) and/or hepatic failure"},
+      {"test": "Troponin T", "value": "0.24 ng/mL", "reference": "0-0.01 ng/mL", "direction": "HIGH", "severity": "HIGH", "significance": "Cardiac injury from right heart strain due to massive pulmonary embolism"},
+      {"test": "Bicarbonate", "value": "15 mEq/L", "reference": "22-32 mEq/L", "direction": "LOW", "severity": "CRITICAL", "significance": "Metabolic acidosis, consistent with shock/hypoperfusion"},
+      {"test": "Anion Gap", "value": "23 mEq/L", "reference": "8-20 mEq/L", "direction": "HIGH", "severity": "HIGH", "significance": "High anion gap metabolic acidosis — likely lactic acidosis from shock"}
+    ],
+    "interpretation": "Critical multi-system failure: massive ischemic hepatitis (AST/ALT >8000x from hepatic hypoperfusion in shock), severe coagulopathy with consumptive coagulopathy/DIC (INR 3.0, fibrinogen 46), right heart strain (troponin 0.24), and high-anion-gap metabolic acidosis from shock-related hypoperfusion.",
+    "pattern_recognition": "Ischemic hepatitis pattern: abrupt massive transaminase elevation (>1000x ULN, near equal AST:ALT) triggered by hemodynamic collapse from saddle PE. Compounded by: DIC (low fibrinogen + prolonged PT/PTT/INR) + lactic acidosis (high AG, low bicarb) + right heart injury (troponin).",
+    "differential_considerations": ["Ischemic hepatitis / shock liver (primary cause of transaminase elevation)", "Disseminated intravascular coagulation (DIC) from massive PE + hepatic failure", "Massive pulmonary embolism with right heart failure (troponin elevation)", "High anion gap metabolic acidosis from lactic acidosis in shock"]
+  },
+  "evaluator_id": "lab_interpretation_judge",
+  "difficulty": "medium",
+  "source": "MIMIC-IV hadm_id=22205327",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

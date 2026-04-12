@@ -1,0 +1,32 @@
+{
+  "id": "icd_saddle_pe_5",
+  "name": "ICD Coding — Saddle PE + Multi-Organ Failure + Psychiatric Comorbidities",
+  "description": "Level 5 — MIMIC hadm 22205327 — 10+ ICD codes spanning cardiopulmonary, hepatic, renal, psychiatric systems",
+  "prompt": "Patient: Female, 50 years old. Emergency admission. Presentation: sudden dyspnea and syncope. CT pulmonary angiography: saddle embolus of pulmonary artery with acute cor pulmonale. Thrombolysis with alteplase performed. Hospital course complications: acute and subacute hepatic failure with coma (ALT/AST >8000 IU/L), acute kidney failure with tubular necrosis (creatinine 3.5), other shock (BP 80/50), toxic encephalopathy, Clostridioides difficile enterocolitis, acute respiratory failure with hypoxia. Psychiatric history: anorexia nervosa restricting type, PTSD (unspecified), unspecified mood/affective disorder, other psychotic disorder, sleep terrors, borderline personality disorder, bipolar disorder (unspecified). Medical comorbidities: type 2 DM with polyneuropathy + foot ulcer (on insulin), GERD, COPD (unspecified), tobacco use, hyperlipidemia, hypothyroidism (other specified), hypertensive CKD, CKD unspecified, drug-induced nephropathy, hypokalemia, long QT syndrome. Labs: INR 3.0, PTT 65.4, fibrinogen 46, BUN 54, creatinine 3.5, bicarbonate 15, sodium 146, calcium 7.4. Assign the appropriate ICD-10-CM code(s) with correct sequencing.",
+  "expected": {
+    "codes": [
+      {"code": "I26.02", "description": "Saddle embolus of pulmonary artery with acute cor pulmonale", "type": "PRIMARY"},
+      {"code": "K72.01", "description": "Acute and subacute hepatic failure with coma", "type": "SECONDARY"},
+      {"code": "N17.0", "description": "Acute kidney failure with tubular necrosis", "type": "SECONDARY"},
+      {"code": "R57.8", "description": "Other shock", "type": "SECONDARY"},
+      {"code": "G92", "description": "Toxic encephalopathy", "type": "SECONDARY"},
+      {"code": "A04.7", "description": "Enterocolitis due to Clostridium difficile", "type": "SECONDARY"},
+      {"code": "F50.01", "description": "Anorexia nervosa, restricting type", "type": "SECONDARY"},
+      {"code": "J96.01", "description": "Acute respiratory failure with hypoxia", "type": "SECONDARY"},
+      {"code": "E11.42", "description": "Type 2 diabetes mellitus with diabetic polyneuropathy", "type": "SECONDARY"},
+      {"code": "F43.10", "description": "Post-traumatic stress disorder, unspecified", "type": "SECONDARY"},
+      {"code": "F63.3", "description": "Borderline personality disorder", "type": "SECONDARY"},
+      {"code": "F31.9", "description": "Bipolar disorder, unspecified", "type": "SECONDARY"},
+      {"code": "J44.9", "description": "Chronic obstructive pulmonary disease, unspecified", "type": "SECONDARY"},
+      {"code": "I12.9", "description": "Hypertensive chronic kidney disease with stage 1-4 CKD", "type": "SECONDARY"},
+      {"code": "E87.6", "description": "Hypokalemia", "type": "SECONDARY"},
+      {"code": "I45.81", "description": "Long QT syndrome", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "extreme",
+  "source": "MIMIC-IV hadm_id=22205327",
+  "timeout_ms": 120000,
+  "weight": 1.0,
+  "enabled": true
+}
