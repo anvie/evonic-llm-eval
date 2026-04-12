@@ -9,7 +9,7 @@
         <thead>
             <tr>
                 <th>Run ID</th>
-                <th>Model</th>
+                <th style="max-width: 200px;">Model</th>
                 <th>Time</th>
                 <th>Score</th>
                 <th>Tests</th>
@@ -21,11 +21,11 @@
             {% for run in runs %}
             <tr class="history-row" onclick="window.location.href='/history/{{ run.run_id }}'" style="cursor: pointer;">
                 <td>
-                    <span style="color: #667eea; font-family: monospace;">
-                        {{ run.run_id[:8] }}...
+                    <span style="color: #667eea; font-family: monospace; font-weight: 700;">
+                        #{{ "%04d"|format(run.run_id) }}
                     </span>
                 </td>
-                <td>{{ run.model_name or 'default' }}</td>
+                <td style="max-width: 200px; word-break: break-all;">{{ run.model_name or 'default' }}</td>
                 <td style="font-size: 0.85rem;">
                     {% if run.started_at %}
                         {{ run.started_at[:19] }}
@@ -78,7 +78,7 @@
             {% endfor %}
         </tbody>
     </table>
-    
+
     <!-- Pagination -->
     {% if total_pages > 1 %}
     <div class="pagination">
