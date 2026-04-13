@@ -143,10 +143,38 @@
     word-break: break-word;
 }
 
-.prompt-box { max-height: 100px; overflow-y: auto; }
-.expected-box { overflow-y: auto; }
-.response-box { max-height: 150px; overflow-y: auto; }
-.thinking-box { background: #f5f3ff; max-height: auto; overflow-y: auto; }
+.prompt-box { max-height: 120px; overflow-y: auto; }
+.expected-box { overflow-y: visible; }
+.response-box { overflow-y: visible; }
+.thinking-box { background: #f5f3ff; overflow-y: auto; max-height: 400px; }
+
+/* Collapsible section headers */
+.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.collapsible-header:hover {
+    color: #374151;
+}
+
+/* Side-by-side compare row */
+.compare-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.compare-col {
+    min-width: 0;
+}
+
+.compare-col .section-content {
+    min-height: 80px;
+}
 
 .tools-box {
     display: flex;
@@ -325,6 +353,10 @@
 
     .prompt-box, .response-box {
         max-height: none;
+    }
+
+    .compare-row {
+        grid-template-columns: 1fr;
     }
 }
 </style>
