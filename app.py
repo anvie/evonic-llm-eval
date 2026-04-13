@@ -701,6 +701,11 @@ def api_sync_tests():
 
 
 if __name__ == '__main__':
+    api_key = config.LLM_API_KEY
+    masked_key = (api_key[:8] + '...' + api_key[-4:]) if len(api_key) > 12 else ('***' if api_key else '(not set)')
+    print(f"  LLM Base URL : {config.LLM_BASE_URL}")
+    print(f"  LLM Model    : {config.LLM_MODEL}")
+    print(f"  LLM API Key  : {masked_key}")
     app.run(
         host=config.HOST,
         port=config.PORT,

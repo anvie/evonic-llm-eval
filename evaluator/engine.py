@@ -917,21 +917,6 @@ class EvaluationEngine:
         status_icon = '✓' if result.status == 'passed' else '✗'
         self._log(f'[RESULT] {status_icon} Status: {result.status.upper()}, Score: {result.score*100:.0f}%')
         
-    # DEBUG: Log what we're about to save
-        self._log(f'[DEBUG SAVE][TIMESTAMP] About to save...')
-        if system_prompt:
-            self._log(f'[DEBUG SAVE] variable id: {id(system_prompt)}')
-            self._log(f'[DEBUG SAVE] system_prompt length: {len(system_prompt)} chars')
-            self._log(f'[DEBUG SAVE] Contains tools section: {"## TOOLS" in system_prompt}')
-            self._log(f'[DEBUG SAVE] First 80 chars: {system_prompt[:80]}...')
-        else:
-            self._log(f'[DEBUG SAVE] system_prompt is None/Empty!')
-        
-        # DEBUG: Also log what's in the test dict for reference
-        self._log(f'[DEBUG SAVE] test dict keys: {list(test.keys())}')
-        self._log(f'[DEBUG SAVE] test["system_prompt"]: {test.get("system_prompt")}')
-        self._log(f'[DEBUG SAVE] test["system_prompt_mode"]: {test.get("system_prompt_mode")}')
-        
         # Save individual test result with resolved system_prompt and mode
         db.save_individual_test_result(
             run_id=run_id,
