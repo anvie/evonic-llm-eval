@@ -242,11 +242,11 @@ function renderTestDetail(test, domain) {
     html += `
         <div class="compare-row">
             <div class="compare-col">
-                <div class="section-header">🎯 EXPECTED</div>
+                <div class="section-header">EXPECTED</div>
                 <div class="section-content expected-box">${formatExpected(test.expected)}</div>
             </div>
             <div class="compare-col">
-                <div class="section-header">📤 FINAL RESPONSE</div>
+                <div class="section-header">RESULT</div>
                 <div class="section-content response-box" style="background: #fefce8;">
                     ${hasResponse
                         ? `<pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(stripCodeFences(test.response))}</pre>`
