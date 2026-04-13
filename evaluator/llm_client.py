@@ -111,8 +111,9 @@ class LLMClient:
         except Exception:
             pass
         
-        # Fallback to config
+        # Fallback to config — do NOT cache this, so next call retries the server
         return self.model
+
     
     def chat_completion(self, messages: list, tools: Optional[list] = None, temperature: float = 0.1, enable_thinking: bool = True, max_tokens: int = 4096) -> Dict[str, Any]:
         """Send chat completion request to OpenAI-compatible endpoint"""
