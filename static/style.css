@@ -13,36 +13,92 @@ body {
     background-color: #f5f5f5;
 }
 
+/* Header */
 header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1rem 2rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-header h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+.header-inner {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 56px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: #1f2937;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.brand-icon {
+    flex-shrink: 0;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 nav a {
-    color: white;
+    color: #4b5563;
     text-decoration: none;
-    margin-right: 1rem;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    transition: background-color 0.3s;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.15s, color 0.15s;
+    position: relative;
 }
 
 nav a:hover {
-    background-color: rgba(255,255,255,0.2);
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+nav a.nav-active {
+    color: #667eea;
+}
+
+nav a.nav-active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0.75rem;
+    right: 0.75rem;
+    height: 2px;
+    background: #667eea;
+    border-radius: 1px;
+}
+
+.nav-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #4b5563;
+    cursor: pointer;
+    padding: 0.25rem;
 }
 
 footer {
     text-align: center;
     padding: 2rem;
-    color: #666;
+    color: #9ca3af;
     margin-top: 2rem;
+    font-size: 0.8rem;
+    border-top: 1px solid #e5e7eb;
 }
 
 /* Shared Button Styles (used across multiple pages) */
@@ -349,12 +405,38 @@ footer {
 
 /* Responsive */
 @media (max-width: 768px) {
-    header {
-        padding: 1rem;
+    .header-inner {
+        padding: 0 1rem;
+        flex-wrap: wrap;
     }
 
-    header h1 {
-        font-size: 1.5rem;
+    .nav-toggle {
+        display: block;
+    }
+
+    nav {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        padding: 0.5rem 0;
+        gap: 0;
+    }
+
+    nav.nav-open {
+        display: flex;
+    }
+
+    nav a {
+        padding: 0.625rem 0.75rem;
+    }
+
+    nav a.nav-active::after {
+        display: none;
+    }
+
+    nav a.nav-active {
+        background-color: #eef2ff;
+        color: #667eea;
     }
 
     .matrix-header,

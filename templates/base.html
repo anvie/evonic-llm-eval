@@ -9,12 +9,28 @@
 </head>
 <body>
     <header>
-        <h1>Evonic LLM Evaluator</h1>
-        <nav>
-            <a href="/">Dashboard</a>
-            <a href="/history">History</a>
-            <a href="/settings">Settings</a>
-        </nav>
+        <div class="header-inner">
+            <a href="/" class="brand">
+                <svg class="brand-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="1.5" width="12" height="12" rx="2" transform="rotate(45 10 1.5)" fill="#667eea"/>
+                </svg>
+                <span>Evonic LLM Eval</span>
+            </a>
+
+            <button class="nav-toggle" onclick="document.querySelector('nav').classList.toggle('nav-open')" aria-label="Toggle navigation">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+
+            <nav>
+                <a href="/" class="{{ 'nav-active' if request.path == '/' else '' }}">Dashboard</a>
+                <a href="/history" class="{{ 'nav-active' if request.path.startswith('/history') else '' }}">History</a>
+                <a href="/settings" class="{{ 'nav-active' if request.path == '/settings' else '' }}">Settings</a>
+            </nav>
+        </div>
     </header>
     
     <main class="max-w-[1600px] mx-auto">
@@ -22,7 +38,7 @@
     </main>
     
     <footer>
-        <p>Powered by Flask + Jinja | Evonic LLM Evaluation System</p>
+        <p>Evonic LLM Evaluation System &middot; Robin Syihab</p>
     </footer>
 </body>
 </html>
