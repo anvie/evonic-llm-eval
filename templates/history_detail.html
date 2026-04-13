@@ -196,7 +196,8 @@ function updateMatrix(matrix) {
                 
                 // Update status indicator
                 const statusEl = cell.querySelector('.status-dot');
-                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + data.status;
+                const dotStatus = (data.status === 'failed' && data.details?.llm_error) ? 'technical-error' : data.status;
+                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + dotStatus;
                 
                 // Update score
                 const scoreEl = cell.querySelector('.cell-score');
