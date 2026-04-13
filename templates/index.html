@@ -151,6 +151,7 @@ let pollingInterval;
 let testResultsData = {};  // Store all test results for modal access
 let configModel = null;  // Store model name from config
 let logPollInterval = null;  // Log polling interval reference
+let completionModalShown = false;  // Guard against duplicate modal triggers
 
 // Fetch model config on load
 fetch('/api/config/model')
@@ -403,6 +404,7 @@ function startEvaluation() {
     // Clear old logs (both UI and localStorage)
     document.getElementById('log-box').innerHTML = '';
     localStorage.removeItem('eval_logs');
+    completionModalShown = false;
     
     // Use model from config, fallback to 'default' if not loaded yet
     const modelName = configModel || 'default';
@@ -573,7 +575,10 @@ function updateStatus() {
                 logBox.innerHTML += colorizeLogEntry('[WARN] ====== EVALUASI DIHENTIKAN ======');
             } else {
                 logBox.innerHTML += colorizeLogEntry('[RESULT] ✓ ====== EVALUASI SELESAI ======');
-                showCompletionModal(data);
+                if (!completionModalShown) {
+                    completionModalShown = true;
+                    showCompletionModal(data);
+                }
             }
 
             // Show tok/s if available
