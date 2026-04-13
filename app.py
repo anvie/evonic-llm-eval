@@ -148,6 +148,8 @@ def history_detail(run_id):
     individual_stats = {'total': _row[0] or 0, 'passed': _row[1] or 0}
     
     # Extract unique domains from actual test results (preserving order)
+    from evaluator.test_manager import test_manager
+    all_domain_meta = {d['id']: d.get('name', d['id']) for d in test_manager.list_domains(include_disabled=True)}
     seen = set()
     domains = []
     for r in test_results:
@@ -155,13 +157,14 @@ def history_detail(run_id):
         if d and d not in seen:
             seen.add(d)
             domains.append(d)
-    
+
     return render_template('history_detail.html',
                           run_info=run_info,
                           test_results=test_results,
                           stats=stats,
                           individual_stats=individual_stats,
-                          domains=domains)
+                          domains=domains,
+                          domain_names=all_domain_meta)
 
 @app.route('/api/run/<int:run_id>')
 def api_run_details(run_id):

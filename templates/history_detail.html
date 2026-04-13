@@ -6,6 +6,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <a href="/history" class="btn btn-secondary" style="text-decoration: none;">← Back to History</a>
+                <div style="font-size: 1.5rem; font-weight: 700; margin-top: 0.4rem; font-family: monospace;">#{{ "%04d"|format(run_info.run_id) }}</div>
             </div>
             <h2 style="margin: 0;">Evaluation Details</h2>
             <div style="width: 120px;"></div>
@@ -14,11 +15,13 @@
     
     <!-- Run Info Panel -->
     <div style="margin-top: 1.5rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        {% if run_info.summary %}
+        <div class="summary-box" style="margin-bottom: 1rem;">
+            <strong>Summary:</strong> "{{ run_info.summary }}"
+        </div>
+        {% endif %}
+
         <div class="run-info-grid">
-            <div class="info-item text-center">
-                <span class="info-label">Run ID</span>
-                <span class="info-value font-mono text-sm">{{ run_info.run_id }}</span>
-            </div>
             <div class="info-item text-center">
                 <span class="info-label">Model</span>
                 <span class="info-value">{{ run_info.model_name or 'default' }}</span>
@@ -62,16 +65,11 @@
             {% endif %}
         </div>
         
-        {% if run_info.summary %}
-        <div class="summary-box" style="margin-top: 1rem;">
-            <strong>Summary:</strong> "{{ run_info.summary }}"
-        </div>
-        {% endif %}
     </div>
     
     <!-- Test Matrix (Same UI as index.html) -->
     <div class="mt-6">
-        <h3 class="mb-2 text-gray-800 font-semibold">Test Matrix <span class="text-xs text-gray-400 font-normal">(Click any cell to see details)</span></h3>
+        <h3 class="mb-2 text-gray-800 font-semibold">Test Matrix</h3>
 
         <!-- Matrix Header (desktop only) -->
         <div class="hidden md:grid md:grid-cols-[160px_repeat(5,1fr)_120px] gap-2 p-4 bg-gray-50 font-semibold rounded-t-lg text-sm">
@@ -91,7 +89,7 @@
              id="row-{{ domain }}">
             <!-- Domain name (mobile: full-width header row) -->
             <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0">
-                <span class="font-semibold capitalize text-sm">{{ domain.replace('_', ' ') }}</span>
+                <span class="font-semibold text-sm">{{ (domain_names or {}).get(domain, domain.replace('_', ' ')) }}</span>
             </div>
             <!-- Hide desktop-only domain name since we show it for both -->
             <!-- Level cells (5 columns on both mobile and desktop) -->
