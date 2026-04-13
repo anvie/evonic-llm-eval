@@ -65,10 +65,10 @@
                 <!-- Checkbox + Domain name (mobile: full-width header row) -->
                 <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0 md:justify-center">
                     <input type="checkbox" class="domain-checkbox" data-domain="{{ domain }}" checked onclick="updateSelectAllState()">
-                    <span class="font-semibold capitalize text-sm md:hidden">{{ domain.replace('_', ' ') }}</span>
+                    <span class="font-semibold text-sm md:hidden">{{ (domain_names or {}). get(domain, domain.replace('_', ' ')) }}</span>
                 </div>
                 <!-- Domain name (desktop only) -->
-                <div class="hidden md:flex md:items-center font-semibold capitalize text-sm">{{ domain.replace('_', ' ') }}</div>
+                <div class="hidden md:flex md:items-center font-semibold text-sm">{{ (domain_names or {}).get(domain, domain.replace('_', ' ')) }}</div>
 
                 <!-- Level cells (5 columns on both mobile and desktop) -->
                 {% for level in range(1, 6) %}
