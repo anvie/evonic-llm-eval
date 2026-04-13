@@ -685,40 +685,25 @@ class EvaluationEngine:
                     lines.append(f"{prefix}- {item}")
         return "\n".join(lines)
 
-    def _execute_js_mock(self, js_code: str, args: dict):
-        """Execute JavaScript mock response via Node.js subprocess"""
-        import subprocess, shutil
-        wrapper = f'const ARGS = {json.dumps(json.dumps(args))};\n{js_code}'
-
-        # Resolve node binary — shutil.which checks PATH; fall back to common NVM path
-        node_bin = shutil.which("node") or os.path.expanduser("~/.nvm/versions/node/v25.6.0/bin/node") or "node"
-
+    def _execute_python_mock(self, py_code: str, args: dict):
+        """Execute Python mock response via exec()"""
+        import math, ast as _ast
+        namespace = {
+            'args': args,
+            'math': math,
+            'json': json,
+            're': __import__('re'),
+            'result': None,
+        }
         try:
-            result = subprocess.run(
-                [node_bin, "-e", wrapper],
-                capture_output=True, text=True, timeout=5
-            )
-            if result.returncode != 0:
-                detail = (result.stderr or result.stdout or '(no output)').strip()[:300]
-                self._log(f'[JS-MOCK] Error (rc={result.returncode}): {detail}')
-                return {"error": f"JS execution failed: {detail}"}
-            output = result.stdout.strip()
-            if output:
-                try:
-                    return json.loads(output)
-                except json.JSONDecodeError:
-                    self._log(f'[JS-MOCK] Invalid JSON output: {output[:100]}')
-                    return {"error": f"JS output is not valid JSON: {output[:100]}"}
-            return {"result": "no output"}
-        except subprocess.TimeoutExpired:
-            self._log(f'[JS-MOCK] Timeout after 5s')
-            return {"error": "JS mock execution timed out"}
-        except FileNotFoundError:
-            self._log(f'[JS-MOCK] node not found at: {node_bin}')
-            return {"error": f"Node.js not found ({node_bin}). Install Node.js to use JS mocks."}
+            exec(py_code, namespace)
+            result = namespace.get('result')
+            if result is None:
+                return {"error": "mock did not set result"}
+            return result
         except Exception as e:
-            self._log(f'[JS-MOCK] Exception: {str(e)}')
-            return {"error": str(e)}
+            self._log(f'[PY-MOCK] Exception: {str(e)}')
+            return {"error": f"Python mock failed: {str(e)}"}
 
     def _run_single_configurable_test(self, test: Dict[str, Any], domain: str,
                                        level: int, model_name: str, run_id: int) -> TestResult:
@@ -1124,10 +1109,10 @@ class EvaluationEngine:
                     mock_value = mock_responses[func_name]
                     mock_type = (mock_response_types or {}).get(func_name, 'json')
 
-                    if mock_type == 'javascript' and isinstance(mock_value, str):
-                        # Execute JavaScript mock via Node.js
-                        mock_result_data = self._execute_js_mock(mock_value, func_args)
-                        self._log(f'[MOCK] Executed JS mock for {func_name}')
+                    if mock_type in ('javascript', 'python') and isinstance(mock_value, str):
+                        # Execute Python mock
+                        mock_result_data = self._execute_python_mock(mock_value, func_args)
+                        self._log(f'[MOCK] Executed Python mock for {func_name}')
                     else:
                         mock_result_data = mock_value
                         self._log(f'[MOCK] Using mock response for {func_name}')
