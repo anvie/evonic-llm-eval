@@ -687,23 +687,35 @@ class EvaluationEngine:
 
     def _execute_js_mock(self, js_code: str, args: dict):
         """Execute JavaScript mock response via Node.js subprocess"""
-        import subprocess
+        import subprocess, shutil
         wrapper = f'const ARGS = {json.dumps(json.dumps(args))};\n{js_code}'
+
+        # Resolve node binary — shutil.which checks PATH; fall back to common NVM path
+        node_bin = shutil.which("node") or os.path.expanduser("~/.nvm/versions/node/v25.6.0/bin/node") or "node"
+
         try:
             result = subprocess.run(
-                ["node", "-e", wrapper],
+                [node_bin, "-e", wrapper],
                 capture_output=True, text=True, timeout=5
             )
             if result.returncode != 0:
-                self._log(f'[JS-MOCK] Error: {result.stderr[:200]}')
-                return {"error": f"JS execution failed: {result.stderr[:200]}"}
+                detail = (result.stderr or result.stdout or '(no output)').strip()[:300]
+                self._log(f'[JS-MOCK] Error (rc={result.returncode}): {detail}')
+                return {"error": f"JS execution failed: {detail}"}
             output = result.stdout.strip()
             if output:
-                return json.loads(output)
+                try:
+                    return json.loads(output)
+                except json.JSONDecodeError:
+                    self._log(f'[JS-MOCK] Invalid JSON output: {output[:100]}')
+                    return {"error": f"JS output is not valid JSON: {output[:100]}"}
             return {"result": "no output"}
         except subprocess.TimeoutExpired:
             self._log(f'[JS-MOCK] Timeout after 5s')
             return {"error": "JS mock execution timed out"}
+        except FileNotFoundError:
+            self._log(f'[JS-MOCK] node not found at: {node_bin}')
+            return {"error": f"Node.js not found ({node_bin}). Install Node.js to use JS mocks."}
         except Exception as e:
             self._log(f'[JS-MOCK] Exception: {str(e)}')
             return {"error": str(e)}
