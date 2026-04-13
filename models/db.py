@@ -439,8 +439,8 @@ class Database:
             cursor = conn.cursor()
             cursor.execute(
                 """SELECT e.*,
-                    (SELECT COUNT(*) FROM individual_test_results WHERE run_id = e.run_id) as test_count,
-                    (SELECT COUNT(*) FROM individual_test_results WHERE run_id = e.run_id AND status = 'passed') as passed_count
+                    (SELECT COUNT(*) FROM test_results WHERE run_id = e.run_id) as test_count,
+                    (SELECT COUNT(*) FROM test_results WHERE run_id = e.run_id AND status = 'passed') as passed_count
                 FROM evaluation_runs e
                 ORDER BY e.started_at DESC LIMIT ? OFFSET ?""",
                 (limit, offset)
@@ -478,26 +478,26 @@ class Database:
         """Get statistics for a run"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            
-            # Count tests by status
+
+            # Count domain-level tests by status
             cursor.execute(
                 """
-                SELECT status, COUNT(*) as count 
-                FROM test_results 
-                WHERE run_id = ? 
+                SELECT status, COUNT(*) as count
+                FROM test_results
+                WHERE run_id = ?
                 GROUP BY status
                 """,
                 (run_id,)
             )
             status_counts = {row[0]: row[1] for row in cursor.fetchall()}
-            
+
             # Average score
             cursor.execute(
                 "SELECT AVG(score) FROM test_results WHERE run_id = ? AND score IS NOT NULL",
                 (run_id,)
             )
             avg_score = cursor.fetchone()[0] or 0.0
-            
+
             return {
                 'status_counts': status_counts,
                 'avg_score': avg_score,
