@@ -11,6 +11,11 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")  # Set your OpenRouter API key
 LLM_MODEL = os.getenv("LLM_MODEL", "moonshotai/kimi-k2-thinking")  # Model for evaluation
 LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "120"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "32768"))
+# Set LLM_CONTEXT_LENGTH to your model's max_model_len. When set, max_tokens is
+# automatically capped to LLM_CONTEXT_LENGTH - LLM_PROMPT_BUFFER to avoid overflow.
+LLM_CONTEXT_LENGTH = int(os.getenv("LLM_CONTEXT_LENGTH", "0"))  # 0 = no limit applied
+LLM_PROMPT_BUFFER = int(os.getenv("LLM_PROMPT_BUFFER", "2048"))  # tokens reserved for input
 
 # Two-Pass Extraction Configuration
 # PASS 1: LLM generates answer with reasoning
