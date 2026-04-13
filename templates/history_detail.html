@@ -24,12 +24,8 @@
                 <span class="info-value">{{ run_info.model_name or 'default' }}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Started</span>
-                <span class="info-value" style="font-size: 0.85rem;">{{ run_info.started_at[:19] if run_info.started_at else '-' }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Completed</span>
-                <span class="info-value" style="font-size: 0.85rem;">{{ run_info.completed_at[:19] if run_info.completed_at else 'Incomplete' }}</span>
+                <span class="info-label">Passed</span>
+                <span class="info-value">{{ stats.status_counts.get('passed', 0) }}<span style="color: #9ca3af; font-weight: 400;"> / {{ stats.total_tests or 0 }}</span></span>
             </div>
             <div class="info-item">
                 <span class="info-label">Overall Score</span>
@@ -563,7 +559,6 @@ document.addEventListener('keydown', function(event) {
     background: #f0f9ff;
     padding: 1rem;
     border-radius: 6px;
-    border-left: 4px solid #0369a1;
     color: #1e40af;
     font-style: italic;
 }
