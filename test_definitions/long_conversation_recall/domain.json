@@ -5,6 +5,6 @@
   "icon": "history",
   "color": "#8B5CF6",
   "evaluator_id": "keyword",
-  "enabled": false,
-  "updated_at": "2026-04-13T06:24:28.963465"
+  "enabled": true,
+  "updated_at": "2026-04-13T09:06:10.839621"
 }

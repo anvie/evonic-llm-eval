@@ -66,10 +66,13 @@ class EvaluationEngine:
             if self.is_running:
                 raise Exception("Evaluation already running")
             
-            # Use actual model name from endpoint if not specified
+            # Always force-refresh model name from server at eval start
+            from evaluator.llm_client import llm_client
             if model_name is None or model_name == "default":
-                from evaluator.llm_client import llm_client
-                model_name = llm_client.get_actual_model_name()
+                model_name = llm_client.get_actual_model_name(force_refresh=True)
+            else:
+                # Still refresh cache so subsequent displays are accurate
+                llm_client.get_actual_model_name(force_refresh=True)
             
             self.model_name = model_name
             self.selected_domains = domains  # Store selected domains
