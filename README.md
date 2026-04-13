@@ -27,7 +27,7 @@ A web-based application to evaluate the capabilities of Large Language Models (L
 ### Installation
 
 ```bash
-git clone <your-repo-url> evonic-llm-eval
+git clone https://github.com/anvie/evonic-llm-eval/tree/claimguard evonic-llm-eval
 cd evonic-llm-eval
 pip install -r requirements.txt
 ```
