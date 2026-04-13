@@ -469,7 +469,7 @@ function stopEvaluation() {
             
             // Log stop message
             const logBox = document.getElementById('log-box');
-            logBox.innerHTML += '<div class="log-entry" style="color: #f59e0b; font-weight: bold;">[SYSTEM] Evaluation stopped by user.</div>';
+            logBox.innerHTML += colorizeLogEntry('[WARN] Evaluation stopped by user.');
         }
     })
     .catch(error => {
@@ -565,24 +565,24 @@ function updateStatus() {
             const logBox = document.getElementById('log-box');
             
             if (data.status === 'error') {
-                logBox.innerHTML += '<div class="log-entry" style="color: #ef4444; font-weight: bold;">[SYSTEM] ====== EVALUASI ERROR ======</div>';
+                logBox.innerHTML += colorizeLogEntry('[ERROR] ====== EVALUASI ERROR ======');
                 if (data.error_message) {
-                    logBox.innerHTML += `<div class="log-entry" style="color: #ef4444;">[ERROR] ${data.error_message}</div>`;
+                    logBox.innerHTML += colorizeLogEntry(`[ERROR] ${data.error_message}`);
                 }
             } else if (data.status === 'interrupted') {
-                logBox.innerHTML += '<div class="log-entry" style="color: #f59e0b; font-weight: bold;">[SYSTEM] ====== EVALUASI DIHENTIKAN ======</div>';
+                logBox.innerHTML += colorizeLogEntry('[WARN] ====== EVALUASI DIHENTIKAN ======');
             } else {
-                logBox.innerHTML += '<div class="log-entry" style="color: #4ade80; font-weight: bold;">[SYSTEM] ====== EVALUASI SELESAI ======</div>';
+                logBox.innerHTML += colorizeLogEntry('[RESULT] ✓ ====== EVALUASI SELESAI ======');
                 showCompletionModal(data);
             }
 
             // Show tok/s if available
             if (data.tok_per_sec) {
-                logBox.innerHTML += `<div class="log-entry" style="color: #3b82f6; font-weight: bold;">[STATS] Average: ${data.tok_per_sec} tok/s (${data.total_tokens} tokens in ${(data.total_duration_ms / 1000).toFixed(1)}s)</div>`;
+                logBox.innerHTML += colorizeLogEntry(`[STATS] Average: ${data.tok_per_sec} tok/s (${data.total_tokens} tokens in ${(data.total_duration_ms / 1000).toFixed(1)}s)`);
             }
-            
-            logBox.innerHTML += '<div class="log-entry">[SYSTEM] Halaman tidak di-reload. Anda dapat mengobservasi hasil.</div>';
-            logBox.innerHTML += '<div class="log-entry">[SYSTEM] Klik cell di Test Matrix untuk melihat detail, atau "Clear" untuk reset.</div>';
+
+            logBox.innerHTML += colorizeLogEntry('[SYSTEM] Halaman tidak di-reload. Anda dapat mengobservasi hasil.');
+            logBox.innerHTML += colorizeLogEntry('[SYSTEM] Klik cell di Test Matrix untuk melihat detail, atau "Clear" untuk reset.');
         }
     })
     .catch(error => {
@@ -682,6 +682,54 @@ window.addEventListener('load', function() {
 });
 {% endif %}
 
+function colorizeLogEntry(message) {
+    // Messages are formatted as "[HH:MM:SS] [TAG] ..." — skip timestamp prefix
+    const tag = (message.match(/^\[\d{2}:\d{2}:\d{2}\] \[([A-Z0-9_-]+)\]/) || message.match(/^\[([A-Z0-9_-]+)\]/) || [])[1];
+    const isSeparator = /[═─]{10}/.test(message);
+
+    let color = '';
+    let bold = false;
+
+    if (isSeparator) {
+        color = '#4b5563';
+    } else {
+        switch (tag) {
+            case 'INFO':    color = '#60a5fa'; break;
+            case 'SYSTEM':  color = '#60a5fa'; bold = true; break;
+            case 'TEST':    color = '#e2e8f0'; bold = true; break;
+            case 'INPUT':   color = '#3b82f6'; break;
+            case 'EXPECTED': color = '#059669'; break;
+            case 'OUTPUT':  color = '#eab308'; break;
+            case 'LLM':     color = '#9ca3af'; break;
+            case 'EVAL':    color = '#9ca3af'; break;
+            case 'SCORING': color = '#9ca3af'; break;
+            case 'THINKING': color = '#a78bfa'; break;
+            case 'TOOLS':       color = '#22d3ee'; break;
+            case 'TOOL-CALL':   color = '#f97316'; bold = true; break;
+            case 'TOOL-RESULT': color = '#a3e635'; break;
+            case 'DETAILS': color = '#9ca3af'; break;
+            case 'SKIP':    color = '#6b7280'; break;
+            case 'STATS':   color = '#3b82f6'; bold = true; break;
+            case 'WARN':    color = '#f59e0b'; bold = true; break;
+            case 'ERROR':   color = '#ef4444'; break;
+            case 'RESULT':
+                if (/✓|PASS/.test(message))      color = '#4ade80';
+                else if (/✗|FAIL/.test(message)) color = '#f87171';
+                else                              color = '#e2e8f0';
+                bold = true;
+                break;
+            default: color = '#d1d5db'; break;
+        }
+    }
+
+    const style = [
+        color ? `color:${color}` : '',
+        bold ? 'font-weight:bold' : ''
+    ].filter(Boolean).join(';');
+
+    return `<div class="log-entry"${style ? ` style="${style}"` : ''}>${message}</div>`;
+}
+
 function setupLogStream() {
     const logBox = document.getElementById('log-box');
 
@@ -691,7 +739,7 @@ function setupLogStream() {
         logPollInterval = null;
     }
 
-    logBox.innerHTML += '<div class="log-entry" style="color: #60a5fa;">[SYSTEM] Log stream connected.</div>';
+    logBox.innerHTML += colorizeLogEntry('[SYSTEM] Log stream connected.');
 
     // Poll for new log messages every 500ms
     logPollInterval = setInterval(() => {
@@ -701,7 +749,7 @@ function setupLogStream() {
             if (data.messages && data.messages.length > 0) {
                 for (const msg of data.messages) {
                     const message = msg.replace(/\n/g, '<br>');
-                    logBox.innerHTML += '<div class="log-entry">' + message + '</div>';
+                    logBox.innerHTML += colorizeLogEntry(message);
                 }
                 logBox.scrollTop = logBox.scrollHeight;
                 saveLogsToStorage();

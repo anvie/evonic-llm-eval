@@ -95,23 +95,23 @@ class LLMClient:
         except Exception:
             pass
         
-        # Try OpenAI-compatible /v1/models endpoint
+        # Try /v1/models — only trust the result if exactly one model is returned
+        # (local servers like Ollama/vLLM). Multi-model providers (OpenRouter) return
+        # their full catalogue, so we use the configured self.model instead.
         try:
             models_url = f"{self.base_url}/models"
             response = requests.get(models_url, timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                # Handle different response formats
-                if "data" in data and data["data"]:
-                    self._cached_model_name = data["data"][0].get("id", self.model)
-                    return self._cached_model_name
-                elif "models" in data and data["models"]:
-                    self._cached_model_name = data["models"][0].get("name", self.model)
+                models = data.get("data") or data.get("models") or []
+                if len(models) == 1:
+                    key = "id" if "id" in models[0] else "name"
+                    self._cached_model_name = models[0].get(key, self.model)
                     return self._cached_model_name
         except Exception:
             pass
-        
-        # Fallback to config — do NOT cache this, so next call retries the server
+
+        # Fallback: use configured model name (correct for OpenRouter and similar)
         return self.model
 
     

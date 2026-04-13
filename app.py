@@ -6,18 +6,10 @@ import os
 
 from evaluator.engine import evaluation_engine
 from models.db import db
-from routes.agents import agents_bp
-from routes.auth import auth_bp, login_required
-from routes.skills import skills_bp
-from routes.plugins import plugins_bp
 import config
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.register_blueprint(auth_bp)
-app.register_blueprint(agents_bp)
-app.register_blueprint(skills_bp)
-app.register_blueprint(plugins_bp)
 
 @app.route('/')
 def index():
@@ -705,6 +697,11 @@ def api_sync_tests():
 
 
 if __name__ == '__main__':
+    api_key = config.LLM_API_KEY
+    masked_key = (api_key[:8] + '...' + api_key[-4:]) if len(api_key) > 12 else ('***' if api_key else '(not set)')
+    print(f"  LLM Base URL : {config.LLM_BASE_URL}")
+    print(f"  LLM Model    : {config.LLM_MODEL}")
+    print(f"  LLM API Key  : {masked_key}")
     app.run(
         host=config.HOST,
         port=config.PORT,
