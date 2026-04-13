@@ -15,19 +15,26 @@
     <!-- Run Info Panel -->
     <div style="margin-top: 1.5rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <div class="run-info-grid">
-            <div class="info-item">
+            <div class="info-item text-center">
                 <span class="info-label">Run ID</span>
-                <span class="info-value" style="font-family: monospace; font-size: 0.85rem;">{{ run_info.run_id }}</span>
+                <span class="info-value font-mono text-sm">{{ run_info.run_id }}</span>
             </div>
-            <div class="info-item">
+            <div class="info-item text-center">
                 <span class="info-label">Model</span>
                 <span class="info-value">{{ run_info.model_name or 'default' }}</span>
             </div>
-            <div class="info-item">
+            <div class="info-item text-center">
                 <span class="info-label">Passed</span>
-                <span class="info-value">{{ stats.status_counts.get('passed', 0) }}<span style="color: #9ca3af; font-weight: 400;"> / {{ stats.total_tests or 0 }}</span></span>
+                <span class="flex items-baseline justify-center gap-1">
+                    <span class="info-value">{{ stats.status_counts.get('passed', 0) }}<span class="text-gray-400 font-normal"> / {{ stats.total_tests or 0 }}</span></span>
+                    <span class="text-xs text-gray-400">domain</span>
+                </span>
+                <span class="flex items-baseline justify-center gap-1 mt-1">
+                    <span class="info-value">{{ individual_stats.passed }}<span class="text-gray-400 font-normal"> / {{ individual_stats.total }}</span></span>
+                    <span class="text-xs text-gray-400">individual</span>
+                </span>
             </div>
-            <div class="info-item">
+            <div class="info-item text-center">
                 <span class="info-label">Overall Score</span>
                 <span class="info-value info-value-stat
                     {% if run_info.overall_score is not none %}
@@ -40,17 +47,17 @@
                 </span>
             </div>
             {% if run_info.total_tokens and run_info.total_tokens > 0 %}
-            <div class="info-item">
+            <div class="info-item text-center">
                 <span class="info-label">Speed</span>
-                <span class="info-value" style="color: #0369a1; font-weight: 600;">{{ "%.1f"|format((run_info.total_tokens or 0) / ((run_info.total_duration_ms or 1) / 1000)) }} tok/s</span>
+                <span class="info-value text-blue-700 font-semibold">{{ "%.1f"|format((run_info.total_tokens or 0) / ((run_info.total_duration_ms or 1) / 1000)) }} tok/s</span>
             </div>
-            <div class="info-item">
+            <div class="info-item text-center">
                 <span class="info-label">Tokens</span>
-                <span class="info-value" style="color: #0369a1; font-weight: 600;">{{ "{:,}".format(run_info.total_tokens or 0) }}</span>
+                <span class="info-value text-blue-700 font-semibold">{{ "{:,}".format(run_info.total_tokens or 0) }}</span>
             </div>
-            <div class="info-item">
+            <div class="info-item text-center">
                 <span class="info-label">Duration</span>
-                <span class="info-value" style="color: #0369a1; font-weight: 600;">{{ "%.1f"|format((run_info.total_duration_ms or 0) / 1000) }}s</span>
+                <span class="info-value text-blue-700 font-semibold">{{ "%.1f"|format((run_info.total_duration_ms or 0) / 1000) }}s</span>
             </div>
             {% endif %}
         </div>
@@ -80,7 +87,7 @@
         {% for domain in domains %}
         <!-- Matrix Row: card on mobile, grid row on desktop -->
         <div class="grid grid-cols-5 gap-1 p-3 mb-3 border border-gray-200 rounded-lg bg-white
-                    md:grid-cols-[160px_repeat(5,1fr)_120px] md:gap-2 md:p-4 md:mb-0 md:border-x-0 md:border-t-0 md:border-b md:border-gray-200 md:rounded-none md:bg-transparent md:hover:bg-gray-50 transition-colors"
+                    md:grid-cols-[160px_repeat(5,1fr)_120px] md:gap-2 md:p-0 md:mb-0 md:border-x-0 md:border-t-0 md:border-b md:border-gray-200 md:rounded-none md:bg-transparent md:hover:bg-gray-50 transition-colors"
              id="row-{{ domain }}">
             <!-- Domain name (mobile: full-width header row) -->
             <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0">
@@ -89,7 +96,7 @@
             <!-- Hide desktop-only domain name since we show it for both -->
             <!-- Level cells (5 columns on both mobile and desktop) -->
             {% for level in range(1, 6) %}
-            <div class="level-cell flex flex-col items-center justify-center min-h-[50px] md:min-h-[70px] p-1 md:p-2 rounded-md font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+            <div class="level-cell flex flex-col items-center justify-center min-h-[36px] md:min-h-[44px] p-1 rounded-md font-medium cursor-pointer hover:bg-gray-100 transition-colors"
                  id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
                 <span class="text-[0.6rem] font-semibold text-gray-400 uppercase md:hidden">L{{ level }}</span>
                 <div class="flex items-center justify-center gap-1 md:gap-2">
@@ -101,8 +108,8 @@
             {% endfor %}
 
             <!-- Domain total (mobile: full-width footer, desktop: column) -->
-            <div class="col-span-5 flex flex-row items-center justify-center gap-3 p-2 bg-gray-50 rounded-md mt-1
-                        md:col-span-1 md:flex-col md:gap-0 md:mt-0 md:min-h-[60px]"
+            <div class="col-span-5 flex flex-row items-center justify-center gap-3 p-1 bg-gray-50 rounded-md mt-1
+                        md:col-span-1 md:flex-col md:gap-0 md:mt-0 md:min-h-[44px]"
                  id="total-{{ domain }}">
                 <div class="text-base md:text-lg font-bold text-gray-800" id="total-score-{{ domain }}">-</div>
                 <span class="text-xs text-gray-500" id="total-passed-{{ domain }}">0/5</span>
@@ -112,30 +119,6 @@
         {% endfor %}
     </div>
     
-    <!-- Statistics Panel -->
-    <div style="margin-top: 1.5rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-        <h3 style="margin-top: 0;">Statistics</h3>
-        <div class="stats-grid">
-            <div class="stat-item">
-                <span class="stat-label">Total Tests</span>
-                <span class="stat-value">{{ stats.total_tests or 0 }}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Average Score</span>
-                <span class="stat-value">{{ "%.1f"|format((stats.avg_score or 0) * 100) }}%</span>
-            </div>
-            {% if stats.status_counts %}
-            <div class="stat-item">
-                <span class="stat-label">Passed</span>
-                <span class="stat-value" style="color: #10b981;">{{ stats.status_counts.get('passed', 0) }}</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Failed</span>
-                <span class="stat-value" style="color: #ef4444;">{{ stats.status_counts.get('failed', 0) }}</span>
-            </div>
-            {% endif %}
-        </div>
-    </div>
     
     <!-- Evaluation Logs Section -->
     <div class="log-container">
@@ -571,32 +554,6 @@ document.addEventListener('keydown', function(event) {
     font-style: italic;
 }
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 1rem;
-}
-
-.stat-item {
-    background: #f9fafb;
-    padding: 1rem;
-    border-radius: 6px;
-    text-align: center;
-}
-
-.stat-label {
-    display: block;
-    font-size: 0.75rem;
-    color: #6b7280;
-    text-transform: uppercase;
-    margin-bottom: 0.25rem;
-}
-
-.stat-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: bold;
-}
 
 .status-indicator {
     display: inline-block;

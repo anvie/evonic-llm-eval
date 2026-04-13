@@ -134,9 +134,17 @@ def history_detail(run_id):
     run_info = db.get_evaluation_run(run_id)
     test_results = db.get_test_results(run_id)
     stats = db.get_run_stats(run_id)
-    
+
     if not run_info:
         return "Run not found", 404
+
+    # Individual test counts (from individual_test_results)
+    import sqlite3 as _sqlite3
+    with _sqlite3.connect(db.db_path) as _conn:
+        _c = _conn.cursor()
+        _c.execute("SELECT COUNT(*), SUM(status='passed') FROM individual_test_results WHERE run_id=?", (run_id,))
+        _row = _c.fetchone()
+    individual_stats = {'total': _row[0] or 0, 'passed': _row[1] or 0}
     
     # Extract unique domains from actual test results (preserving order)
     seen = set()
@@ -147,10 +155,11 @@ def history_detail(run_id):
             seen.add(d)
             domains.append(d)
     
-    return render_template('history_detail.html', 
-                          run_info=run_info, 
+    return render_template('history_detail.html',
+                          run_info=run_info,
                           test_results=test_results,
                           stats=stats,
+                          individual_stats=individual_stats,
                           domains=domains)
 
 @app.route('/api/run/<int:run_id>')
