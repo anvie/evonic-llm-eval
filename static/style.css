@@ -169,6 +169,7 @@ footer {
 }
 .status-pending { background: #9ca3af; }
 .status-skipped { background: #d1d5db; }
+.status-technical-error { background: #111827; }
 .status-partial {
     background: #f59e0b;
     opacity: 0.8;

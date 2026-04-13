@@ -482,12 +482,22 @@ function showCompletionModal(data) {
     const modal = document.getElementById('completion-modal');
     const score = data.overall_score;
     const scorePercent = score !== null && score !== undefined ? (score * 100).toFixed(1) : '—';
-    const completed = data.completed_tests || 0;
     const activeDomains = Object.keys(data.domains || {});
     const total = activeDomains.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
 
+    // Count passed, skipped, technical errors from domain matrix
+    let passed = 0, skipped = 0, technicalErrors = 0;
+    for (const domain of activeDomains) {
+        const levels = data.domains[domain] || {};
+        for (const level of Object.values(levels)) {
+            if (level.status === 'passed') passed++;
+            else if (level.status === 'skipped') skipped++;
+            else if (level.status === 'failed' && level.details?.llm_error) technicalErrors++;
+        }
+    }
+
     document.getElementById('completion-score-text').textContent = scorePercent + '%';
-    document.getElementById('completion-tests-label').textContent = `${completed}/${total} tests completed`;
+    document.getElementById('completion-tests-label').textContent = `${passed}/${total} tests passed`;
 
     // Color based on score
     const scoreEl = document.getElementById('completion-score-text');
@@ -504,6 +514,8 @@ function showCompletionModal(data) {
 
     // Stats line
     const stats = [];
+    if (skipped > 0) stats.push(`${skipped} skipped`);
+    if (technicalErrors > 0) stats.push(`${technicalErrors} server error`);
     if (data.tok_per_sec) stats.push(`${data.tok_per_sec} tok/s`);
     if (data.total_tokens) stats.push(`${data.total_tokens} tokens`);
     if (data.total_duration_ms) stats.push(`${(data.total_duration_ms / 1000).toFixed(1)}s`);
@@ -594,7 +606,8 @@ function updateMatrix(matrix) {
                 
                 // Update status indicator
                 const statusEl = cell.querySelector('.status-dot');
-                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + data.status;
+                const dotStatus = (data.status === 'failed' && data.details?.llm_error) ? 'technical-error' : data.status;
+                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + dotStatus;
                 
                 // Update score
                 const scoreEl = cell.querySelector('.cell-score');
