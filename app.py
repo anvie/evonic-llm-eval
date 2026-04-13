@@ -19,6 +19,7 @@ def index():
     # Get enabled domains for the test matrix
     domains = [d for d in test_manager.list_domains() if d.get('enabled', True)]
     domain_ids = [d['id'] for d in domains]
+    domain_names = {d['id']: d.get('name', d['id']) for d in domains}
     # Build per-domain enabled test counts for accurate progress display
     domain_test_counts = {}
     for d in domains:
@@ -27,7 +28,7 @@ def index():
             tests = test_manager.list_tests(d['id'], lvl)
             count += sum(1 for t in tests if t.get('enabled', True))
         domain_test_counts[d['id']] = count
-    return render_template('index.html', status=status, domains=domain_ids, domain_test_counts=domain_test_counts)
+    return render_template('index.html', status=status, domains=domain_ids, domain_names=domain_names, domain_test_counts=domain_test_counts)
 
 @app.route('/api/status')
 def api_status():
