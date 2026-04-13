@@ -22,7 +22,7 @@
 
         {% if status.run_id %}
         <div class="mt-2 text-gray-500 text-sm">
-            <span class="mr-6">Run ID: <code id="run-id-code" class="bg-gray-100 px-1.5 py-0.5 rounded">{{ status.run_id[:8] }}</code></span>
+            <span class="mr-6">Run ID: <code id="run-id-code" class="bg-gray-100 px-1.5 py-0.5 rounded">{{ status.run_id|string|truncate(8, false, '') }}</code></span>
             {% if status.run_info and status.run_info.model_name %}
             <span id="server-model-display">Model: <strong class="text-indigo-500">{{ status.run_info.model_name }}</strong></span>
             {% endif %}
@@ -1494,7 +1494,7 @@ input[type="checkbox"] {
 
 .prompt-box { max-height: 100px; overflow-y: auto; }
 .expected-box { overflow-y: auto; }
-.response-box { max-height: 150px; overflow-y: auto; }
+.response-box { overflow-y: auto; }
 .thinking-box { background: #f5f3ff; max-height: auto; overflow-y: auto; }
 .system-prompt-box { 
     background: #fef3c7; 

@@ -172,79 +172,90 @@ function renderTestDetail(test, domain) {
         `;
     }
 
+    // Prompt section
     html += `
         <div class="test-detail-section">
             <div class="section-header">📥 PROMPT</div>
             <div class="section-content prompt-box">${escapeHtml(test.prompt || '')}</div>
         </div>
-
-        <div class="test-detail-section">
-            <div class="section-header">🎯 EXPECTED</div>
-            <div class="section-content expected-box">${formatExpected(test.expected)}</div>
-        </div>
     `;
 
-    // Conversation Log (multi-turn)
+    // Thinking section (collapsible) — right after prompt
     if (details.conversation_log && details.conversation_log.length > 0) {
         html += `
             <div class="test-detail-section">
-                <div class="section-header">TURNS (${details.conversation_log.length})</div>
-                <div class="space-y-2">
-                    ${details.conversation_log.map((turn, i) => `
-                        <div class="border border-gray-200 rounded text-xs">
-                            <div class="bg-gray-100 px-2 py-1 font-semibold text-gray-600 border-b border-gray-200">Turn ${turn.turn || i+1}</div>
-                            ${turn.thinking ? `
-                                <div class="px-2 py-1 bg-purple-50 border-b border-gray-100">
-                                    <span class="text-purple-600 font-medium">💭 [thinking]</span><br />
-                                    <pre class="text-gray-700 ml-1 overflow-wrap text-wrap max-h-full overflow-y-auto">${escapeHtml(turn.thinking)}</pre>
-                                </div>
-                            ` : ''}
-                            ${turn.tool_calls && turn.tool_calls.length > 0 ? `
-                                <div class="px-2 py-1 bg-blue-50 border-b border-gray-100 font-mono">
-                                    <span class="text-blue-600">🔧</span>
-                                    ${turn.tool_calls.map(tc => `<span class="text-indigo-600 font-semibold ml-1">${escapeHtml(tc.name)}</span><span class="text-gray-500">(${escapeHtml(JSON.stringify(tc.arguments || {})).substring(0, 60)})</span>`).join(' ')}
-                                </div>
-                            ` : ''}
-                            ${turn.tool_results && turn.tool_results.length > 0 ? `
-                                <div class="px-2 py-1 bg-green-50 border-b border-gray-100 font-mono text-gray-600">
-                                    <span class="text-green-600">📥</span>
-                                    <span class="ml-1">${escapeHtml(JSON.stringify(turn.tool_results[0]?.result || {}, null, 0)).substring(0, 120)}${JSON.stringify(turn.tool_results[0]?.result || {}).length > 120 ? '...' : ''}</span>
-                                </div>
-                            ` : ''}
-                            ${turn.response ? `
-                                <div class="px-2 py-1 bg-amber-50 font-semibold text-md">
-                                    <p class="text-amber-600">💬 [response]</p>
-                                    <pre class="text-gray-700 ml-1">${escapeHtml(turn.response)}</pre>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `).join('')}
+                <div class="section-header collapsible-header" onclick="toggleThinking()">
+                    💭 CONVERSATION LOG (${details.conversation_log.length} turns)
+                    <span class="toggle-icon" id="thinking-toggle">▶</span>
+                </div>
+                <div class="section-content thinking-box" id="thinking-content" style="display: none;">
+                    <div class="space-y-2">
+                        ${details.conversation_log.map((turn, i) => `
+                            <div class="border border-gray-200 rounded text-xs">
+                                <div class="bg-gray-100 px-2 py-1 font-semibold text-gray-600 border-b border-gray-200">Turn ${turn.turn || i+1}</div>
+                                ${turn.thinking ? `
+                                    <div class="px-2 py-1 bg-purple-50 border-b border-gray-100">
+                                        <span class="text-purple-600 font-medium">💭 [thinking]</span><br />
+                                        <pre class="text-gray-700 ml-1 overflow-wrap text-wrap max-h-full overflow-y-auto">${escapeHtml(turn.thinking)}</pre>
+                                    </div>
+                                ` : ''}
+                                ${turn.tool_calls && turn.tool_calls.length > 0 ? `
+                                    <div class="px-2 py-1 bg-blue-50 border-b border-gray-100 font-mono">
+                                        <span class="text-blue-600">🔧</span>
+                                        ${turn.tool_calls.map(tc => `<span class="text-indigo-600 font-semibold ml-1">${escapeHtml(tc.name)}</span><span class="text-gray-500">(${escapeHtml(JSON.stringify(tc.arguments || {})).substring(0, 60)})</span>`).join(' ')}
+                                    </div>
+                                ` : ''}
+                                ${turn.tool_results && turn.tool_results.length > 0 ? `
+                                    <div class="px-2 py-1 bg-green-50 border-b border-gray-100 font-mono text-gray-600">
+                                        <span class="text-green-600">📥</span>
+                                        <span class="ml-1">${escapeHtml(JSON.stringify(turn.tool_results[0]?.result || {}, null, 0)).substring(0, 120)}${JSON.stringify(turn.tool_results[0]?.result || {}).length > 120 ? '...' : ''}</span>
+                                    </div>
+                                ` : ''}
+                                ${turn.response ? `
+                                    <div class="px-2 py-1 bg-amber-50 font-semibold text-md">
+                                        <p class="text-amber-600">💬 [response]</p>
+                                        <pre class="text-gray-700 ml-1">${escapeHtml(turn.response)}</pre>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
         `;
     } else if (details.thinking) {
-        // Single-turn thinking
         html += `
             <div class="test-detail-section">
-                <div class="section-header">🧠 THINKING</div>
-                <div class="section-content thinking-box">
+                <div class="section-header collapsible-header" onclick="toggleThinking()">
+                    🧠 THINKING
+                    <span class="toggle-icon" id="thinking-toggle">▶</span>
+                </div>
+                <div class="section-content thinking-box" id="thinking-content" style="display: none;">
                     <pre>${escapeHtml(details.thinking)}</pre>
                 </div>
             </div>
         `;
     }
 
-    // Final Response (for non-multi-turn tests)
-    if (test.response && !details.conversation_log) {
-        html += `
-            <div class="test-detail-section">
+    // Side-by-side: Expected vs Final Response
+    const hasResponse = test.response && !details.conversation_log;
+    html += `
+        <div class="compare-row">
+            <div class="compare-col">
+                <div class="section-header">🎯 EXPECTED</div>
+                <div class="section-content expected-box">${formatExpected(test.expected)}</div>
+            </div>
+            <div class="compare-col">
                 <div class="section-header">📤 FINAL RESPONSE</div>
-                <div class="section-content" style="background: #fefce8; padding: 1rem; border-radius: 6px;">
-                    <pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(test.response)}</pre>
+                <div class="section-content response-box" style="background: #fefce8;">
+                    ${hasResponse
+                        ? `<pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(stripCodeFences(test.response))}</pre>`
+                        : `<span style="color: #9ca3af; font-style: italic;">No response</span>`
+                    }
                 </div>
             </div>
-        `;
-    }
+        </div>
+    `;
 
     // Evaluation Details
     if (details.evaluator || details.called_tools || details.missing_tools) {
@@ -393,6 +404,16 @@ function renderEvalProcessDetails(details) {
 }
 
 /**
+ * Strip markdown code fences (e.g. ```json ... ```) from LLM responses
+ * @param {string} text
+ * @returns {string}
+ */
+function stripCodeFences(text) {
+    if (!text) return text;
+    return text.replace(/^```[a-zA-Z]*\n?/gm, '').replace(/^```$/gm, '').trim();
+}
+
+/**
  * Format expected output for display
  * @param {*} expected - Expected value (can be string, object, etc.)
  * @returns {string} HTML string
@@ -450,6 +471,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+/**
+ * Toggle thinking/conversation log visibility (collapsed/expanded)
+ */
+function toggleThinking() {
+    const content = document.getElementById('thinking-content');
+    const toggle = document.getElementById('thinking-toggle');
+    if (content && toggle) {
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            toggle.textContent = '▼';
+        } else {
+            content.style.display = 'none';
+            toggle.textContent = '▶';
+        }
+    }
+}
 
 /**
  * Toggle system prompt visibility (collapsed/expanded)
