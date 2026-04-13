@@ -29,18 +29,14 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Overall Score</span>
-                <span class="info-value">
+                <span class="info-value info-value-stat
                     {% if run_info.overall_score is not none %}
-                    <span class="score-badge 
-                        {% if run_info.overall_score >= 0.8 %}score-high
-                        {% elif run_info.overall_score >= 0.6 %}score-medium
-                        {% else %}score-low
-                        {% endif %}">
-                        {{ "%.1f"|format(run_info.overall_score * 100) }}%
-                    </span>
-                    {% else %}
-                    -
-                    {% endif %}
+                        {% if run_info.overall_score >= 0.8 %}info-stat-high
+                        {% elif run_info.overall_score >= 0.6 %}info-stat-medium
+                        {% else %}info-stat-low
+                        {% endif %}
+                    {% endif %}">
+                    {% if run_info.overall_score is not none %}{{ "%.1f"|format(run_info.overall_score * 100) }}%{% else %}—{% endif %}
                 </span>
             </div>
             {% if run_info.total_tokens and run_info.total_tokens > 0 %}
@@ -554,6 +550,18 @@ document.addEventListener('keydown', function(event) {
     display: block;
     font-weight: 500;
 }
+
+.info-value-stat {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-top: 0.125rem;
+}
+
+.info-stat-high  { color: #059669; }
+.info-stat-medium { color: #d97706; }
+.info-stat-low   { color: #dc2626; }
 
 .summary-box {
     background: #f0f9ff;
