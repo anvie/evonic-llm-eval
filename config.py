@@ -22,6 +22,7 @@ LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "32768"))
 # automatically capped to LLM_CONTEXT_LENGTH - LLM_PROMPT_BUFFER to avoid overflow.
 LLM_CONTEXT_LENGTH = int(os.getenv("LLM_CONTEXT_LENGTH", "0"))  # 0 = no limit applied
 LLM_PROMPT_BUFFER = int(os.getenv("LLM_PROMPT_BUFFER", "2048"))  # tokens reserved for input
+LLM_ENABLE_THINKING = os.getenv("LLM_ENABLE_THINKING", "1") == "1"  # Set to 0 to disable thinking mode (e.g. Gemma 4 <|think|> injection)
 
 # Two-Pass Extraction Configuration
 # PASS 1: LLM generates answer with reasoning

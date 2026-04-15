@@ -67,12 +67,10 @@ class EvaluationEngine:
                 raise Exception("Evaluation already running")
             
             # Always force-refresh model name from server at eval start
+            # The frontend may send a stale model name (fetched at page load),
+            # so always fetch the current name from the server.
             from evaluator.llm_client import llm_client
-            if model_name is None or model_name == "default":
-                model_name = llm_client.get_actual_model_name(force_refresh=True)
-            else:
-                # Still refresh cache so subsequent displays are accurate
-                llm_client.get_actual_model_name(force_refresh=True)
+            model_name = llm_client.get_actual_model_name(force_refresh=True)
             
             self.model_name = model_name
             self.selected_domains = domains  # Store selected domains
@@ -425,7 +423,7 @@ class EvaluationEngine:
                 tools = None
 
                 self._log(f'[LLM] Sending request to model...')
-                llm_response = llm_client.chat_completion(messages, tools)
+                llm_response = llm_client.chat_completion(messages, tools, enable_thinking=config.LLM_ENABLE_THINKING)
                 
                 # Safely extract duration and tokens
                 duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
@@ -822,7 +820,7 @@ class EvaluationEngine:
             tools = None
             
             self._log(f'[LLM] Sending request to model...')
-            llm_response = llm_client.chat_completion(messages, tools)
+            llm_response = llm_client.chat_completion(messages, tools, enable_thinking=config.LLM_ENABLE_THINKING)
             
             duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
             total_tokens = llm_response.get("total_tokens", 0) if isinstance(llm_response, dict) else 0
@@ -1038,7 +1036,7 @@ class EvaluationEngine:
             }
             
             # Send to LLM
-            llm_response = llm_client.chat_completion(messages, tools)
+            llm_response = llm_client.chat_completion(messages, tools, enable_thinking=config.LLM_ENABLE_THINKING)
             
             # Accumulate stats
             duration_ms = llm_response.get("duration_ms", 0) if isinstance(llm_response, dict) else 0
