@@ -15,7 +15,7 @@
       {"code": "J96.01", "description": "Acute respiratory failure with hypoxia", "type": "SECONDARY"},
       {"code": "E11.42", "description": "Type 2 diabetes mellitus with diabetic polyneuropathy", "type": "SECONDARY"},
       {"code": "F43.10", "description": "Post-traumatic stress disorder, unspecified", "type": "SECONDARY"},
-      {"code": "F63.3", "description": "Borderline personality disorder", "type": "SECONDARY"},
+      {"code": "F60.3", "description": "Emotionally unstable personality disorder (borderline type)", "type": "SECONDARY"},
       {"code": "F31.9", "description": "Bipolar disorder, unspecified", "type": "SECONDARY"},
       {"code": "J44.9", "description": "Chronic obstructive pulmonary disease, unspecified", "type": "SECONDARY"},
       {"code": "I12.9", "description": "Hypertensive chronic kidney disease with stage 1-4 CKD", "type": "SECONDARY"},

@@ -1,4 +1,5 @@
 {
-  "system_prompt": "\nHighly complex case with 8+ diagnoses. Distinguish primary vs secondary diagnoses precisely. Apply: combination codes where applicable, and proper sequencing rules for complications and comorbidities.",
-  "system_prompt_mode": "append"
+  "system_prompt": null,
+  "system_prompt_mode": "append",
+  "tool_ids": null
 }

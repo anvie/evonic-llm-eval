@@ -2,31 +2,99 @@
   "id": "icd_cirrhosis_5",
   "name": "ICD Coding — Decompensated Cirrhosis + E. coli Sepsis + Multi-Organ Failure",
   "description": "Level 5 — MIMIC hadm 22987108 — deceased patient, 10+ ICD codes including sepsis sequencing, organ failure cascade",
-  "prompt": "Patient: Male, 69 years old. Direct emergency admission. Died after 32-day ICU stay. Medical history: liver cirrhosis (NASH), type 2 diabetes mellitus, hypertensive CKD, atherosclerotic coronary artery disease. Presentation: hematemesis, altered consciousness, shock. Diagnoses confirmed during admission: other cirrhosis of liver (NASH), hepatorenal syndrome, acute respiratory failure (unspecified), sepsis due to Escherichia coli, acute kidney failure (unspecified), hemoperitoneum, hypovolemic shock, severe sepsis with septic shock, peritonitis (unspecified), chronic kidney disease stage 3, severe protein-calorie malnutrition, acute and subacute hepatic failure with coma, acquired coagulation factor deficiency, ventilator-associated pneumonia, other ascites, acute posthemorrhagic anemia, unspecified atrial flutter, portal hypertension, hypo-osmolality and hyponatremia, UTI, ileus (unspecified), acidosis, atelectasis, nonalcoholic steatohepatitis, hypertensive CKD, anemia in chronic disease, type 2 DM (no complications), unspecified atrial fibrillation. Labs: bilirubin 12.3, ALT 205, AST 227, bicarbonate 16, anion gap 28, platelets 78K, Hgb 9.7, BUN 49. Assign the appropriate ICD-10-CM code(s) with correct sequencing — note sepsis sequencing rules (A41.x as principal when reason for admission is sepsis).",
+  "prompt": "Pasien laki-laki, 69 tahun, masuk IGD rumah sakit dalam keadaan syok hipovolemik (BP 78/42, HR 128) dengan hematemesis masif dan penurunan kesadaran (GCS 8). Riwayat penyakit: sirosis hati akibat NASH (nonalcoholic steatohepatitis), hipertensi portal, diabetes mellitus tipe 2, CKD hipertensif stadium 3, dan penyakit arteri koroner aterosklerotik.\n\nPerjalanan perawatan ICU (32 hari, pasien meninggal):\n- Hari ke-1: Ditemukan hemoperitoneum pada CT abdomen. Dilakukan intubasi dan ventilasi mekanik karena gagal napas akut (acute respiratory failure). Kultur darah positif *Escherichia coli* → diagnosis sepsis berat dengan syok septik.\n- Hari ke-3: Berkembang hepatorenal syndrome dengan acute kidney failure (Cr naik dari 1.8 ke 5.2 mg/dL). Gagal hati akut dengan koma hepatikum (hepatic failure with coma).\n- Hari ke-7: Peritonitis difus, dilakukan lavase peritoneal. Lab menunjukkan acquired coagulation factor deficiency (INR 4.2, fibrinogen 89).\n- Hari ke-14: Ventilator-associated pneumonia (VAP), kultur sputum positif Pseudomonas. Malnutrisi berat protein-kalori (albumin 1.8 g/dL, BMI turun ke 16.2).\n- Hari ke-32: Pasien meninggal akibat kegagalan multiorgan.\n\nDiagnosis akhir: Sepsis E. coli (utamakan A41.x sebagai kode primer), severe sepsis with septic shock, sirosis hati (other cirrhosis — bukan alkoholik), hepatorenal syndrome, acute respiratory failure, acute kidney failure, hemoperitoneum, syok hipovolemik, peritonitis, hepatic failure with coma, acquired coagulation factor deficiency, VAP, hipertensi portal, malnutrisi berat protein-kalori, CKD stadium 3, NASH.\n\nTetapkan kode ICD-10-CM yang sesuai dengan urutan yang benar.",
   "expected": {
     "codes": [
-      {"code": "A41.51", "description": "Sepsis due to Escherichia coli [E. coli]", "type": "PRIMARY"},
-      {"code": "R65.21", "description": "Severe sepsis with septic shock", "type": "SECONDARY"},
-      {"code": "K74.69", "description": "Other cirrhosis of liver", "type": "SECONDARY"},
-      {"code": "K76.7", "description": "Hepatorenal syndrome", "type": "SECONDARY"},
-      {"code": "J96.00", "description": "Acute respiratory failure, unspecified whether with hypoxia or hypercapnia", "type": "SECONDARY"},
-      {"code": "N17.9", "description": "Acute kidney failure, unspecified", "type": "SECONDARY"},
-      {"code": "K66.1", "description": "Hemoperitoneum", "type": "SECONDARY"},
-      {"code": "R57.1", "description": "Hypovolemic shock", "type": "SECONDARY"},
-      {"code": "K65.9", "description": "Peritonitis, unspecified", "type": "SECONDARY"},
-      {"code": "K72.01", "description": "Acute and subacute hepatic failure with coma", "type": "SECONDARY"},
-      {"code": "D68.4", "description": "Acquired coagulation factor deficiency", "type": "SECONDARY"},
-      {"code": "J95.851", "description": "Ventilator associated pneumonia", "type": "SECONDARY"},
-      {"code": "K76.6", "description": "Portal hypertension", "type": "SECONDARY"},
-      {"code": "E43", "description": "Unspecified severe protein-calorie malnutrition", "type": "SECONDARY"},
-      {"code": "N18.3", "description": "Chronic kidney disease, stage 3 (moderate)", "type": "SECONDARY"},
-      {"code": "K75.81", "description": "Nonalcoholic steatohepatitis (NASH)", "type": "SECONDARY"}
+      {
+        "code": "A41.51",
+        "description": "Sepsis due to Escherichia coli [E. coli]",
+        "type": "PRIMARY"
+      },
+      {
+        "code": "R65.21",
+        "description": "Severe sepsis with septic shock",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "K74.69",
+        "description": "Other cirrhosis of liver",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "K76.7",
+        "description": "Hepatorenal syndrome",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "J96.00",
+        "description": "Acute respiratory failure, unspecified whether with hypoxia or hypercapnia",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "N17.9",
+        "description": "Acute kidney failure, unspecified",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "K66.1",
+        "description": "Hemoperitoneum",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "R57.1",
+        "description": "Hypovolemic shock",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "K65.9",
+        "description": "Peritonitis, unspecified",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "K72.01",
+        "description": "Acute and subacute hepatic failure with coma",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "D68.4",
+        "description": "Acquired coagulation factor deficiency",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "J95.851",
+        "description": "Ventilator associated pneumonia",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "K76.6",
+        "description": "Portal hypertension",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "E43",
+        "description": "Unspecified severe protein-calorie malnutrition",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "N18.3",
+        "description": "Chronic kidney disease, stage 3 (moderate)",
+        "type": "SECONDARY"
+      },
+      {
+        "code": "K75.81",
+        "description": "Nonalcoholic steatohepatitis (NASH)",
+        "type": "SECONDARY"
+      }
     ]
   },
   "evaluator_id": "icd_code_judge",
   "difficulty": "extreme",
   "source": "MIMIC-IV hadm_id=22987108",
   "timeout_ms": 120000,
-  "weight": 1.0,
-  "enabled": true
+  "weight": 1,
+  "enabled": true,
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite",
+  "tool_ids": [],
+  "updated_at": "2026-04-15T00:00:00.000000"
 }

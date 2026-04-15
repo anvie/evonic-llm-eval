@@ -1,0 +1,21 @@
+{
+  "id": "icd_chf_afib_3",
+  "name": "ICD Coding — Gagal Jantung Kongestif + AF + Pneumonia + CKD",
+  "description": "Level 3 — 5 diagnosis: CHF dekompensata, atrial fibrilasi, pneumonia, CKD stadium 3, hipertensi. Bahasa Indonesia.",
+  "prompt": "Pasien perempuan, 74 tahun, masuk IGD dengan sesak napas berat (NYHA IV) sejak 2 hari, tidur harus duduk (orthopnea), dan kaki bengkak bilateral. Riwayat penyakit: gagal jantung kongestif (chronic systolic/diastolic combined), atrial fibrilasi persisten (dalam terapi warfarin), CKD stadium 3, hipertensi esensial. Tanda vital: TD 162/94, nadi 124x/menit (ireguler), napas 32x/menit, suhu 38.2°C, SpO2 86% room air. Pemeriksaan fisik: JVP meningkat, ronki basah bilateral, edema tungkai bilateral pitting grade 3. Rontgen toraks: kardiomegali, edema paru bilateral, infiltrat di basal kanan. Lab: BNP 2840 pg/mL, leukosit 14.600/uL, kreatinin 2.1 mg/dL, INR 2.8, troponin negatif. Diagnosis: Gagal jantung kongestif kombinasi sistolik dan diastolik (dekompensata), atrial fibrilasi persisten, pneumonia (organisme tidak teridentifikasi), CKD stadium 3, hipertensi esensial. Tetapkan kode ICD-10-CM yang sesuai.",
+  "expected": {
+    "codes": [
+      {"code": "I50.42", "description": "Chronic combined systolic (congestive) and diastolic (congestive) heart failure", "type": "PRIMARY"},
+      {"code": "I48.1", "description": "Persistent atrial fibrillation", "type": "SECONDARY"},
+      {"code": "J18.9", "description": "Pneumonia, unspecified organism", "type": "SECONDARY"},
+      {"code": "N18.3", "description": "Chronic kidney disease, stage 3 (moderate)", "type": "SECONDARY"},
+      {"code": "I10", "description": "Essential (primary) hypertension", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "hard",
+  "source": "synthetic",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

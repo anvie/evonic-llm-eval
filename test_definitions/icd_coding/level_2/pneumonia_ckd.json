@@ -1,0 +1,20 @@
+{
+  "id": "icd_pneumonia_ckd_2",
+  "name": "ICD Coding — Pneumonia + CKD + Anemia",
+  "description": "Level 2 — 4 diagnosis: community-acquired pneumonia, CKD, anemia, hipertensi. Bahasa Indonesia.",
+  "prompt": "Pasien laki-laki, 71 tahun, datang ke IGD dengan keluhan demam tinggi 3 hari, batuk berdahak kuning-kehijauan, dan sesak napas memberat. Riwayat penyakit: CKD stadium 4 (dalam hemodialisis rutin 2x/minggu), hipertensi esensial. Tanda vital: TD 148/88, nadi 102x/menit, napas 28x/menit, suhu 39.1°C, SpO2 89% room air. Pemeriksaan fisik: ronki basah kasar di basal paru kanan. Rontgen toraks: infiltrat di lobus inferior kanan. Lab: Hgb 8.8 g/dL, leukosit 18.200/uL, ureum 142 mg/dL, kreatinin 7.8 mg/dL. Diagnosis: Pneumonia (organisme tidak teridentifikasi), CKD stadium 4, anemia pada penyakit ginjal kronis, hipertensi esensial. Tetapkan kode ICD-10-CM yang sesuai.",
+  "expected": {
+    "codes": [
+      {"code": "J18.9", "description": "Pneumonia, unspecified organism", "type": "PRIMARY"},
+      {"code": "N18.4", "description": "Chronic kidney disease, stage 4 (severe)", "type": "SECONDARY"},
+      {"code": "D63.1", "description": "Anaemia in chronic kidney disease", "type": "SECONDARY"},
+      {"code": "I10", "description": "Essential (primary) hypertension", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "medium",
+  "source": "synthetic",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

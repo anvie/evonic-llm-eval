@@ -1,0 +1,20 @@
+{
+  "id": "icd_dvt_pe_2",
+  "name": "ICD Coding — DVT + Emboli Paru + Obesitas",
+  "description": "Level 2 — 4 diagnosis: DVT tungkai bawah, emboli paru, obesitas, penggunaan kontrasepsi oral. Bahasa Indonesia.",
+  "prompt": "Pasien perempuan, 38 tahun, datang ke IGD dengan keluhan nyeri dan bengkak pada tungkai kiri sejak 5 hari lalu, disertai sesak napas mendadak sejak pagi ini. Riwayat: penggunaan kontrasepsi oral kombinasi selama 3 tahun, obesitas (BMI 34.2). Tanda vital: TD 126/82, nadi 112x/menit, napas 24x/menit, SpO2 91% room air. USG Doppler tungkai kiri: deep vein thrombosis pada vena femoralis. CT angiografi paru: emboli paru akut bilateral. Lab: D-dimer >5000 ng/mL, troponin 0.08 ng/mL. Diagnosis: Emboli paru akut, DVT tungkai bawah kiri (vena femoralis), obesitas (BMI 30-39.9), penggunaan kontrasepsi oral jangka panjang. Tetapkan kode ICD-10-CM yang sesuai.",
+  "expected": {
+    "codes": [
+      {"code": "I26.99", "description": "Other pulmonary embolism without acute cor pulmonale", "type": "PRIMARY"},
+      {"code": "I82.412", "description": "Acute embolism and thrombosis of left femoral vein", "type": "SECONDARY"},
+      {"code": "E66.09", "description": "Other obesity due to excess calories", "type": "SECONDARY"},
+      {"code": "Z79.3", "description": "Long term (current) use of hormonal contraceptives", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "medium",
+  "source": "synthetic",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

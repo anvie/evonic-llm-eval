@@ -1,0 +1,21 @@
+{
+  "id": "icd_pancreatitis_dm_3",
+  "name": "ICD Coding — Pankreatitis Akut + Batu Empedu + DM + Efusi Pleura",
+  "description": "Level 3 — 5 diagnosis: pankreatitis akut biliaris, kolelitiasis, DM tipe 2, efusi pleura, hipokalemia. Bahasa Indonesia.",
+  "prompt": "Pasien laki-laki, 55 tahun, masuk rumah sakit melalui IGD dengan nyeri perut hebat di epigastrium menjalar ke punggung sejak 12 jam, disertai mual dan muntah berulang. Riwayat penyakit: diabetes mellitus tipe 2 (dalam terapi insulin), batu empedu (belum dioperasi). Tanda vital: TD 105/68, nadi 118x/menit, napas 22x/menit, suhu 38.4°C. Lab: amilase 1280 U/L (tinggi), lipase 2450 U/L (tinggi), GDS 312 mg/dL, leukosit 16.800/uL, kalium 3.1 mEq/L (rendah), kalsium 7.8 mg/dL (rendah). CT abdomen: pankreatitis akut dengan nekrosis parsial, kolelitiasis multipel. Rontgen toraks: efusi pleura kiri minimal. Diagnosis: Pankreatitis akut (biliary), kolelitiasis, DM tipe 2 dengan hiperglikemia, efusi pleura, hipokalemia. Tetapkan kode ICD-10-CM yang sesuai.",
+  "expected": {
+    "codes": [
+      {"code": "K85.1", "description": "Biliary acute pancreatitis", "type": "PRIMARY"},
+      {"code": "K80.20", "description": "Calculus of gallbladder without cholecystitis, without obstruction", "type": "SECONDARY"},
+      {"code": "E11.65", "description": "Type 2 diabetes mellitus with hyperglycemia", "type": "SECONDARY"},
+      {"code": "J91.8", "description": "Pleural effusion in other conditions classified elsewhere", "type": "SECONDARY"},
+      {"code": "E87.6", "description": "Hypokalaemia", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "hard",
+  "source": "synthetic",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}

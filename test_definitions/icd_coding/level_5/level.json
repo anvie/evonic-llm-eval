@@ -1,4 +1,5 @@
 {
-  "system_prompt": "\nExtreme complexity: 10+ diagnoses spanning multiple organ systems. Apply all ICD-10 coding conventions including: Z codes for status conditions, sequencing rules for sepsis (A41.x + R65.2x), etiology/manifestation pairing, and proper sequencing of organ failures.",
-  "system_prompt_mode": "append"
+  "system_prompt": null,
+  "system_prompt_mode": "append",
+  "tool_ids": null
 }

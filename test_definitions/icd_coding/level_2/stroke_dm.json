@@ -1,0 +1,20 @@
+{
+  "id": "icd_stroke_dm_2",
+  "name": "ICD Coding — Stroke Iskemik + DM Tipe 2 + Hipertensi + Dislipidemia",
+  "description": "Level 2 — 4 diagnosis: stroke akut, diabetes, hipertensi, dislipidemia. Bahasa Indonesia.",
+  "prompt": "Pasien perempuan, 62 tahun, datang ke IGD dengan kelemahan mendadak sisi tubuh kanan dan bicara pelo sejak 6 jam sebelum masuk RS. Riwayat penyakit: diabetes mellitus tipe 2 (dalam terapi metformin), hipertensi esensial, dan dislipidemia. Tanda vital: TD 178/96, nadi 88x/menit, napas 18x/menit, suhu 36.8°C. Pemeriksaan neurologis: hemiparesis dekstra, disartria. CT scan kepala: infark serebral di area arteri serebri media kiri. Lab: GDS 245 mg/dL, HbA1c 8.9%, kolesterol total 268 mg/dL, LDL 178 mg/dL. Diagnosis: Cerebral infarction (left middle cerebral artery), diabetes mellitus tipe 2 dengan hiperglikemia, hipertensi esensial, hiperlipidemia campuran. Tetapkan kode ICD-10-CM yang sesuai.",
+  "expected": {
+    "codes": [
+      {"code": "I63.5", "description": "Cerebral infarction due to unspecified occlusion or stenosis of cerebral arteries", "type": "PRIMARY"},
+      {"code": "E11.65", "description": "Type 2 diabetes mellitus with hyperglycemia", "type": "SECONDARY"},
+      {"code": "I10", "description": "Essential (primary) hypertension", "type": "SECONDARY"},
+      {"code": "E78.2", "description": "Mixed hyperlipidaemia", "type": "SECONDARY"}
+    ]
+  },
+  "evaluator_id": "icd_code_judge",
+  "difficulty": "medium",
+  "source": "synthetic",
+  "timeout_ms": 60000,
+  "weight": 1.0,
+  "enabled": true
+}
