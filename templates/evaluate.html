@@ -3,41 +3,43 @@
 {% block content %}
 <div class="bg-white p-6 shadow-lg">
     <!-- Controls -->
-    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h2 class="mb-4 text-gray-800 text-xl font-bold">LLM Evaluation Dashboard</h2>
-
-        <div class="flex flex-col md:flex-row gap-3 mb-4">
-            <button id="toggle-btn" class="btn {{ 'btn-danger' if status.status == 'running' else 'btn-primary' }}"
-                    onclick="toggleEvaluation()">
-                {{ 'Stop Evaluation' if status.status == 'running' else 'Start Evaluation' }}
-            </button>
-            <button id="clear-btn" class="btn btn-secondary" onclick="clearState()" style="display: none;">
-                Clear
-            </button>
-        </div>
-
-        <div class="inline-block px-4 py-2 rounded-full text-sm font-medium status-indicator status-{{ status.status }}" id="status-indicator">
-            Status: <span id="status-text">{{ status.status|upper }}</span>
-        </div>
-
-        {% if status.run_id %}
-        <div class="mt-2 text-gray-500 text-sm">
-            <span class="mr-6">Run ID: <code id="run-id-code" class="bg-gray-100 px-1.5 py-0.5 rounded">{{ status.run_id|string|truncate(8, false, '') }}</code></span>
-            {% if status.run_info and status.run_info.model_name %}
-            <span id="server-model-display">Model: <strong class="text-indigo-500">{{ status.run_info.model_name }}</strong></span>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <div id="model-display" class="mt-2 text-gray-500 text-sm hidden">
-            Model: <strong id="model-name-text" class="text-indigo-500"></strong>
-        </div>
-
-        <div class="my-4">
-            <div class="w-full h-2 bg-gray-200 rounded overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300 rounded" id="progress-fill" style="width: 0%"></div>
+    <div class="mb-6 px-4 py-3 bg-gray-50 rounded-lg border border-gray-200">
+        <!-- Row 1: Title + Buttons -->
+        <div class="flex items-center justify-between gap-4">
+            <h2 class="text-gray-800 text-lg font-bold m-0 leading-tight">LLM Evaluation Dashboard</h2>
+            <div class="flex items-center gap-2 shrink-0">
+                <button id="toggle-btn" data-status="{{ status.status }}"
+                        class="px-4 py-1.5 rounded font-medium text-sm transition-colors {{ 'bg-red-500 hover:bg-red-600 text-white' if status.status == 'running' else 'bg-blue-500 hover:bg-blue-600 text-white' }}"
+                        onclick="toggleEvaluation()">
+                    {{ 'Stop Evaluation' if status.status == 'running' else 'Start Evaluation' }}
+                </button>
+                <button id="clear-btn" class="px-4 py-1.5 rounded font-medium text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors" onclick="clearState()" style="display: none;">
+                    Clear
+                </button>
             </div>
-            <div class="text-center text-gray-500 text-sm mt-2" id="progress-text">0/{{ domain_test_counts.values() | sum }} tests completed</div>
+        </div>
+
+        <!-- Row 2: Status + Meta + Progress -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+            <!-- Left: status pill + run ID + model -->
+            <div class="flex items-center gap-2 flex-wrap min-w-0">
+                <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium status-indicator status-{{ status.status }}" id="status-indicator">
+                    <span id="status-text">{{ status.status|upper }}</span>
+                </div>
+                <span id="run-id-display" class="text-gray-400 text-xs{{ '' if status.run_id else ' hidden' }}">
+                    Run <code id="run-id-code" class="bg-gray-100 px-1 py-0.5 rounded text-gray-600">#{{ "%04d"|format(status.run_info.run_id) if status.run_info else status.run_id if status.run_id else '0000' }}</code>
+                </span>
+                <span id="model-display" class="text-gray-500 text-xs{{ '' if (status.run_info and status.run_info.model_name) else ' hidden' }}">
+                    <strong id="model-name-text" class="text-indigo-500 font-medium">{{ status.run_info.model_name if status.run_info and status.run_info.model_name else '' }}</strong>
+                </span>
+            </div>
+            <!-- Right: progress bar + count -->
+            <div class="flex items-center gap-2 sm:ml-auto sm:min-w-[220px]">
+                <div class="flex-1 h-1.5 bg-gray-200 rounded overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300 rounded" id="progress-fill" style="width: 0%"></div>
+                </div>
+                <span class="text-gray-400 text-xs whitespace-nowrap" id="progress-text">0/{{ domain_test_counts.values() | sum }}</span>
+            </div>
         </div>
     </div>
 
@@ -65,7 +67,7 @@
                 <!-- Checkbox + Domain name (mobile: full-width header row) -->
                 <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0 md:justify-center">
                     <input type="checkbox" class="domain-checkbox" data-domain="{{ domain }}" checked onclick="updateSelectAllState()">
-                    <span class="font-semibold text-sm md:hidden">{{ (domain_names or {}). get(domain, domain.replace('_', ' ')) }}</span>
+                    <span class="font-semibold text-sm md:hidden">{{ (domain_names or {}).get(domain, domain.replace('_', ' ')) }}</span>
                 </div>
                 <!-- Domain name (desktop only) -->
                 <div class="hidden md:flex md:items-center font-semibold text-sm">{{ (domain_names or {}).get(domain, domain.replace('_', ' ')) }}</div>
@@ -169,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Toggle evaluation (start or stop based on current state)
 function toggleEvaluation() {
     const btn = document.getElementById('toggle-btn');
-    const isRunning = btn.classList.contains('btn-danger');
+    const isRunning = btn.dataset.status === 'running';
     
     if (isRunning) {
         stopEvaluation();
@@ -181,14 +183,13 @@ function toggleEvaluation() {
 // Update toggle button state
 function updateToggleButton(running) {
     const btn = document.getElementById('toggle-btn');
+    btn.dataset.status = running ? 'running' : 'idle';
     if (running) {
         btn.textContent = 'Stop Evaluation';
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-danger');
+        btn.className = 'px-4 py-2 rounded font-medium transition-colors bg-red-500 hover:bg-red-600 text-white';
     } else {
         btn.textContent = 'Start Evaluation';
-        btn.classList.remove('btn-danger');
-        btn.classList.add('btn-primary');
+        btn.className = 'px-4 py-2 rounded font-medium transition-colors bg-blue-500 hover:bg-blue-600 text-white';
     }
 }
 
@@ -347,20 +348,12 @@ function loadSavedState() {
                 }
             }
             if (state.model_name) {
-                // Hide server-side model display to avoid duplication
-                const serverModelDisplay = document.getElementById('server-model-display');
-                if (serverModelDisplay) serverModelDisplay.style.display = 'none';
-                
-                document.getElementById('model-display').classList.remove('hidden');
                 document.getElementById('model-name-text').textContent = state.model_name;
+                document.getElementById('model-display').classList.remove('hidden');
             }
             if (state.run_id) {
-                // Show run ID
-                const runIdEl = document.querySelector('#run-id-code');
-                if (runIdEl) {
-                    runIdEl.textContent = state.run_id.substring(0, 8);
-                }
-                // Update currentRunId for modal API calls
+                document.getElementById('run-id-code').textContent = '#' + String(state.run_id).padStart(4, '0');
+                document.getElementById('run-id-display').classList.remove('hidden');
                 currentRunId = state.run_id;
             }
         } catch (e) {
@@ -374,8 +367,6 @@ function showClearButton(show) {
 }
 
 function startEvaluation() {
-    console.log('[DEBUG] startEvaluation called');
-    
     // Check if any domain is selected
     const selectedDomains = getSelectedDomains();
     if (selectedDomains.length === 0) {
@@ -407,19 +398,15 @@ function startEvaluation() {
     // Use model from config, fallback to 'default' if not loaded yet
     const modelName = configModel || 'default';
     
-    console.log('[DEBUG] Selected domains:', selectedDomains);
-    
     fetch('/api/start', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({model_name: modelName, domains: selectedDomains})
     })
     .then(response => {
-        console.log('[DEBUG] Got response:', response.status);
         return response.json();
     })
     .then(data => {
-        console.log('[DEBUG] Data:', data);
         if (data.success) {
             startPolling();
             setupLogStream();  // Start log stream when evaluation starts
@@ -430,7 +417,6 @@ function startEvaluation() {
         }
     })
     .catch(error => {
-        console.error('[DEBUG] Error:', error);
         alert('Failed to start evaluation: ' + error.message);
         updateStatusIndicator('idle');
         updateToggleButton(false);
@@ -442,19 +428,18 @@ function updateStatusIndicator(status) {
     const text = document.getElementById('status-text');
     
     // Remove all status classes, preserve Tailwind base classes
-    indicator.className = 'inline-block px-4 py-2 rounded-full text-sm font-medium status-indicator';
+    indicator.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium status-indicator';
 
     // Add new status class and text
     indicator.classList.add('status-' + status);
     text.textContent = status.toUpperCase();
 }
 
-function stopEvaluation() {
-    // Show confirmation dialog
-    if (!confirm('Are you sure you want to stop the evaluation?\n\nThis will terminate the current test and all remaining tests will be cancelled.')) {
+async function stopEvaluation() {
+    if (!await showConfirm({title: 'Stop Evaluation', message: 'This will terminate the current test and all remaining tests will be cancelled.', confirmText: 'Stop', danger: true})) {
         return;
     }
-    
+
     fetch('/api/stop', {
         method: 'POST'
     })
@@ -484,15 +469,10 @@ function showCompletionModal(data) {
     const scorePercent = score !== null && score !== undefined ? (score * 100).toFixed(1) : '—';
     const activeDomains = Object.keys(data.domains || {});
     const total = activeDomains.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
-
-    // Count passed, skipped, technical errors from domain matrix
-    let passed = 0, skipped = 0, technicalErrors = 0;
-    for (const domain of activeDomains) {
-        const levels = data.domains[domain] || {};
-        for (const level of Object.values(levels)) {
-            if (level.status === 'passed') passed++;
-            else if (level.status === 'skipped') skipped++;
-            else if (level.status === 'failed' && level.details?.llm_error) technicalErrors++;
+    let passed = 0;
+    for (const levels of Object.values(data.domains || {})) {
+        for (const cell of Object.values(levels)) {
+            if (cell.status === 'passed') passed++;
         }
     }
 
@@ -514,8 +494,6 @@ function showCompletionModal(data) {
 
     // Stats line
     const stats = [];
-    if (skipped > 0) stats.push(`${skipped} skipped`);
-    if (technicalErrors > 0) stats.push(`${technicalErrors} server error`);
     if (data.tok_per_sec) stats.push(`${data.tok_per_sec} tok/s`);
     if (data.total_tokens) stats.push(`${data.total_tokens} tokens`);
     if (data.total_duration_ms) stats.push(`${(data.total_duration_ms / 1000).toFixed(1)}s`);
@@ -546,10 +524,13 @@ function updateStatus() {
         
         // Update model name display
         if (data.model_name) {
-            const modelDisplay = document.getElementById('model-display');
-            const modelNameText = document.getElementById('model-name-text');
-            modelNameText.textContent = data.model_name;
-            modelDisplay.classList.remove('hidden');
+            document.getElementById('model-name-text').textContent = data.model_name;
+            document.getElementById('model-display').classList.remove('hidden');
+        }
+        // Update run ID display
+        if (data.run_id) {
+            document.getElementById('run-id-code').textContent = '#' + String(data.run_id).padStart(4, '0');
+            document.getElementById('run-id-display').classList.remove('hidden');
         }
         
         // Save state for persistence
@@ -606,8 +587,7 @@ function updateMatrix(matrix) {
                 
                 // Update status indicator
                 const statusEl = cell.querySelector('.status-dot');
-                const dotStatus = (data.status === 'failed' && data.details?.llm_error) ? 'technical-error' : data.status;
-                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + dotStatus;
+                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + data.status;
                 
                 // Update score
                 const scoreEl = cell.querySelector('.cell-score');
@@ -694,24 +674,24 @@ function colorizeLogEntry(message) {
         color = '#4b5563';
     } else {
         switch (tag) {
-            case 'INFO':    color = '#60a5fa'; break;
-            case 'SYSTEM':  color = '#60a5fa'; bold = true; break;
-            case 'TEST':    color = '#e2e8f0'; bold = true; break;
-            case 'INPUT':   color = '#3b82f6'; break;
-            case 'EXPECTED': color = '#059669'; break;
-            case 'OUTPUT':  color = '#eab308'; break;
-            case 'LLM':     color = '#9ca3af'; break;
-            case 'EVAL':    color = '#9ca3af'; break;
-            case 'SCORING': color = '#9ca3af'; break;
-            case 'THINKING': color = '#a78bfa'; break;
+            case 'INFO':        color = '#60a5fa'; break;
+            case 'SYSTEM':      color = '#60a5fa'; bold = true; break;
+            case 'TEST':        color = '#e2e8f0'; bold = true; break;
+            case 'INPUT':       color = '#3b82f6'; break;
+            case 'EXPECTED':    color = '#059669'; break;
+            case 'OUTPUT':      color = '#eab308'; break;
+            case 'LLM':         color = '#9ca3af'; break;
+            case 'EVAL':        color = '#9ca3af'; break;
+            case 'SCORING':     color = '#9ca3af'; break;
+            case 'THINKING':    color = '#a78bfa'; break;
             case 'TOOLS':       color = '#22d3ee'; break;
             case 'TOOL-CALL':   color = '#f97316'; bold = true; break;
             case 'TOOL-RESULT': color = '#a3e635'; break;
-            case 'DETAILS': color = '#9ca3af'; break;
-            case 'SKIP':    color = '#6b7280'; break;
-            case 'STATS':   color = '#3b82f6'; bold = true; break;
-            case 'WARN':    color = '#f59e0b'; bold = true; break;
-            case 'ERROR':   color = '#ef4444'; break;
+            case 'DETAILS':     color = '#9ca3af'; break;
+            case 'SKIP':        color = '#6b7280'; break;
+            case 'STATS':       color = '#3b82f6'; bold = true; break;
+            case 'WARN':        color = '#f59e0b'; bold = true; break;
+            case 'ERROR':       color = '#ef4444'; break;
             case 'RESULT':
                 if (/✓|PASS/.test(message))      color = '#4ade80';
                 else if (/✗|FAIL/.test(message)) color = '#f87171';
