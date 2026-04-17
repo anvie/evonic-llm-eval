@@ -1,0 +1,1741 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white p-6 shadow-lg">
+    <!-- Controls -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h2 class="mb-4 text-gray-800 text-xl font-bold">LLM Evaluation Dashboard</h2>
+
+        <div class="flex flex-col md:flex-row gap-3 mb-4">
+            <button id="toggle-btn" class="btn {{ 'btn-danger' if status.status == 'running' else 'btn-primary' }}"
+                    onclick="toggleEvaluation()">
+                {{ 'Stop Evaluation' if status.status == 'running' else 'Start Evaluation' }}
+            </button>
+            <button id="clear-btn" class="btn btn-secondary" onclick="clearState()" style="display: none;">
+                Clear
+            </button>
+        </div>
+
+        <div class="inline-block px-4 py-2 rounded-full text-sm font-medium status-indicator status-{{ status.status }}" id="status-indicator">
+            Status: <span id="status-text">{{ status.status|upper }}</span>
+        </div>
+
+        {% if status.run_id %}
+        <div class="mt-2 text-gray-500 text-sm">
+            <span class="mr-6">Run ID: <code id="run-id-code" class="bg-gray-100 px-1.5 py-0.5 rounded">{{ status.run_id|string|truncate(8, false, '') }}</code></span>
+            {% if status.run_info and status.run_info.model_name %}
+            <span id="server-model-display">Model: <strong class="text-indigo-500">{{ status.run_info.model_name }}</strong></span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div id="model-display" class="mt-2 text-gray-500 text-sm hidden">
+            Model: <strong id="model-name-text" class="text-indigo-500"></strong>
+        </div>
+
+        <div class="my-4">
+            <div class="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300 rounded" id="progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="text-center text-gray-500 text-sm mt-2" id="progress-text">0/{{ domain_test_counts.values() | sum }} tests completed</div>
+        </div>
+    </div>
+
+    <!-- Side-by-side: Matrix (left) + Logs (right) -->
+    <div class="flex flex-col lg:flex-row gap-6 mt-6">
+        <!-- LEFT: Matrix + Summary -->
+        <div class="flex-1 min-w-0">
+            <!-- Matrix Header (desktop only) -->
+            <div class="hidden md:grid md:grid-cols-[40px_160px_repeat(5,1fr)_120px] gap-2 p-4 bg-gray-50 font-semibold rounded-t-lg text-sm">
+                <div class="flex items-center justify-center"><input type="checkbox" id="select-all" checked onclick="toggleAllDomains(this.checked)" title="Select/Deselect All"></div>
+                <div class="flex items-center">Domain</div>
+                <div class="text-center">Level 1</div>
+                <div class="text-center">Level 2</div>
+                <div class="text-center">Level 3</div>
+                <div class="text-center">Level 4</div>
+                <div class="text-center">Level 5</div>
+                <div class="text-center">Total</div>
+            </div>
+
+            {% for domain in domains %}
+            <!-- Matrix Row: card on mobile, grid row on desktop -->
+            <div class="grid grid-cols-5 gap-1 mb-3 border border-gray-200 rounded-lg bg-white
+                        md:grid-cols-[40px_160px_repeat(5,1fr)_120px] md:gap-2 md:mb-0 md:border-x-0 md:border-t-0 md:border-b md:border-gray-200 md:rounded-none md:bg-transparent md:hover:bg-gray-50 transition-colors"
+                 id="row-{{ domain }}">
+                <!-- Checkbox + Domain name (mobile: full-width header row) -->
+                <div class="col-span-5 flex items-center gap-2 mb-2 md:col-span-1 md:mb-0 md:justify-center">
+                    <input type="checkbox" class="domain-checkbox" data-domain="{{ domain }}" checked onclick="updateSelectAllState()">
+                    <span class="font-semibold text-sm md:hidden">{{ (domain_names or {}). get(domain, domain.replace('_', ' ')) }}</span>
+                </div>
+                <!-- Domain name (desktop only) -->
+                <div class="hidden md:flex md:items-center font-semibold text-sm">{{ (domain_names or {}).get(domain, domain.replace('_', ' ')) }}</div>
+
+                <!-- Level cells (5 columns on both mobile and desktop) -->
+                {% for level in range(1, 6) %}
+                <div class="level-cell flex flex-col items-center justify-center min-h-[50px] md:min-h-[70px] p-1 md:p-2 rounded-md font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                     id="cell-{{ domain }}-{{ level }}" onclick="showCellDetail('{{ domain }}', {{ level }})">
+                    <span class="text-[0.6rem] font-semibold text-gray-400 uppercase md:hidden">L{{ level }}</span>
+                    <div class="flex items-center justify-center gap-1 md:gap-2">
+                        <div class="status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-pending"></div>
+                        <span class="cell-score text-xs md:text-sm text-gray-500">-</span>
+                    </div>
+                    <div class="text-[0.6rem] md:text-[0.7rem] text-gray-500 mt-0.5 min-h-[1em]" id="duration-{{ domain }}-{{ level }}"></div>
+                </div>
+                {% endfor %}
+
+                <!-- Domain total (mobile: full-width footer, desktop: column) -->
+                <div class="col-span-5 flex flex-row items-center justify-center gap-3 p-2 bg-gray-50 rounded-md mt-1
+                            md:col-span-1 md:flex-col md:gap-0 md:mt-0 md:min-h-[60px]"
+                     id="total-{{ domain }}">
+                    <div class="text-base md:text-lg font-bold text-gray-800" id="total-score-{{ domain }}">-</div>
+                    <span class="text-xs text-gray-500" id="total-passed-{{ domain }}">0/5</span>
+                    <div class="text-[0.7rem] text-gray-400" id="total-duration-{{ domain }}"></div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if status.run_info and status.run_info.summary and status.status == 'completed' %}
+            <div id="summary-box" class="mt-6 p-5 bg-sky-50 rounded-lg border-l-4 border-sky-700">
+                <h3 class="font-semibold mb-2">Summary</h3>
+                <p class="text-blue-800 italic">"{{ status.run_info.summary }}"</p>
+                <div class="mt-2 text-gray-500">
+                    Overall Score: <strong>{{ "%.2f"|format(status.run_info.overall_score * 100) }}%</strong>
+                </div>
+            </div>
+            {% elif status.run_info and status.status == 'interrupted' %}
+            <div id="interrupted-box" class="mt-6 p-5 bg-orange-50 rounded-lg border-l-4 border-amber-500">
+                <h3 class="font-semibold text-amber-800 mb-2">Evaluation Interrupted</h3>
+                <p class="text-amber-900">The evaluation was stopped before completion. Partial results are shown in the matrix above.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- RIGHT: Logs sidebar -->
+        <div class="w-full lg:w-[40%] lg:shrink-0">
+            <div class="lg:sticky lg:top-4 bg-slate-800 text-slate-200 p-4 rounded-lg font-mono">
+                <h3 class="mb-3 pb-2 border-b border-slate-600 text-slate-400 text-sm font-semibold">Real-Time Logs</h3>
+                <div id="log-box" class="log-content min-h-[100px] max-h-[400px] lg:max-h-[calc(100vh-8rem)] overflow-y-auto text-xs leading-relaxed"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Completion Modal -->
+<div id="completion-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+        <div class="text-6xl mb-4" id="completion-emoji"></div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Evaluation Complete!</h2>
+        <div class="text-7xl font-extrabold my-6" id="completion-score-text" style="color: #059669;"></div>
+        <div class="text-gray-500 text-lg mb-2" id="completion-tests-label"></div>
+        <div class="text-gray-400 text-sm mb-6" id="completion-stats-label"></div>
+        <button onclick="closeCompletionModal()" class="btn btn-primary px-8 py-2 text-lg">OK</button>
+    </div>
+</div>
+
+<!-- Test Modal (shared component) -->
+{% include 'partials/test-modal.html' %}
+
+<!-- Training Data Modal (shared component) -->
+{% include 'partials/training-modal.html' %}
+
+<!-- Shared JS -->
+<script src="{{ url_for('static', filename='js/test-modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training-data.js') }}"></script>
+
+<script>
+// Domains loaded from server (enabled domains only)
+const DOMAINS = {{ domains | tojson }};
+const DOMAIN_TEST_COUNTS = {{ domain_test_counts | tojson }};
+
+let pollingInterval;
+let testResultsData = {};  // Store all test results for modal access
+let configModel = null;  // Store model name from config
+let logPollInterval = null;  // Log polling interval reference
+
+// Fetch model config on load
+fetch('/api/config/model')
+.then(response => response.json())
+.then(data => {
+    configModel = data.model;
+});
+
+// Load saved state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateTotalTestCount();
+    loadSavedState();
+    loadSavedLogs();
+});
+
+// Toggle evaluation (start or stop based on current state)
+function toggleEvaluation() {
+    const btn = document.getElementById('toggle-btn');
+    const isRunning = btn.classList.contains('btn-danger');
+    
+    if (isRunning) {
+        stopEvaluation();
+    } else {
+        startEvaluation();
+    }
+}
+
+// Update toggle button state
+function updateToggleButton(running) {
+    const btn = document.getElementById('toggle-btn');
+    if (running) {
+        btn.textContent = 'Stop Evaluation';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-danger');
+    } else {
+        btn.textContent = 'Start Evaluation';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-primary');
+    }
+}
+
+// Domain selection functions
+function toggleAllDomains(checked) {
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+        updateRowState(cb.dataset.domain, checked);
+    });
+    updateTotalTestCount();
+}
+
+function updateSelectAllState() {
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+    const selectAll = document.getElementById('select-all');
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    if (checkedCount === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+    } else if (checkedCount === checkboxes.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+    } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+    }
+    
+    // Update row visual state
+    checkboxes.forEach(cb => {
+        updateRowState(cb.dataset.domain, cb.checked);
+    });
+    
+    updateTotalTestCount();
+}
+
+function updateRowState(domain, enabled) {
+    const row = document.getElementById(`row-${domain}`);
+    if (row) {
+        if (enabled) {
+            row.classList.remove('opacity-50');
+        } else {
+            row.classList.add('opacity-50');
+        }
+        // Only disable pointer events on level cells, not the checkbox container
+        row.querySelectorAll('.level-cell').forEach(cell => {
+            if (enabled) {
+                cell.classList.remove('pointer-events-none');
+            } else {
+                cell.classList.add('pointer-events-none');
+            }
+        });
+    }
+}
+
+function getSelectedDomains() {
+    const checkboxes = document.querySelectorAll('.domain-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.dataset.domain);
+}
+
+function updateTotalTestCount() {
+    const selected = getSelectedDomains();
+    const totalTests = selected.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
+    document.getElementById('progress-text').textContent = `0/${totalTests} tests completed`;
+}
+
+function setCheckboxesEnabled(enabled) {
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+    
+    selectAll.disabled = !enabled;
+    checkboxes.forEach(cb => cb.disabled = !enabled);
+}
+
+// Clear matrix cells and totals
+function clearMatrixState() {
+    const domains = DOMAINS;
+    
+    for (const domain of domains) {
+        // Clear individual cells
+        for (let level = 1; level <= 5; level++) {
+            const cell = document.getElementById(`cell-${domain}-${level}`);
+            if (cell) {
+                const statusEl = cell.querySelector('.status-dot');
+                if (statusEl) statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-pending';
+                
+                const scoreEl = cell.querySelector('.cell-score');
+                if (scoreEl) scoreEl.textContent = '-';
+                
+                const durationEl = document.getElementById(`duration-${domain}-${level}`);
+                if (durationEl) durationEl.textContent = '';
+            }
+        }
+        
+        // Clear domain totals
+        const scoreEl = document.getElementById(`total-score-${domain}`);
+        const passedEl = document.getElementById(`total-passed-${domain}`);
+        const durationEl = document.getElementById(`total-duration-${domain}`);
+        
+        if (scoreEl) {
+            scoreEl.textContent = '-';
+            scoreEl.style.color = '';
+        }
+        if (passedEl) passedEl.textContent = '0/5';
+        if (durationEl) durationEl.textContent = '';
+    }
+    
+    // Clear stored test results
+    testResultsData = {};
+    
+    // Reset progress bar with selected domain count
+    const selected = getSelectedDomains();
+    const totalTests = selected.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('progress-text').textContent = `0/${totalTests} tests completed`;
+}
+
+function saveState(data) {
+    const state = {
+        run_id: data.run_id,
+        model_name: data.model_name,
+        status: data.status,
+        domains: data.domains,
+        tok_per_sec: data.tok_per_sec,
+        total_tokens: data.total_tokens,
+        total_duration_ms: data.total_duration_ms,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('eval_state', JSON.stringify(state));
+    
+    // Update currentRunId for modal API calls
+    if (data.run_id) {
+        currentRunId = data.run_id;
+    }
+}
+
+function loadSavedState() {
+    const saved = localStorage.getItem('eval_state');
+    if (saved) {
+        try {
+            const state = JSON.parse(saved);
+            if (state.domains) {
+                updateMatrix(state.domains);
+            }
+            if (state.status) {
+                updateStatusIndicator(state.status);
+                if (state.status === 'running') {
+                    updateToggleButton(true);
+                    // Resume polling to pick up completion from server
+                    startPolling();
+                    setupLogStream();
+                } else {
+                    updateToggleButton(false);
+                    showClearButton(true);
+                }
+            }
+            if (state.model_name) {
+                // Hide server-side model display to avoid duplication
+                const serverModelDisplay = document.getElementById('server-model-display');
+                if (serverModelDisplay) serverModelDisplay.style.display = 'none';
+                
+                document.getElementById('model-display').classList.remove('hidden');
+                document.getElementById('model-name-text').textContent = state.model_name;
+            }
+            if (state.run_id) {
+                // Show run ID
+                const runIdEl = document.querySelector('#run-id-code');
+                if (runIdEl) {
+                    runIdEl.textContent = state.run_id.substring(0, 8);
+                }
+                // Update currentRunId for modal API calls
+                currentRunId = state.run_id;
+            }
+        } catch (e) {
+            console.error('Error loading saved state:', e);
+        }
+    }
+}
+
+function showClearButton(show) {
+    document.getElementById('clear-btn').style.display = show ? 'inline-block' : 'none';
+}
+
+function startEvaluation() {
+    console.log('[DEBUG] startEvaluation called');
+    
+    // Check if any domain is selected
+    const selectedDomains = getSelectedDomains();
+    if (selectedDomains.length === 0) {
+        alert('Please select at least one domain to test.');
+        return;
+    }
+    
+    // Remove summary/interrupted boxes from previous run
+    const summaryBox = document.getElementById('summary-box');
+    const interruptedBox = document.getElementById('interrupted-box');
+    if (summaryBox) summaryBox.remove();
+    if (interruptedBox) interruptedBox.remove();
+    
+    // Clear the matrix cells and totals
+    clearMatrixState();
+    
+    // Update UI immediately
+    updateStatusIndicator('running');
+    updateToggleButton(true);  // Set to "running" state
+    showClearButton(false);
+    
+    // Disable checkboxes during evaluation
+    setCheckboxesEnabled(false);
+    
+    // Clear old logs (both UI and localStorage)
+    document.getElementById('log-box').innerHTML = '';
+    localStorage.removeItem('eval_logs');
+    
+    // Use model from config, fallback to 'default' if not loaded yet
+    const modelName = configModel || 'default';
+    
+    console.log('[DEBUG] Selected domains:', selectedDomains);
+    
+    fetch('/api/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({model_name: modelName, domains: selectedDomains})
+    })
+    .then(response => {
+        console.log('[DEBUG] Got response:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('[DEBUG] Data:', data);
+        if (data.success) {
+            startPolling();
+            setupLogStream();  // Start log stream when evaluation starts
+        } else {
+            alert('Error: ' + data.error);
+            updateStatusIndicator('idle');
+            updateToggleButton(false);
+        }
+    })
+    .catch(error => {
+        console.error('[DEBUG] Error:', error);
+        alert('Failed to start evaluation: ' + error.message);
+        updateStatusIndicator('idle');
+        updateToggleButton(false);
+    });
+}
+
+function updateStatusIndicator(status) {
+    const indicator = document.getElementById('status-indicator');
+    const text = document.getElementById('status-text');
+    
+    // Remove all status classes, preserve Tailwind base classes
+    indicator.className = 'inline-block px-4 py-2 rounded-full text-sm font-medium status-indicator';
+
+    // Add new status class and text
+    indicator.classList.add('status-' + status);
+    text.textContent = status.toUpperCase();
+}
+
+function stopEvaluation() {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to stop the evaluation?\n\nThis will terminate the current test and all remaining tests will be cancelled.')) {
+        return;
+    }
+    
+    fetch('/api/stop', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateStatusIndicator('idle');
+            updateToggleButton(false);
+            clearInterval(pollingInterval);
+            showClearButton(true);
+            setCheckboxesEnabled(true);
+            
+            // Log stop message
+            const logBox = document.getElementById('log-box');
+            logBox.innerHTML += colorizeLogEntry('[WARN] Evaluation stopped by user.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        setCheckboxesEnabled(true);
+    });
+}
+
+function showCompletionModal(data) {
+    const modal = document.getElementById('completion-modal');
+    const score = data.overall_score;
+    const scorePercent = score !== null && score !== undefined ? (score * 100).toFixed(1) : '—';
+    const activeDomains = Object.keys(data.domains || {});
+    const total = activeDomains.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
+
+    // Count passed, skipped, technical errors from domain matrix
+    let passed = 0, skipped = 0, technicalErrors = 0;
+    for (const domain of activeDomains) {
+        const levels = data.domains[domain] || {};
+        for (const level of Object.values(levels)) {
+            if (level.status === 'passed') passed++;
+            else if (level.status === 'skipped') skipped++;
+            else if (level.status === 'failed' && level.details?.llm_error) technicalErrors++;
+        }
+    }
+
+    document.getElementById('completion-score-text').textContent = scorePercent + '%';
+    document.getElementById('completion-tests-label').textContent = `${passed}/${total} tests passed`;
+
+    // Color based on score
+    const scoreEl = document.getElementById('completion-score-text');
+    if (score >= 0.8) {
+        scoreEl.style.color = '#059669';
+        document.getElementById('completion-emoji').textContent = '\uD83C\uDFBA\uD83C\uDF89';
+    } else if (score >= 0.6) {
+        scoreEl.style.color = '#d97706';
+        document.getElementById('completion-emoji').textContent = '\uD83C\uDFBA';
+    } else {
+        scoreEl.style.color = '#dc2626';
+        document.getElementById('completion-emoji').textContent = '\uD83C\uDFBA';
+    }
+
+    // Stats line
+    const stats = [];
+    if (skipped > 0) stats.push(`${skipped} skipped`);
+    if (technicalErrors > 0) stats.push(`${technicalErrors} server error`);
+    if (data.tok_per_sec) stats.push(`${data.tok_per_sec} tok/s`);
+    if (data.total_tokens) stats.push(`${data.total_tokens} tokens`);
+    if (data.total_duration_ms) stats.push(`${(data.total_duration_ms / 1000).toFixed(1)}s`);
+    document.getElementById('completion-stats-label').textContent = stats.join(' · ');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeCompletionModal() {
+    const modal = document.getElementById('completion-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function startPolling() {
+    pollingInterval = setInterval(updateStatus, 2000);
+    updateStatus();
+}
+
+function updateStatus() {
+    fetch('/api/test_matrix')
+    .then(response => response.json())
+    .then(data => {
+        updateMatrix(data.domains);
+        updateProgress(data);
+        updateStatusIndicator(data.status);
+        
+        // Update model name display
+        if (data.model_name) {
+            const modelDisplay = document.getElementById('model-display');
+            const modelNameText = document.getElementById('model-name-text');
+            modelNameText.textContent = data.model_name;
+            modelDisplay.classList.remove('hidden');
+        }
+        
+        // Save state for persistence
+        saveState(data);
+        
+        if (data.status === 'completed' || data.status === 'interrupted' || data.status === 'error') {
+            clearInterval(pollingInterval);
+            updateToggleButton(false);
+            showClearButton(true);
+            setCheckboxesEnabled(true);
+            
+            // Log completion/interrupted/error message
+            const logBox = document.getElementById('log-box');
+            
+            if (data.status === 'error') {
+                logBox.innerHTML += colorizeLogEntry('[ERROR] ====== EVALUASI ERROR ======');
+                if (data.error_message) {
+                    logBox.innerHTML += colorizeLogEntry(`[ERROR] ${data.error_message}`);
+                }
+            } else if (data.status === 'interrupted') {
+                logBox.innerHTML += colorizeLogEntry('[WARN] ====== EVALUASI DIHENTIKAN ======');
+            } else {
+                logBox.innerHTML += colorizeLogEntry('[RESULT] ✓ ====== EVALUASI SELESAI ======');
+                showCompletionModal(data);
+            }
+
+            // Show tok/s if available
+            if (data.tok_per_sec) {
+                logBox.innerHTML += colorizeLogEntry(`[STATS] Average: ${data.tok_per_sec} tok/s (${data.total_tokens} tokens in ${(data.total_duration_ms / 1000).toFixed(1)}s)`);
+            }
+
+            logBox.innerHTML += colorizeLogEntry('[SYSTEM] Halaman tidak di-reload. Anda dapat mengobservasi hasil.');
+            logBox.innerHTML += colorizeLogEntry('[SYSTEM] Klik cell di Test Matrix untuk melihat detail, atau "Clear" untuk reset.');
+        }
+    })
+    .catch(error => {
+        console.error('Error polling status:', error);
+    });
+}
+
+function updateMatrix(matrix) {
+    for (const [domain, levels] of Object.entries(matrix)) {
+        let domainTotal = 0;
+        let domainCount = 0;
+        let domainPassed = 0;
+        let domainDuration = 0;
+        
+        for (const [level, data] of Object.entries(levels)) {
+            const cell = document.getElementById(`cell-${domain}-${level}`);
+            if (cell) {
+                // Store data for modal access
+                if (!testResultsData[domain]) testResultsData[domain] = {};
+                testResultsData[domain][level] = data;
+                
+                // Update status indicator
+                const statusEl = cell.querySelector('.status-dot');
+                const dotStatus = (data.status === 'failed' && data.details?.llm_error) ? 'technical-error' : data.status;
+                statusEl.className = 'status-dot w-3 h-3 md:w-4 md:h-4 rounded-full shrink-0 status-' + dotStatus;
+                
+                // Update score
+                const scoreEl = cell.querySelector('.cell-score');
+                if (data.score !== null && data.score !== undefined) {
+                    scoreEl.textContent = (data.score * 100).toFixed(0) + '%';
+                    domainTotal += data.score;
+                    domainCount++;
+                    if (data.status === 'passed') domainPassed++;
+                } else {
+                    scoreEl.textContent = '-';
+                }
+                
+                // Update duration
+                const durationEl = document.getElementById(`duration-${domain}-${level}`);
+                if (durationEl) {
+                    if (data.duration_ms) {
+                        const seconds = (data.duration_ms / 1000).toFixed(1);
+                        durationEl.textContent = seconds + 's';
+                        domainDuration += data.duration_ms;
+                    } else {
+                        durationEl.textContent = '';
+                    }
+                }
+            }
+        }
+        
+        // Update domain total
+        const scoreEl = document.getElementById(`total-score-${domain}`);
+        const passedEl = document.getElementById(`total-passed-${domain}`);
+        const durationEl = document.getElementById(`total-duration-${domain}`);
+        
+        if (domainCount > 0) {
+            const avgScore = domainTotal / domainCount;
+            
+            if (scoreEl) {
+                scoreEl.textContent = (avgScore * 100).toFixed(0) + '%';
+                scoreEl.style.color = avgScore >= 0.8 ? '#059669' : avgScore >= 0.6 ? '#d97706' : '#dc2626';
+            }
+            
+            if (passedEl) {
+                passedEl.textContent = `${domainPassed}/5`;
+            }
+        }
+        
+        // Show domain duration
+        if (durationEl && domainDuration > 0) {
+            const seconds = (domainDuration / 1000).toFixed(1);
+            durationEl.textContent = seconds + 's';
+        }
+    }
+}
+
+function updateProgress(data) {
+    if (!data.domains) return;
+
+    // Use actual individual test counts; derive active domains from matrix data
+    const activeDomains = Object.keys(data.domains);
+    const total = activeDomains.reduce((sum, d) => sum + (DOMAIN_TEST_COUNTS[d] || 0), 0);
+    const completed = data.completed_tests || 0;
+
+    const progressPercent = total > 0 ? (completed / total) * 100 : 0;
+    document.getElementById('progress-fill').style.width = progressPercent + '%';
+    document.getElementById('progress-text').textContent = `${completed}/${total} tests completed`;
+}
+
+// Initialize polling if evaluation is running
+{% if status.status == 'running' %}
+window.addEventListener('load', function() {
+    updateToggleButton(true);
+    startPolling();
+    setupLogStream();  // Also start log stream if running
+});
+{% endif %}
+
+function colorizeLogEntry(message) {
+    // Messages are formatted as "[HH:MM:SS] [TAG] ..." — skip timestamp prefix
+    const tag = (message.match(/^\[\d{2}:\d{2}:\d{2}\] \[([A-Z0-9_-]+)\]/) || message.match(/^\[([A-Z0-9_-]+)\]/) || [])[1];
+    const isSeparator = /[═─]{10}/.test(message);
+
+    let color = '';
+    let bold = false;
+
+    if (isSeparator) {
+        color = '#4b5563';
+    } else {
+        switch (tag) {
+            case 'INFO':    color = '#60a5fa'; break;
+            case 'SYSTEM':  color = '#60a5fa'; bold = true; break;
+            case 'TEST':    color = '#e2e8f0'; bold = true; break;
+            case 'INPUT':   color = '#3b82f6'; break;
+            case 'EXPECTED': color = '#059669'; break;
+            case 'OUTPUT':  color = '#eab308'; break;
+            case 'LLM':     color = '#9ca3af'; break;
+            case 'EVAL':    color = '#9ca3af'; break;
+            case 'SCORING': color = '#9ca3af'; break;
+            case 'THINKING': color = '#a78bfa'; break;
+            case 'TOOLS':       color = '#22d3ee'; break;
+            case 'TOOL-CALL':   color = '#f97316'; bold = true; break;
+            case 'TOOL-RESULT': color = '#a3e635'; break;
+            case 'DETAILS': color = '#9ca3af'; break;
+            case 'SKIP':    color = '#6b7280'; break;
+            case 'STATS':   color = '#3b82f6'; bold = true; break;
+            case 'WARN':    color = '#f59e0b'; bold = true; break;
+            case 'ERROR':   color = '#ef4444'; break;
+            case 'RESULT':
+                if (/✓|PASS/.test(message))      color = '#4ade80';
+                else if (/✗|FAIL/.test(message)) color = '#f87171';
+                else                              color = '#e2e8f0';
+                bold = true;
+                break;
+            default: color = '#d1d5db'; break;
+        }
+    }
+
+    const style = [
+        color ? `color:${color}` : '',
+        bold ? 'font-weight:bold' : ''
+    ].filter(Boolean).join(';');
+
+    return `<div class="log-entry"${style ? ` style="${style}"` : ''}>${message}</div>`;
+}
+
+function setupLogStream() {
+    const logBox = document.getElementById('log-box');
+
+    // Stop existing polling if any
+    if (logPollInterval) {
+        clearInterval(logPollInterval);
+        logPollInterval = null;
+    }
+
+    logBox.innerHTML += colorizeLogEntry('[SYSTEM] Log stream connected.');
+
+    // Poll for new log messages every 500ms
+    logPollInterval = setInterval(() => {
+        fetch('/api/log_poll')
+        .then(response => response.json())
+        .then(data => {
+            if (data.messages && data.messages.length > 0) {
+                for (const msg of data.messages) {
+                    const message = msg.replace(/\n/g, '<br>');
+                    logBox.innerHTML += colorizeLogEntry(message);
+                }
+                logBox.scrollTop = logBox.scrollHeight;
+                saveLogsToStorage();
+            }
+
+            // Stop polling when evaluation is done
+            if (!data.is_running && data.messages.length === 0) {
+                clearInterval(logPollInterval);
+                logPollInterval = null;
+            }
+        })
+        .catch(err => {
+            console.error('Error polling logs:', err);
+        });
+    }, 500);
+}
+
+function saveLogsToStorage() {
+    const logBox = document.getElementById('log-box');
+    localStorage.setItem('eval_logs', logBox.innerHTML);
+}
+
+function loadSavedLogs() {
+    const saved = localStorage.getItem('eval_logs');
+    if (saved) {
+        const logBox = document.getElementById('log-box');
+        logBox.innerHTML = saved;
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+}
+
+function clearState() {
+    // Call server-side reset first, then clear localStorage and reload
+    fetch('/api/reset', {method: 'POST'})
+        .then(() => {
+            localStorage.removeItem('eval_state');
+            localStorage.removeItem('eval_logs');
+            location.reload();
+        })
+        .catch(err => {
+            console.error('Reset error:', err);
+            // Still clear local state even if server reset fails
+            localStorage.removeItem('eval_state');
+            localStorage.removeItem('eval_logs');
+            location.reload();
+        });
+}
+
+// Modal functions
+let currentRunId = null;  // Track current run for API calls
+// currentModalTests and currentSelectedTestIndex are in test-modal.js
+
+function showCellDetail(domain, level) {
+    const data = testResultsData[domain]?.[level];
+    
+    if (!data || data.status === 'pending') {
+        // No data yet
+        showModalNoData(domain, level);
+        return;
+    }
+    
+    // Get run_id from status or stored value
+    const runId = currentRunId || document.getElementById('status-text')?.dataset?.runId;
+    
+    if (runId) {
+        // Fetch individual test results from API
+        fetch(`/api/run/${runId}/tests/${domain}/${level}`)
+            .then(r => r.json())
+            .then(apiData => {
+                if (apiData.tests && apiData.tests.length > 0) {
+                    showModalWithTests(domain, level, apiData.tests, data);
+                } else {
+                    // Try v1 history API as fallback (works for completed runs)
+                    return fetch(`/api/v1/history/${runId}/${domain}/${level}`)
+                        .then(r => r.json())
+                        .then(histData => {
+                            if (histData.tests && histData.tests.length > 0) {
+                                showModalWithTests(domain, level, histData.tests, data);
+                            } else {
+                                showModalWithData(domain, level, data);
+                            }
+                        });
+                }
+            })
+            .catch(err => {
+                console.error('Failed to fetch test details:', err);
+                showModalWithData(domain, level, data);
+            });
+    } else {
+        // No run_id, use legacy view
+        showModalWithData(domain, level, data);
+    }
+}
+
+// Modal functions are now in shared /static/js/test-modal.js
+
+function renderTestDetailLegacy(test) {
+    if (!test) return '<div class="no-test">No test data</div>';
+    
+    const details = test.details || {};
+    const scoreDisplay = test.score !== null ? (test.score * 100).toFixed(1) + '%' : 'N/A';
+    const scoreClass = test.status === 'passed' ? 'score-passed' : 'score-failed';
+
+
+    
+    let html = `
+        <div class="test-detail-header">
+            <h3>${escapeHtml(test.test_id || test.name || 'Test')}</h3>
+            <div class="test-meta">
+                <span class="score ${scoreClass}">${scoreDisplay}</span>
+                <span class="status-badge status-badge-${test.status}">${test.status.toUpperCase()}</span>
+                ${test.duration_ms ? `<span class="duration">${test.duration_ms}ms</span>` : ''}
+            </div>
+        </div>
+    `;
+    
+    
+    // Tools Available section - compact inline format
+    if (details.tools_available && details.tools_available.length > 0) {
+        const toolsText = details.tools_available.map(t => {
+            const params = t.parameters?.properties 
+                ? Object.keys(t.parameters.properties).join(', ')
+                : '';
+            return `<span class="tool-name">${escapeHtml(t.name)}</span>(<span class="tool-params-inline">${params}</span>)`;
+        }).join(' • ');
+        
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">🔧 AVAILABLE TOOLS (${details.tools_available.length})</div>
+                <div class="section-content tools-box">${toolsText}</div>
+            </div>
+        `;
+    }
+
+    html += `
+        <div class="test-detail-section">
+            <div class="section-header">📥 PROMPT</div>
+            <div class="section-content prompt-box">${escapeHtml(test.prompt || '')}</div>
+        </div>
+        
+        <div class="test-detail-section">
+            <div class="section-header">🎯 EXPECTED</div>
+            <div class="section-content expected-box">${formatExpected(test.expected)}</div>
+        </div>`
+
+
+    // Conversation Log (multi-turn) - Tailwind compact
+    if (details.conversation_log && details.conversation_log.length > 0) {
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">TURNS (${details.conversation_log.length})</div>
+                <div class="space-y-2">
+                    ${details.conversation_log.map((turn, i) => `
+                        <div class="border border-gray-200 rounded text-xs">
+                            <div class="bg-gray-100 px-2 py-1 font-semibold text-gray-600 border-b border-gray-200">Turn ${turn.turn || i+1}</div>
+                            ${turn.thinking ? `
+                                <div class="px-2 py-1 bg-purple-50 border-b border-gray-100">
+                                    <span class="text-purple-600 font-medium">💭 [thinking]</span><br />
+                                    <pre class="text-gray-700 ml-1 overflow-wrap text-wrap max-h-full overflow-y-auto">${escapeHtml(turn.thinking)}</pre>
+                                </div>
+                            ` : ''}
+                            ${turn.tool_calls && turn.tool_calls.length > 0 ? `
+                                <div class="px-2 py-1 bg-blue-50 border-b border-gray-100 font-mono">
+                                    <span class="text-blue-600">🔧</span>
+                                    ${turn.tool_calls.map(tc => `<span class="text-indigo-600 font-semibold ml-1">${escapeHtml(tc.name)}</span><span class="text-gray-500">(${escapeHtml(JSON.stringify(tc.arguments || {})).substring(0, 60)})</span>`).join(' ')}
+                                </div>
+                            ` : ''}
+                            ${turn.tool_results && turn.tool_results.length > 0 ? `
+                                <div class="px-2 py-1 bg-green-50 border-b border-gray-100 font-mono text-gray-600">
+                                    <span class="text-green-600">📥</span>
+                                    <span class="ml-1">${escapeHtml(JSON.stringify(turn.tool_results[0]?.result || {}, null, 0)).substring(0, 120)}${JSON.stringify(turn.tool_results[0]?.result || {}).length > 120 ? '...' : ''}</span>
+                                </div>
+                            ` : ''}
+                            ${turn.response ? `
+                                <div class="px-2 py-1 bg-amber-50 font-semibold text-md">
+                                    <p class="text-amber-600">💬 [response]</p>
+                                    <pre class="text-gray-700 ml-1">${escapeHtml(turn.response)}</pre>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else if (details.thinking) {
+        // Single-turn thinking
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">🧠 THINKING</div>
+                <div class="section-content thinking-box">
+                    <pre>${escapeHtml(details.thinking)}</pre>
+                </div>
+            </div>
+        `;
+    }
+    
+    
+    // Evaluation Details
+    if (details.evaluator || details.called_tools || details.missing_tools) {
+        html += `
+            <div class="test-detail-section">
+                <div class="section-header">🔍 EVALUATION</div>
+                <div class="section-content eval-box">
+                    ${details.evaluator ? `<div><strong>Evaluator:</strong> ${escapeHtml(details.evaluator)}</div>` : ''}
+                    ${details.called_tools ? `<div><strong>Called:</strong> ${details.called_tools.map(t => `<code>${escapeHtml(t)}</code>`).join(', ')}</div>` : ''}
+                    ${details.missing_tools && details.missing_tools.length > 0 ? `<div style="color: #dc2626;"><strong>Missing:</strong> ${details.missing_tools.map(t => `<code>${escapeHtml(t)}</code>`).join(', ')}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Generate Training Data button
+    if (details.conversation_log && details.conversation_log.length > 0) {
+        html += `
+            <div class="test-detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
+                <button onclick="onGenerateTrainingDataClick(currentSelectedTestIndex)" 
+                        style="width: 100%; padding: 0.6rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                               color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600; 
+                               cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    📋 Generate Training Data
+                </button>
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
+function showModalWithData(domain, level, data) {
+    const modal = document.getElementById('test-modal');
+    const header = document.getElementById('modal-header');
+    const title = document.getElementById('modal-title');
+    const body = document.getElementById('modal-body');
+    
+    const statusIcon = data.status === 'passed' ? '✓' : data.status === 'failed' ? '✗' : '⏳';
+    const headerClass = data.status === 'passed' ? 'modal-header-success' : data.status === 'failed' ? 'modal-header-error' : 'modal-header';
+    
+    header.className = 'modal-header ' + headerClass;
+    title.innerHTML = `<span style="font-size: 1.2rem;">${statusIcon}</span> ${domain.toUpperCase()} Level ${level} - ${data.status.toUpperCase()}`;
+    
+    const scoreDisplay = data.score !== null && data.score !== undefined 
+        ? (data.score * 100).toFixed(1) + '%' 
+        : 'N/A';
+    
+    const scoreClass = data.status === 'passed' ? 'score-passed' : data.status === 'failed' ? 'score-failed' : '';
+    
+    let detailsHtml = `
+        <div class="detail-section">
+            <div class="detail-header">Score</div>
+            <div class="detail-content ${scoreClass}" style="font-size: 2rem; font-weight: bold;">
+                ${scoreDisplay}
+            </div>
+        </div>
+        
+        <div class="detail-section">
+            <div class="detail-header">Status</div>
+            <div class="detail-content">
+                <span class="status-badge status-badge-${data.status}">${data.status.toUpperCase()}</span>
+                ${data.duration_ms ? `<span style="margin-left: 1rem; color: #666;">Duration: ${data.duration_ms}ms</span>` : ''}
+            </div>
+        </div>
+        
+        ${data.model_name ? `
+        <div class="detail-section">
+            <div class="detail-header">Model</div>
+            <div class="detail-content">
+                <span style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600;">${escapeHtml(data.model_name)}</span>
+            </div>
+        </div>
+        ` : ''}
+        
+        ${data.details && (data.details.evaluator || data.details.scoring_method) ? `
+        <div class="detail-section">
+            <div class="detail-header">⚙️ Evaluator</div>
+            <div class="detail-content">
+                <span style="background: #fef3c7; color: #92400e; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600;">${escapeHtml(data.details.evaluator || data.details.scoring_method || 'default')}</span>
+                ${data.details.pass2 && data.details.pass2.format ? `<span style="margin-left: 0.5rem; color: #666; font-size: 0.9rem;">(format: ${escapeHtml(data.details.pass2.format)})</span>` : ''}
+            </div>
+        </div>
+        ` : ''}
+        
+        ${data.details && data.details.llm_error ? `
+        <div class="detail-section">
+            <div class="detail-header" style="color: #dc2626; border-color: #dc2626;">⚠️ LLM Error (${escapeHtml(data.details.llm_error.type || 'unknown')})</div>
+            <div class="detail-content" style="background: #fef2f2; border-left: 4px solid #dc2626;">
+                <div style="color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">${escapeHtml(data.details.llm_error.message || 'Unknown error')}</div>
+                ${data.details.llm_error.detail ? `<div style="color: #666; font-size: 0.9rem;">${escapeHtml(data.details.llm_error.detail)}</div>` : ''}
+            </div>
+        </div>
+        ` : ''}
+    `;
+    
+    // INPUT Section - Always show
+    detailsHtml += `
+        <div class="detail-section">
+            <div class="detail-header input-header">📥 INPUT (Prompt)</div>
+            <div class="detail-content input-box">
+                ${data.prompt ? escapeHtml(data.prompt) : '<em style="color: #999;">No prompt recorded</em>'}
+            </div>
+        </div>
+    `;
+    
+    // EXPECTED Section - Always show
+    detailsHtml += `
+        <div class="detail-section">
+            <div class="detail-header expected-header">🎯 EXPECTED Output</div>
+            <div class="detail-content expected-box">
+                ${formatExpected(data.expected)}
+            </div>
+        </div>
+    `;
+    
+    // OUTPUT Section - Always show
+    detailsHtml += `
+        <div class="detail-section">
+            <div class="detail-header output-header">📤 OUTPUT (Model Response)</div>
+            <div class="detail-content output-box">
+                ${data.response ? escapeHtml(data.response) : '<em style="color: #999;">No response recorded</em>'}
+            </div>
+        </div>
+    `;
+    
+    // Thinking Section - if thinking content is present
+    if (data.details && data.details.thinking) {
+        detailsHtml += `
+            <div class="detail-section">
+                <div class="detail-header" style="color: #7c3aed; border-color: #7c3aed;">🧠 Thinking Process</div>
+                <div class="detail-content" style="background: #f5f3ff; border-left: 4px solid #7c3aed; max-height: 300px; overflow-y: auto;">
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85rem; margin: 0; color: #4c1d95;">${escapeHtml(data.details.thinking)}</pre>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Additional details if available
+    if (data.details) {
+        detailsHtml += `
+            <div class="detail-section">
+                <div class="detail-header details-header">🔍 Evaluation Details</div>
+                <div class="detail-content details-box">
+                    ${formatDetails(data.details)}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Generate Training Data button (for legacy single-test view)
+    if (data.details && data.details.conversation_log && data.details.conversation_log.length > 0) {
+        // Store data for training generation
+        currentTrainingTest = {
+            prompt: data.prompt,
+            details: data.details
+        };
+        
+        detailsHtml += `
+            <div class="detail-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px dashed #e5e7eb;">
+                <button onclick="onGenerateTrainingDataClick()" 
+                        style="width: 100%; padding: 0.75rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                               color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; 
+                               cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    📋 Generate Training Data
+                </button>
+            </div>
+        `;
+    }
+    
+    body.innerHTML = detailsHtml;
+    modal.style.display = 'flex';
+}
+
+// onGenerateTrainingDataClick is now in /static/js/training-data.js
+// formatExpected and closeModal are now in shared /static/js/test-modal.js
+
+function formatDetails(details) {
+    if (!details) return 'No details available';
+    
+    try {
+        const parsed = typeof details === 'string' ? JSON.parse(details) : details;
+        
+        if (typeof parsed === 'object') {
+            let html = '';
+            
+            // Show details message with icons (can be string or object)
+            if (parsed.details) {
+                if (typeof parsed.details === 'string') {
+                    // Parse the details message which contains | separators
+                    const parts = parsed.details.split(' | ');
+                    html += '<div style="margin-bottom: 1rem;">';
+                    parts.forEach(part => {
+                        const isGood = part.includes('✓');
+                        const isWarning = part.includes('⚠');
+                        const isBad = part.includes('✗');
+                        let color = '#4b5563';
+                        if (isGood) color = '#059669';
+                        if (isWarning) color = '#d97706';
+                        if (isBad) color = '#dc2626';
+                        html += `<div style="margin: 0.25rem 0; color: ${color};">${escapeHtml(part)}</div>`;
+                    });
+                    html += '</div>';
+                } else if (typeof parsed.details === 'object') {
+                    // Handle object details (e.g., conversation rubric scores)
+                    html += '<div style="margin-bottom: 1rem;">';
+                    
+                    // Relevance, Correctness, Fluency for conversation tests
+                    if (parsed.details.relevance !== undefined) {
+                        const scores = [
+                            {name: 'Relevance', value: parsed.details.relevance},
+                            {name: 'Correctness', value: parsed.details.correctness},
+                            {name: 'Fluency', value: parsed.details.fluency}
+                        ];
+                        html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">';
+                        scores.forEach(s => {
+                            const pct = Math.round(s.value * 100);
+                            const color = pct >= 80 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+                            html += `<div style="text-align: center; padding: 0.5rem; background: #f3f4f6; border-radius: 4px;">
+                                <div style="font-size: 0.75rem; color: #666;">${s.name}</div>
+                                <div style="font-weight: bold; color: ${color};">${pct}%</div>
+                            </div>`;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    // Keywords found
+                    if (parsed.details.keywords_found && parsed.details.keywords_found.length > 0) {
+                        html += '<div style="margin-top: 0.75rem;"><strong>Keywords Found:</strong> ';
+                        html += parsed.details.keywords_found.map(kw => 
+                            `<span style="background: #d1fae5; padding: 0.125rem 0.5rem; border-radius: 4px; margin: 0 0.25rem;">${escapeHtml(kw)}</span>`
+                        ).join('');
+                        html += '</div>';
+                    }
+                    
+                    // Scoring method
+                    if (parsed.details.scoring_method) {
+                        html += `<div style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">Scoring: ${parsed.details.scoring_method}</div>`;
+                    }
+                    
+                    // Actual/Expected for math/reasoning
+                    if (parsed.details.actual !== undefined) {
+                        html += `<div style="margin-top: 0.5rem;"><strong>Actual:</strong> ${escapeHtml(String(parsed.details.actual))}</div>`;
+                    }
+                    if (parsed.details.expected !== undefined) {
+                        html += `<div><strong>Expected:</strong> ${escapeHtml(String(parsed.details.expected))}</div>`;
+                    }
+                    
+                    html += '</div>';
+                }
+            }
+            
+            // Show scoring breakdown
+            if (parsed.breakdown) {
+                html += '<div style="background: #f8fafc; padding: 0.75rem; border-radius: 6px; margin: 0.75rem 0;">';
+                html += '<strong>Score Breakdown:</strong><br>';
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">';
+                
+                const labels = {
+                    'execution': 'Execution',
+                    'results': 'Results',
+                    'columns': 'Columns',
+                    'row_count': 'Row Count',
+                    'data_quality': 'Data Quality'
+                };
+                
+                for (const [key, value] of Object.entries(parsed.breakdown)) {
+                    const pct = Math.round(value * 100);
+                    const color = pct >= 80 ? '#059669' : pct >= 50 ? '#d97706' : '#dc2626';
+                    html += `<div style="text-align: center; padding: 0.5rem; background: white; border-radius: 4px;">
+                        <div style="font-size: 0.75rem; color: #666;">${labels[key] || key}</div>
+                        <div style="font-weight: bold; color: ${color};">${pct}%</div>
+                    </div>`;
+                }
+                html += '</div></div>';
+            }
+            
+            // Show PASS2 extraction info
+            if (parsed.pass2) {
+                const bgColor = parsed.pass2.success ? '#f0fdf4' : '#fef2f2';
+                const borderColor = parsed.pass2.success ? '#059669' : '#dc2626';
+                html += '<div style="background: ' + bgColor + '; padding: 0.75rem; border-radius: 6px; margin: 0.75rem 0; border-left: 3px solid ' + borderColor + ';">';
+                html += '<strong>🔄 PASS 2 Extraction:</strong><br>';
+                html += `<span style="color: ${borderColor}; font-weight: 600;">${parsed.pass2.success ? '✓ Success' : '✗ Failed'}</span>`;
+                if (parsed.pass2.format) {
+                    html += ` <span style="background: #e0e7ff; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">Format: ${parsed.pass2.format}</span>`;
+                }
+                
+                // Show PASS2 INPUT (prompt)
+                if (parsed.pass2.prompt) {
+                    html += `<div style="margin-top: 0.5rem;">`;
+                    html += `<div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📥 PASS2 INPUT (Extraction Prompt):</div>`;
+                    html += `<pre style="background: #eff6ff; padding: 0.75rem; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word; max-height: 150px; overflow-y: auto; border-left: 3px solid #3b82f6;">${escapeHtml(parsed.pass2.prompt)}</pre>`;
+                    html += `</div>`;
+                }
+                
+                // Show PASS2 OUTPUT (raw output)
+                if (parsed.pass2.raw_output) {
+                    html += `<div style="margin-top: 0.5rem;">`;
+                    html += `<div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">📤 PASS2 OUTPUT (Raw Response):</div>`;
+                    html += `<pre style="background: #f8fafc; padding: 0.75rem; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word; max-height: 150px; overflow-y: auto; border-left: 3px solid #059669;">${escapeHtml(parsed.pass2.raw_output)}</pre>`;
+                    html += `</div>`;
+                }
+                
+                // Show PASS2 thinking if present
+                if (parsed.pass2.thinking) {
+                    html += `<div style="margin-top: 0.5rem;">`;
+                    html += `<div style="font-size: 0.85rem; color: #7c3aed; margin-bottom: 0.25rem;">🧠 PASS2 THINKING:</div>`;
+                    html += `<pre style="background: #f5f3ff; padding: 0.75rem; border-radius: 4px; font-size: 0.75rem; white-space: pre-wrap; word-wrap: break-word; max-height: 150px; overflow-y: auto; border-left: 3px solid #7c3aed; color: #4c1d95;">${escapeHtml(parsed.pass2.thinking)}</pre>`;
+                    html += `</div>`;
+                }
+                
+                // Show extracted answer
+                if (parsed.pass2.extracted_answer) {
+                    html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">`;
+                    html += `<strong>Extracted Answer:</strong> <code style="color: #059669; font-size: 1.1rem; font-weight: bold;">${escapeHtml(parsed.pass2.extracted_answer)}</code>`;
+                    html += `</div>`;
+                }
+                
+                // Show attempted extraction if failed
+                if (parsed.pass2.extracted_attempt) {
+                    html += `<div style="margin-top: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px;">`;
+                    html += `<strong>Attempted Extraction:</strong> <code style="color: #dc2626;">${escapeHtml(parsed.pass2.extracted_attempt)}</code>`;
+                    html += `</div>`;
+                }
+                
+                if (parsed.pass2.error) {
+                    html += `<div style="margin-top: 0.5rem; color: #dc2626; font-size: 0.85rem;"><strong>Error:</strong> ${escapeHtml(parsed.pass2.error)}</div>`;
+                }
+                html += '</div>';
+            }
+            
+            if (parsed.error) {
+                html += `<p style="color: #ef4444;"><strong>Error:</strong> ${escapeHtml(parsed.error)}</p>`;
+            }
+            if (parsed.sql_query) {
+                html += `<p><strong>SQL Query:</strong></p><pre class="code-block">${escapeHtml(parsed.sql_query)}</pre>`;
+            }
+            if (parsed.row_count !== undefined && !parsed.breakdown) {
+                html += `<p><strong>Row Count:</strong> ${parsed.row_count}</p>`;
+            }
+            if (parsed.columns) {
+                html += `<p><strong>Columns:</strong> ${parsed.columns.join(', ')}</p>`;
+            }
+            if (parsed.keywords_found) {
+                html += `<p><strong>Keywords Found:</strong> ${parsed.keywords_found.join(', ')}</p>`;
+            }
+            if (parsed.actual_result_preview && parsed.actual_result_preview.length > 0) {
+                html += `<p><strong>Result Preview:</strong></p>`;
+                html += `<pre class="code-block" style="max-height: 150px; font-size: 0.75rem;">${escapeHtml(JSON.stringify(parsed.actual_result_preview, null, 2))}</pre>`;
+            }
+            
+            // Show raw details if nothing specific was shown (exclude thinking, llm_error, pass2 which are shown separately)
+            if (!html) {
+                const excludeKeys = ['thinking', 'llm_error', 'pass2'];
+                const filteredParsed = {};
+                for (const [key, value] of Object.entries(parsed)) {
+                    if (!excludeKeys.includes(key)) {
+                        filteredParsed[key] = value;
+                    }
+                }
+                if (Object.keys(filteredParsed).length > 0) {
+                    html = `<pre class="code-block">${escapeHtml(JSON.stringify(filteredParsed, null, 2))}</pre>`;
+                }
+            }
+            
+            return html;
+        }
+        
+        return escapeHtml(String(details));
+    } catch (e) {
+        return escapeHtml(String(details));
+    }
+}
+
+// escapeHtml is now in shared /static/js/test-modal.js
+
+// Close test modal on outside click (training modal handled by shared JS)
+window.onclick = function(event) {
+    const testModal = document.getElementById('test-modal');
+    if (event.target === testModal) {
+        closeModal();
+    }
+}
+
+// Close test modal on Escape key (training modal handled by shared JS)
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const trainingModal = document.getElementById('training-modal');
+        // Only close test modal if training modal is not visible
+        if (!trainingModal || trainingModal.style.display !== 'flex') {
+            closeModal();
+        }
+    }
+});
+</script>
+
+<style>
+/* Checkbox accent color */
+input[type="checkbox"] {
+    accent-color: #667eea;
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 95%;
+    max-width: stretch;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 1.25rem 1.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header-success {
+    background: #d1fae5;
+    border-bottom: 1px solid #6ee7b7;
+}
+
+.modal-header-error {
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.modal-close {
+    font-size: 1.75rem;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+/* Two-column modal layout */
+.modal-two-col {
+    display: flex;
+    gap: 0.75rem;
+    height: calc(90vh - 120px);
+}
+
+.modal-test-list {
+    width: 180px;
+    flex-shrink: 0;
+    border-right: 1px solid #e5e7eb;
+    padding-right: 0.75rem;
+    overflow-y: auto;
+}
+
+.test-list-header {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid #667eea;
+}
+
+.test-list-header .pass-count {
+    color: #10b981;
+    font-weight: 700;
+}
+
+.test-list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.test-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.15s;
+}
+
+.test-list-item:hover {
+    background: #f3f4f6;
+}
+
+.test-list-item.active {
+    background: #e0e7ff;
+    font-weight: 600;
+}
+
+.test-list-item.passed .test-status-icon {
+    color: #10b981;
+}
+
+.test-list-item.failed .test-status-icon {
+    color: #ef4444;
+}
+
+.test-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modal-test-detail {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.test-detail-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.test-detail-header h3 {
+    margin: 0 0 0.3rem 0;
+    font-size: 1rem;
+    color: #1f2937;
+}
+
+.test-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.test-meta .score {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.test-meta .duration {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.test-detail-section {
+    margin-bottom: 0.6rem;
+}
+
+.section-header {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #374151;
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-header:hover {
+    color: #1f2937;
+}
+
+.toggle-icon {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    transition: transform 0.2s;
+}
+
+.section-content {
+    background: #f9fafb;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    word-break: break-word;
+}
+
+.prompt-box { max-height: 100px; overflow-y: auto; }
+.expected-box { overflow-y: auto; }
+.response-box { overflow-y: auto; }
+.thinking-box { background: #f5f3ff; max-height: auto; overflow-y: auto; }
+.system-prompt-box { 
+    background: #fef3c7; 
+    border-left: 3px solid #f59e0b;
+    max-height: 200px; 
+    overflow-y: auto; 
+}
+
+.mode-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.mode-overwrite {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.mode-append {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+/* Tools styling - compact inline */
+.tools-box {
+    padding: 0.4rem !important;
+    font-family: monospace;
+    font-size: 0.8rem !important;
+    line-height: 1.4;
+}
+
+.tool-item {
+    display: inline;
+}
+
+.tool-item::after {
+    content: " • ";
+    color: #999;
+}
+
+.tool-item:last-child::after {
+    content: "";
+}
+
+.tool-name {
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+.tool-params-inline {
+    color: #666;
+}
+
+/* Conversation log - using Tailwind now */
+.conversation-log {
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+
+.detail-header {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-header {
+    color: #1d4ed8;
+    border-color: #3b82f6;
+}
+
+.expected-header {
+    color: #059669;
+    border-color: #10b981;
+}
+
+.output-header {
+    color: #d97706;
+    border-color: #f59e0b;
+}
+
+.details-header {
+    color: #7c3aed;
+    border-color: #8b5cf6;
+}
+
+.detail-content {
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.input-box {
+    background: #eff6ff;
+    padding: 1rem;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.expected-box {
+    background: #f0fdf4;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.output-box {
+    background: #fffbeb;
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #f59e0b;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.details-box {
+    background: #f5f3ff;
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #8b5cf6;
+}
+
+.code-block {
+    background: #f1f5f9;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.score-passed {
+    color: #059669;
+}
+
+.score-failed {
+    color: #dc2626;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-badge-passed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge-failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge-partial {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge-running {
+    background: #fef3c7;
+    color: #92400e;
+}
+</style>
+{% endblock %}

@@ -27,6 +27,7 @@
 
             <nav>
                 <a href="/" class="{{ 'nav-active' if request.path == '/' else '' }}">Dashboard</a>
+                <a href="/evaluate" class="{{ 'nav-active' if request.path.startswith('/evaluate') else '' }}">Evaluate</a>
                 <a href="/history" class="{{ 'nav-active' if request.path.startswith('/history') else '' }}">History</a>
                 <a href="/settings" class="{{ 'nav-active' if request.path == '/settings' else '' }}">Settings</a>
             </nav>

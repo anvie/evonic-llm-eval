@@ -6,22 +6,42 @@ import os
 
 from evaluator.engine import evaluation_engine
 from models.db import db
-from routes.agents import agents_bp
-from routes.auth import auth_bp, login_required
-from routes.skills import skills_bp
-from routes.plugins import plugins_bp
 import config
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.register_blueprint(auth_bp)
-app.register_blueprint(agents_bp)
-app.register_blueprint(skills_bp)
-app.register_blueprint(plugins_bp)
 
 @app.route('/')
 def index():
-    """Main dashboard"""
+    """Evaluation overview dashboard"""
+    try:
+        recent_runs = db.get_recent_runs(limit=5)
+    except Exception:
+        recent_runs = []
+    try:
+        leaderboard = db.get_model_leaderboard(limit=5)
+    except Exception:
+        leaderboard = []
+    stats = {
+        'eval_run_count': 0,
+        'model_count': len(leaderboard),
+        'best_score': round(leaderboard[0]['best_score'] * 100, 1) if leaderboard else None,
+        'latest_eval_score': None,
+    }
+    try:
+        row = db.get_dashboard_stats()
+        stats['eval_run_count'] = row.get('eval_run_count', 0)
+        stats['latest_eval_score'] = row.get('latest_eval_score')
+    except Exception:
+        pass
+    return render_template('index.html',
+                           stats=stats,
+                           recent_runs=recent_runs,
+                           leaderboard=leaderboard)
+
+@app.route('/evaluate')
+def evaluate():
+    """LLM Evaluation runner page"""
     from evaluator.test_manager import test_manager
     status = evaluation_engine.get_status()
     # Get enabled domains for the test matrix
@@ -36,7 +56,7 @@ def index():
             tests = test_manager.list_tests(d['id'], lvl)
             count += sum(1 for t in tests if t.get('enabled', True))
         domain_test_counts[d['id']] = count
-    return render_template('index.html', status=status, domains=domain_ids, domain_names=domain_names, domain_test_counts=domain_test_counts)
+    return render_template('evaluate.html', status=status, domains=domain_ids, domain_names=domain_names, domain_test_counts=domain_test_counts)
 
 @app.route('/api/status')
 def api_status():
