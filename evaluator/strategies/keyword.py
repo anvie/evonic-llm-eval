@@ -165,4 +165,4 @@ class KeywordEvaluator(BaseEvaluator):
     def _find_keywords(self, response: str, keywords: List[str]) -> List[str]:
         """Find which keywords are present"""
         response_lower = response.lower()
-        return [kw for kw in keywords if kw in response_lower]
+        return [kw for kw in keywords if kw.lower() in response_lower]
