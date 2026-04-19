@@ -4,8 +4,5 @@
   "description": "Indonesian conversational Q&A tests - tests natural language understanding and response generation",
   "icon": "chat",
   "color": "#3B82F6",
-  "evaluator_id": "keyword",
-  "enabled": true,
-  "created_at": "2026-04-02T06:43:42.043843",
-  "updated_at": "2026-04-06T22:50:19.623239"
+  "evaluator_id": "keyword"
 }

@@ -13,8 +13,10 @@
   "weight": 1,
   "enabled": true,
   "created_at": "2026-04-03T07:51:00.000000",
-  "updated_at": "2026-04-06T21:37:14.156326",
+  "updated_at": "2026-04-19T18:41:35.901494",
   "system_prompt": null,
   "system_prompt_mode": "overwrite",
-  "tool_ids": []
+  "tool_ids": [
+    "calculator"
+  ]
 }

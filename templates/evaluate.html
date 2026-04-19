@@ -48,7 +48,7 @@
         <!-- LEFT: Matrix + Summary -->
         <div class="flex-1 min-w-0">
             <!-- Matrix Header (desktop only) -->
-            <div class="hidden md:grid md:grid-cols-[40px_160px_repeat(5,1fr)_120px] gap-2 p-4 bg-gray-50 font-semibold rounded-t-lg text-sm">
+            <div class="hidden md:grid md:grid-cols-[40px_160px_repeat(5,1fr)_120px] gap-2 px-0 py-3 bg-gray-50 font-semibold rounded-t-lg text-sm">
                 <div class="flex items-center justify-center"><input type="checkbox" id="select-all" checked onclick="toggleAllDomains(this.checked)" title="Select/Deselect All"></div>
                 <div class="flex items-center">Domain</div>
                 <div class="text-center">Level 1</div>
@@ -86,7 +86,7 @@
                 {% endfor %}
 
                 <!-- Domain total (mobile: full-width footer, desktop: column) -->
-                <div class="col-span-5 flex flex-row items-center justify-center gap-3 p-2 bg-gray-50 rounded-md mt-1
+                <div class="col-span-5 flex flex-row items-center justify-center gap-3 p-2 bg-gray-50 mt-1
                             md:col-span-1 md:flex-col md:gap-0 md:mt-0 md:min-h-[60px]"
                      id="total-{{ domain }}">
                     <div class="text-base md:text-lg font-bold text-gray-800" id="total-score-{{ domain }}">-</div>

@@ -1,0 +1,10 @@
+{
+  "id": "clinical_keyword_judge",
+  "name": "Clinical Keyword Judge",
+  "type": "hybrid",
+  "description": "Evaluates clinical translate & enrich output quality across completeness, accuracy, and abbreviation handling",
+  "eval_prompt": "Kamu adalah clinical NLP quality assessor. Tugasmu menilai kualitas output translate & enrich dari resume medis Indonesia ke English clinical keywords.\n\nKamu akan menerima:\n- EXPECTED: ground truth keywords (JSON)\n- RESPONSE: output model yang dievaluasi\n\n---EXPECTED---\n{expected}\n---END EXPECTED---\n\n---RESPONSE---\n{response}\n---END RESPONSE---\n\nNilai berdasarkan 3 dimensi (skor 1-5 per dimensi):\n\n## 1. COMPLETENESS (bobot 40%)\nApakah SEMUA kondisi klinis dari expected ada di response?\n- 5: Semua diagnosa dan temuan klinis tercapture\n- 4: 1 item minor terlewat (mis: risk factor)\n- 3: 1 diagnosa atau 2+ temuan terlewat\n- 2: Multiple diagnosa terlewat\n- 1: Mayoritas terlewat\n\n## 2. CLINICAL ACCURACY (bobot 40%)\nApakah terjemahan medisnya benar secara terminologi?\n- 5: Semua terjemahan menggunakan terminologi medis standar yang benar\n- 4: Minor: penggunaan sinonim yang kurang presisi tapi masih benar (mis: \"shortness of breath\" vs \"dyspnea\")\n- 3: 1-2 terjemahan yang kurang tepat tapi tidak salah arah\n- 2: Ada terjemahan yang salah secara klinis\n- 1: Banyak terjemahan yang salah\n\n## 3. ABBREVIATION HANDLING (bobot 20%)\nApakah abbreviasi medis Indonesia dikenali dan di-expand dengan benar?\n- 5: Semua abbreviasi ter-expand benar (GGK->CKD, HD->hemodialysis, Ur->urea/BUN, dll)\n- 4: 1 abbreviasi minor tidak ter-expand\n- 3: 1-2 abbreviasi penting tidak ter-expand\n- 2: Banyak abbreviasi tidak dikenali\n- 1: Tidak ada penanganan abbreviasi\n\nBerikan output PERSIS dalam format ini:\nCOMPLETENESS: [1-5]\nACCURACY: [1-5]\nABBREVIATION: [1-5]\nWEIGHTED_SCORE: [hitung: (completeness*0.4 + accuracy*0.4 + abbreviation*0.2) / 5 * 100]\nREASONING: [penjelasan singkat max 3 kalimat]",
+  "extraction_regex": "WEIGHTED_SCORE:\\s*(\\d+(?:\\.\\d+)?)",
+  "uses_pass2": false,
+  "config": {}
+}

@@ -4,7 +4,5 @@
   "description": "Menguji kemampuan model untuk menemukan dan mengambil informasi spesifik yang tersembunyi di dalam teks panjang yang tidak relevan",
   "icon": "search",
   "color": "#F59E0B",
-  "evaluator_id": "keyword",
-  "enabled": true,
-  "updated_at": "2026-04-07T00:04:09.792437"
+  "evaluator_id": "keyword"
 }

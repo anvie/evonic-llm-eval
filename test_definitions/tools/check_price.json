@@ -1,0 +1,30 @@
+{
+  "id": "check_price",
+  "name": "Check room/unit price",
+  "description": "Check room/unit price for specific date",
+  "function": {
+    "name": "check_price",
+    "description": "Check room/unit price for specific dates.",
+    "parameters": {
+      "properties": {
+        "dates": {
+          "description": "Date range in format yyyy-mm-dd -> yyyy-mm-dd",
+          "type": "string"
+        },
+        "unit_name": {
+          "description": "Room or unit name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unit_name",
+        "dates"
+      ],
+      "type": "object"
+    }
+  },
+  "mock_response": "const args = JSON.parse(ARGS);\nconst unitName = args.unit_name;\nconst dates = args.dates;\nconst parts = dates.split('->').map(s => s.trim());\nconst start = new Date(parts[0]);\nconst end = new Date(parts[1]);\nconst prices = [];\nlet total = 0;\nconst d = new Date(start);\nwhile (d < end) {\n  const isWeekend = (d.getDay() === 0 || d.getDay() === 6);\n  const price = isWeekend ? 1200000 : 850000;\n  prices.push({ date: d.toISOString().split('T')[0], price: price, available: true });\n  total += price;\n  d.setDate(d.getDate() + 1);\n}\nconsole.log(JSON.stringify({ unit_name: unitName, dates: dates, currency: \"IDR\", prices: prices, total: total, nights: prices.length }));",
+  "mock_response_type": "javascript",
+  "created_at": "2026-04-08T22:00:29.416809",
+  "updated_at": "2026-04-08T22:02:58.504750"
+}
