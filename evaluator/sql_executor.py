@@ -1,27 +1,37 @@
+import re
 import sqlite3
 from typing import Dict, Any, List, Optional
 import config
 
+
+def strip_sql_comments(query: str) -> str:
+    """Remove SQL line comments (-- ...) from a query."""
+    lines = query.splitlines()
+    stripped = [re.sub(r'--[^\n]*', '', line) for line in lines]
+    return '\n'.join(stripped).strip()
+
+
 class SQLExecutor:
     def __init__(self, db_path: str = config.TEST_DB_PATH):
         self.db_path = db_path
-    
+
     def execute_safe_query(self, query: str) -> Dict[str, Any]:
         """Execute SQL query with safety checks"""
-        
+
         # Safety validation
         validation_result = self._validate_query(query)
         if not validation_result["valid"]:
             return validation_result
-        
+
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                
+
                 cursor.execute(query)
-                
-                if query.strip().upper().startswith("SELECT"):
+
+                clean = strip_sql_comments(query).upper()
+                if clean.startswith("SELECT") or clean.startswith("WITH"):
                     rows = cursor.fetchall()
                     result = [dict(row) for row in rows]
                     return {
@@ -53,33 +63,34 @@ class SQLExecutor:
     
     def _validate_query(self, query: str) -> Dict[str, Any]:
         """Validate SQL query for safety"""
-        
-        # Basic checks
+
         if not query.strip():
             return {"valid": False, "error": "Empty query"}
-        
-        query_upper = query.upper()
-        
+
+        # Strip comments before validation so leading -- lines don't confuse checks
+        clean = strip_sql_comments(query)
+        clean_upper = clean.upper()
+
         # Block dangerous operations
         dangerous_keywords = [
-            "DROP", "DELETE", "UPDATE", "INSERT", "ALTER", 
+            "DROP", "DELETE", "UPDATE", "INSERT", "ALTER",
             "TRUNCATE", "CREATE", "GRANT", "REVOKE"
         ]
-        
+
         for keyword in dangerous_keywords:
-            if f" {keyword} " in f" {query_upper} ":
+            if f" {keyword} " in f" {clean_upper} ":
                 return {
-                    "valid": False, 
+                    "valid": False,
                     "error": f"Query contains dangerous operation: {keyword}"
                 }
-        
-        # Allow only SELECT queries for safety
-        if not query_upper.startswith("SELECT"):
+
+        # Allow SELECT and WITH (CTEs that resolve to SELECT)
+        if not (clean_upper.startswith("SELECT") or clean_upper.startswith("WITH")):
             return {
                 "valid": False,
                 "error": "Only SELECT queries are allowed for evaluation"
             }
-        
+
         return {"valid": True}
     
     def compare_results(self, actual_result: List[Dict], expected_result: List[Dict]) -> Dict[str, Any]:
