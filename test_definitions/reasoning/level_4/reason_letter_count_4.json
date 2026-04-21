@@ -1,0 +1,16 @@
+{
+  "id": "reason_letter_count_4",
+  "name": "Letter Count Reasoning",
+  "description": "Test reasoning by counting letters in a word",
+  "prompt": "Ada berapa huruf r pada kata 'strawberry'?",
+  "expected": 3,
+  "evaluator_id": "regex_exact_number",
+  "timeout_ms": 30000,
+  "weight": 1,
+  "enabled": true,
+  "created_at": "2026-04-21T16:15:00",
+  "updated_at": "2026-04-21T23:25:58.162645",
+  "system_prompt": "Only return number, no prolog, no epilog, just raw number.",
+  "system_prompt_mode": "overwrite",
+  "tool_ids": []
+}

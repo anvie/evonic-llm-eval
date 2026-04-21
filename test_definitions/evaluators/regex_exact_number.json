@@ -1,0 +1,11 @@
+{
+  "id": "regex_exact_number",
+  "name": "Exact Number Match",
+  "type": "regex",
+  "description": "Extracts a number from the response and compares it exactly to the expected numeric value",
+  "extraction_regex": "^(\\d+(?:\\.\\d+)?)$",
+  "uses_pass2": false,
+  "config": {
+    "comparison": "exact_number"
+  }
+}

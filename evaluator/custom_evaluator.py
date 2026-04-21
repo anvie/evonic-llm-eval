@@ -148,11 +148,29 @@ class CustomEvaluator:
                     # Try to interpret as score
                     try:
                         score = float(extracted)
+
+                        # exact_number: compare numeric value to expected
+                        if self.evaluator_config.get('comparison') == 'exact_number':
+                            expected_num = float(str(expected)) if expected is not None else None
+                            is_match = expected_num is not None and score == expected_num
+                            return EvaluationResult(
+                                score=1.0 if is_match else 0.0,
+                                status='passed' if is_match else 'failed',
+                                details={
+                                    'method': 'exact_number',
+                                    'extracted_value': extracted,
+                                    'expected': expected,
+                                    'match': is_match,
+                                    'pattern': pattern
+                                },
+                                reasoning=f'Extracted {extracted} vs expected {expected}: {"MATCH" if is_match else "NO MATCH"}'
+                            )
+
                         # Normalize to 0-1 if > 1
                         if score > 1.0:
                             score = score / 100.0
                         status = 'passed' if score >= 0.7 else 'failed'
-                        
+
                         return EvaluationResult(
                             score=score,
                             status=status,
