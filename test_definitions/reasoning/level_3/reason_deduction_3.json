@@ -1,0 +1,18 @@
+{
+  "id": "reason_deduction_3",
+  "name": "Penalaran Deduktif",
+  "description": "Test penalaran deduktif dengan premis dan kesimpulan dalam bahasa Indonesia",
+  "prompt": "Semua dokter memiliki izin praktik. Beberapa dokter adalah juga dosen. Berdasarkan pernyataan tersebut, manakah kesimpulan yang PASTI benar?",
+  "expected": {
+    "answer": "Beberapa dosen memiliki izin praktik"
+  },
+  "evaluator_id": "natural_text_compare",
+  "timeout_ms": 30000,
+  "weight": 1,
+  "enabled": true,
+  "created_at": "2026-04-22T07:29:43",
+  "updated_at": "2026-04-22T15:24:06.202404",
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite",
+  "tool_ids": []
+}

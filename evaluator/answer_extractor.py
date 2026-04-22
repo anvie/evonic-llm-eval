@@ -64,18 +64,19 @@ Your answer (ya/tidak only):""",
         },
         
         3: {
-            "template": """You are given a question and an AI's response. Extract ONLY the final answer word.
+            "template": """You are given a question and an AI's response. Extract ONLY the final answer (a word, phrase, or short sentence).
 
 ---BEGIN RESPONSE---
 {response}
 ---END RESPONSE---
 
 Rules:
-1. Return ONLY the single word answer (no explanation, no punctuation)
+1. Return ONLY the answer itself (no explanation, no punctuation at the end)
 2. If it's an analogy completion, return only the missing word
-3. Just the final answer word, lowercase
+3. If it's a deduction or causal question, return the full conclusion sentence
+4. Lowercase only
 
-Your answer (word only):""",
+Your answer:""",
             "expected_format": "text"
         },
         

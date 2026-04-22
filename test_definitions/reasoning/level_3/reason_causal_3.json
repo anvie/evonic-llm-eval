@@ -1,0 +1,18 @@
+{
+  "id": "reason_causal_3",
+  "name": "Penalaran Sebab-Akibat",
+  "description": "Test penalaran sebab-akibat dengan skenario kompleks dalam bahasa Indonesia",
+  "prompt": "Jika suhu udara mencapai 40 derajat Celsius dan kelembaban tinggi, maka indeks UV sangat berbahaya. Hari ini suhu 42 derajat dengan kelembaban 85%. Apa yang seharusnya dilakukan seseorang?",
+  "expected": {
+    "answer": "Menghindari paparan matahari langsung dan menggunakan perlindungan UV"
+  },
+  "evaluator_id": "natural_text_compare",
+  "timeout_ms": 30000,
+  "weight": 1,
+  "enabled": true,
+  "created_at": "2026-04-22T07:29:43",
+  "updated_at": "2026-04-22T15:24:26.819062",
+  "system_prompt": null,
+  "system_prompt_mode": "overwrite",
+  "tool_ids": []
+}
